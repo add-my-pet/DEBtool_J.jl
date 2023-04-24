@@ -57,7 +57,7 @@ function parscomp_st(p)
     # * M_H*, U_H*, V_H*, v_H*, u_H*: scaled maturities computed from all unscaled ones: E_H*
     # * s_H: -, maturity ratio E_Hb/ E_Hp
    if !hasproperty(p,:p_Am)
-    p_Am = p.z * p.p_M/ p.kap;   # J/d.cm^2, {p_Am} spec assimilation flux; the expression for p_Am is multiplied also by L_m^ref = 1 cm, for units to match. 
+    p_Am = p.z * p.p_M/ p.kap * 1u"cm";   # J/d.cm^2, {p_Am} spec assimilation flux; the expression for p_Am is multiplied also by L_m^ref = 1 cm, for units to match. 
    else
     p_Am = p.p_Am;
    end

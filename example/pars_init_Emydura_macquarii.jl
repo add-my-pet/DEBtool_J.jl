@@ -103,7 +103,7 @@ metaPar = metaPar_struct()
     T_ref::T = (20.0 + 273.15)u"K"
 
     # core primary parameters 
-    z::Z = 13.2002u"cm"
+    z::N = 13.2002
     F_m::L = 6.5u"l/d/cm^2"
     kap_X::K = 0.8
     kap_P::K = 0.1
