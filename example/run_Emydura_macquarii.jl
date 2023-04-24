@@ -1,7 +1,12 @@
 using DEBtool_J
+using Parameters
+using ModelParameters
+using Unitful
 
-global pets = ["Emydura_macquarii"];
-include("predict_Emydura_macquarii.jl")
+pets = ["Emydura_macquarii"];
+#include("predict_Emydura_macquarii.jl")
+include("pars_init_" * pets[1] * ".jl")
+par_model = Model(Par()) # create a 'Model' out of the Pars struct
 
 #check_my_pet(pets); 
 estim_options("default"); 
@@ -12,13 +17,6 @@ estim_options("pars_init_method", 2);
 estim_options("results_output", 3); 
 estim_options("method", "nm"); 
 
-estim_options("max_step_number", 30); 
-
-#pars_init_method = 2 # needs to come out of estim_options
-#pseudodata_pets = 0
-#method = "nm"
-#filter = 1
-#covRules = "no" # needs to come out of estim_options
-#estim_pars(pets, pars_init_method, method, filter, covRules)
-estim_pars(pets)
+# currently takes 55 seconds to do 500 steps, matlab takes just under 40
+estim_pars(pets, par_model, metaPar)
 
