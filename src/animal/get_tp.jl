@@ -83,7 +83,7 @@ function get_tp(p, f, lb0)
   else # reproduction is possible
     if length(lb0) != 2 # lb0 = l_b 
       tau_b, lb, info = get_tb([g, k, vHb], f)
-      cb = ContinuousCallback(event_puberty,terminate_affect!)
+      cb = ContinuousCallback(event_puberty_tp,terminate_affect_tp!)
       u0 = [vHb, lb]
       tspan = (0, 1e8)
       s_M = 1.0
@@ -195,7 +195,7 @@ function get_tp(p, f)
   else # reproduction is possible
     #if length(lb0) != 2 # lb0 = l_b 
       tau_b, lb, info = get_tb([g, k, vHb], f)
-      cb = ContinuousCallback(event_puberty,terminate_affect!)
+      cb = ContinuousCallback(event_puberty_tp,terminate_affect_tp!)
       u0 = [vHb, lb]
       tspan = (0, 1e8)
       s_M = 1.0
@@ -228,10 +228,10 @@ function get_tp(p, f)
   (tau_p, tau_b, lp, lb, info)
 end
 
-function event_puberty(vHl, t, integrator)
+function event_puberty_tp(vHl, t, integrator)
   # vHl: 2-vector with [vH; l]
   vHp = integrator.p[6]
   vHp - vHl[1]
 end
 
-terminate_affect!(integrator) = terminate!(integrator)
+terminate_affect_tp!(integrator) = terminate!(integrator)

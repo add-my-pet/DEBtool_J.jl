@@ -3,7 +3,7 @@
 
 ##
 #function estim_pars(pets, pars_init_method, method, filter, covRules)
-function estim_pars(pets = ["Emydura_macquarii"])
+function estim_pars(pets = ["Emydura_macquarii"], par_model = par_model, metaPar = metaPar)
 
   # created 2015/02/10 by Goncalo Marques
   # modified 2015/02/10 by Bas Kooijman, 
@@ -85,7 +85,13 @@ function estim_pars(pets = ["Emydura_macquarii"])
   #     par.free = par2.free;
   # elseif pars_init_method == 2
   #     if n_pets == 1
-  include("../example/pars_init_" * pets[1] * ".jl")
+  #include("../example/pars_init_" * pets[1] * ".jl")
+  par_names = fieldnames(typeof(par_model.parent)) # get the field names
+  par_vals = par_model[:val] # get the values
+  par_units = par_model[:units] # get the units
+  par = NamedTuple{par_names}(Tuple([u === nothing ? typeof(v)(v) : v*u for (v, u) in zip(par_vals, par_units)])) # adjoin units to parameter values
+  par_free = NamedTuple{par_names}(par_model[:free]) # get the vector of free parameters
+  par = (par..., free=par_free) # append free parameters to the par struct
   #       end
   #       #[par, metaPar, txtPar] = feval(pars_initnm, metaData.(pets[1]));
   #     else
@@ -95,7 +101,7 @@ function estim_pars(pets = ["Emydura_macquarii"])
 
   # make sure that global covRules exists
   #if exist("metaPar.covRules","var")
-  if isdefined(metaPar, :covRulres)
+  if isdefined(metaPar, :covRules)
     covRules = metaPar.covRules
   else
     covRules = "no"
