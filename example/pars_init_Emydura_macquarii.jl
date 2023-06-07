@@ -93,7 +93,7 @@ Base.@kwdef struct Par{T,Z,L,K,V,PV,PS,R,EV,E,RR,S,D,DM,F,EM,N}
     n_ON::N = Param(0.6, units=nothing, free=(0), label="chem. index of oxygen in N-waste")
     n_NN::N = Param(0.8, units=nothing, free=(0), label="chem. index of nitrogen in N-waste")
 end
-@with_kw mutable struct metaPar_struct
+@with_kw struct metaPar_struct # does this need to be mutable?
     model = "std"
 end
 metaPar = metaPar_struct()

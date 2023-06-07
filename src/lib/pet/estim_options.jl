@@ -160,13 +160,13 @@
   
   function estim_options(key::String)
 
-    global method, lossfunction, filter, pars_init_method, results_output, max_fun_evals 
-    global report, max_step_number, tol_simplex, tol_fun, simplex_size 
-    global search_method, num_results, gen_factor, factor_type, bounds_from_ind # method mmea only
-    global max_calibration_time, num_runs, add_initial, refine_best
-    global verbose, verbose_options
-    global random_seeds, seed_index, ranges, mat_file, results_display
-    global results_filename, save_results, sigma_share
+    # global method, lossfunction, filter, pars_init_method, results_output, max_fun_evals 
+    # global report, max_step_number, tol_simplex, tol_fun, simplex_size 
+    # global search_method, num_results, gen_factor, factor_type, bounds_from_ind # method mmea only
+    # global max_calibration_time, num_runs, add_initial, refine_best
+    # global verbose, verbose_options
+    # global random_seeds, seed_index, ranges, mat_file, results_display
+    # global results_filename, save_results, sigma_share
 
     availableMethodOptions = ["no", "nm", "mmea", "nr"];
 
@@ -652,18 +652,23 @@
   if method =="mmea" && filter==0
     println("Warning from estim_options: method mmea without using filters amounts to asking for trouble\n");
   end
+  return(; method, lossfunction, filter, pars_init_method, results_output, max_fun_evals,
+   report, max_step_number, tol_simplex, tol_fun, simplex_size, search_method, num_results, 
+   gen_factor, factor_type, bounds_from_ind, max_calibration_time, num_runs, add_initial, 
+   refine_best, verbose, verbose_options, random_seeds, seed_index, ranges, mat_file,
+   results_display, results_filename, save_results, sigma_share)
 end
 
 
 function estim_options(key::String, val)
 
-    global method, lossfunction, filter, pars_init_method, results_output, max_fun_evals 
-    global report, max_step_number, tol_simplex, tol_fun, simplex_size 
-    global search_method, num_results, gen_factor, factor_type, bounds_from_ind # method mmea only
-    global max_calibration_time, num_runs, add_initial, refine_best
-    global verbose, verbose_options
-    global random_seeds, seed_index, ranges, mat_file, results_display
-    global results_filename, save_results, sigma_share
+    # global method, lossfunction, filter, pars_init_method, results_output, max_fun_evals 
+    # global report, max_step_number, tol_simplex, tol_fun, simplex_size 
+    # global search_method, num_results, gen_factor, factor_type, bounds_from_ind # method mmea only
+    # global max_calibration_time, num_runs, add_initial, refine_best
+    # global verbose, verbose_options
+    # global random_seeds, seed_index, ranges, mat_file, results_display
+    # global results_filename, save_results, sigma_share
 
     availableMethodOptions = ["no", "nm", "mmea", "nr"];
 
@@ -807,4 +812,9 @@ function estim_options(key::String, val)
   if method == "mmea" && filter==0
     println("Warning from estim_options: method mmea without using filters amounts to asking for trouble\n");
   end
+  return(; method, lossfunction, filter, pars_init_method, results_output, max_fun_evals, # note semicolon makes these keywords
+  report, max_step_number, tol_simplex, tol_fun, simplex_size, search_method, num_results, 
+  gen_factor, factor_type, bounds_from_ind, max_calibration_time, num_runs, add_initial, 
+  refine_best, verbose, verbose_options, random_seeds, seed_index, ranges, mat_file,
+  results_display, results_filename, save_results, sigma_share)
 end

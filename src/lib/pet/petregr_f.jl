@@ -2,7 +2,7 @@
 # Finds parameter values for a pet that minimizes the lossfunction using Nelder Mead's simplex method using a filter
 
 ##
-function petregr_f(func, par, data, auxData, weights, filternm)
+function petregr_f(func, par, data, auxData, weights, filternm, estim_opts, pets)
 # created 2001/09/07 by Bas Kooijman; 
 # modified 2015/01/29 by Goncalo Marques, 
 #   2015/03/21 by Bas Kooijman, 
@@ -39,8 +39,15 @@ function petregr_f(func, par, data, auxData, weights, filternm)
 # The number of fields in data is variable.
 # See <groupregr_f.html *groupregr_f*> for the multi-species situation.
 
-  global lossfunction, report, max_step_number, max_fun_evals, tol_simplex, tol_fun, simplex_size
-  global st, fieldsInCells, auxVar, Y, meanY, W, P, meanP, q, pets
+  #global lossfunction, report, max_step_number, max_fun_evals, tol_simplex, tol_fun, simplex_size
+  global st, fieldsInCells, auxVar, Y, meanY, W, P, meanP, q#, pets
+
+  @unpack method, lossfunction, filter, pars_init_method, results_output, max_fun_evals,
+  report, max_step_number, tol_simplex, tol_fun, simplex_size, search_method, num_results, 
+  gen_factor, factor_type, bounds_from_ind, max_calibration_time, num_runs, add_initial, 
+  refine_best, verbose, verbose_options, random_seeds, seed_index, ranges, mat_file,
+  results_display, results_filename, save_results, sigma_share = estim_opts
+
   # option settings
   info = true; # initiate info setting
   fileLossfunc = "lossfunction_" * lossfunction;
@@ -137,7 +144,8 @@ function petregr_f(func, par, data, auxData, weights, filternm)
   unit_xin = map(unit, xin)
   v = zeros(Float64, length(xin), Int(n_par)+1).*unit_xin
   v[:,1] = xin;
-  f = eval(call_func)[1];
+  #f = eval(call_func)[1];
+  f = predict_pets(pets, q, data, auxData)[1]
   PmeanP = struct2vector(f, nm, st);
   P = PmeanP[1]
   meanP = PmeanP[2]
@@ -171,7 +179,7 @@ function petregr_f(func, par, data, auxData, weights, filternm)
         step_reducer = 2 * step_reducer;
       else
         #[f, f_test] = feval(func, q, data, auxData);
-        f, f_test = eval(call_func);
+        f, f_test = predict_pets(pets, q, data, auxData)#eval(call_func);
 
         if !f_test 
           println("The parameter set for the simplex construction is not realistic. \n");
@@ -224,7 +232,7 @@ function petregr_f(func, par, data, auxData, weights, filternm)
       fxr = fv[:,np1] + 1;
     else
       #f, f_test = feval(func, q, data, auxData);
-      f, f_test = eval(call_func);
+      f, f_test = predict_pets(pets, q, data, auxData)#eval(call_func);
       if !f_test 
         fxr = fv[:,np1] + 1;
       else
@@ -248,7 +256,7 @@ function petregr_f(func, par, data, auxData, weights, filternm)
          fxe = fxr + 1;
       else
         #[f, f_test] = feval(func, q, data, auxData);
-        f, f_test = eval(call_func);
+        f, f_test = predict_pets(pets, q, data, auxData)#eval(call_func);
         if !f_test 
           fxe = fv[:,np1] + 1;
         else
@@ -287,7 +295,7 @@ function petregr_f(func, par, data, auxData, weights, filternm)
               fxc = fxr + 1;
             else            
               #[f, f_test] = feval(func, q, data, auxData);
-              f, f_test = eval(call_func);
+              f, f_test = predict_pets(pets, q, data, auxData)#eval(call_func);
               if !f_test 
                 fxc = fv[:,np1] + 1;
               else
@@ -320,7 +328,7 @@ function petregr_f(func, par, data, auxData, weights, filternm)
               fxcc = fv[:,np1] + 1;
             else
               #[f, f_test] = feval(func, q, data, auxData);
-              f, f_test = eval(call_func);
+              f, f_test = predict_pets(pets, q, data, auxData)#eval(call_func);
               if !f_test 
                 fxcc = fv[:,np1] + 1;
               else
@@ -357,7 +365,7 @@ function petregr_f(func, par, data, auxData, weights, filternm)
                      step_reducer = 2 * step_reducer;
                   else
                     #[f, f_test] = feval(func, q, data, auxData);
-                    f, f_test = eval(call_func);
+                    f, f_test = predict_pets(pets, q, data, auxData)#eval(call_func);
                     if !f_test 
                       println("The parameter set for the simplex shrinking is not realistic. \n");
                       step_reducer = 2 * step_reducer;

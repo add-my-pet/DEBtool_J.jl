@@ -113,10 +113,10 @@
 
 function calibration_options(key::String, val::String)
     # Global varaibles
-    global search_method, num_results, gen_factor, factor_type, bounds_from_ind
-    global max_fun_evals, max_calibration_time, num_runs, add_initial, refine_best
-    global verbose, verbose_options, random_seeds, seed_index
-    global ranges, mat_file, results_printlnlay, results_filename, save_results, sigma_share
+    # global search_method, num_results, gen_factor, factor_type, bounds_from_ind
+    # global max_fun_evals, max_calibration_time, num_runs, add_initial, refine_best
+    # global verbose, verbose_options, random_seeds, seed_index
+    # global ranges, mat_file, results_printlnlay, results_filename, save_results, sigma_share
 
     if !@isdefined(key)
         key = "inexistent"

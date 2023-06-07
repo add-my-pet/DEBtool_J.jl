@@ -20,7 +20,7 @@ function mydata_pets(pets)
   # * metaData: catenated metadata structure
   # * weights: catenated weights structure
 
- global pets, pseudodata_pets, petnm
+ #global pets, pseudodata_pets, petnm
 #  ["mydata_" * x for x in pets]
 #  function load_modules(module_names::Vector{String})
 #   for name in module_names

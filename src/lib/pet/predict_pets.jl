@@ -2,7 +2,7 @@
 # get predictions from predict files
 
 ##
-function predict_pets(parGrp, data, auxData, pets)
+function predict_pets(pets, parGrp, data, auxData)
     # created 2015/01/17 by Goncalo Marques, modified 2015/03/30 by Goncalo Marques
     # modified 2015/08/03 by Starrlight, 2015/08/26 by Goncalo Marques, 2018/05/22 by Bas Kooijman
 
@@ -23,10 +23,10 @@ function predict_pets(parGrp, data, auxData, pets)
     # * prdData: structure with predictions for several pets
     # * info: scalar with combined success (1) or failure (0) of predictions
 
-    global pets, outData, outPseudoData
+    global outData, outPseudoData
 
     info = false
-    parPets = parGrp2Pets(parGrp) # convert parameter structure of group of that of pets 
+    parPets = parGrp2Pets(parGrp, pets) # convert parameter structure of group of that of pets 
 
     # produce predictions
     n_pets = length(pets)

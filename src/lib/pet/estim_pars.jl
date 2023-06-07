@@ -3,7 +3,7 @@
 
 ##
 #function estim_pars(pets, pars_init_method, method, filter, covRules)
-function estim_pars(pets = ["Emydura_macquarii"], par_model = par_model, metaPar = metaPar)
+function estim_pars(pets = ["Emydura_macquarii"], par_model = par_model, metaPar = metaPar, estim_opts = estim_opts)
 
   # created 2015/02/10 by Goncalo Marques
   # modified 2015/02/10 by Bas Kooijman, 
@@ -42,10 +42,16 @@ function estim_pars(pets = ["Emydura_macquarii"], par_model = par_model, metaPar
   # Option output >= 5 allow the filling of global refPets to choose
   # comparison species, otherwise this is done automatically.
 
-  global pets, pars_init_method, method, filter, covRules
-  global parPets, par
+  #global pets#, pars_init_method, method, filter, covRules
+  #global parPets, par
 
-  global pets = ["Emydura_macquarii"];
+  @unpack method, lossfunction, filter, pars_init_method, results_output, max_fun_evals,
+  report, max_step_number, tol_simplex, tol_fun, simplex_size, search_method, num_results, 
+  gen_factor, factor_type, bounds_from_ind, max_calibration_time, num_runs, add_initial, 
+  refine_best, verbose, verbose_options, random_seeds, seed_index, ranges, mat_file,
+  results_display, results_filename, save_results, sigma_share = estim_opts
+
+  pets = ["Emydura_macquarii"];
   include("predict_Emydura_macquarii.jl")
 
   n_pets = length(pets)
@@ -57,7 +63,7 @@ function estim_pars(pets = ["Emydura_macquarii"], par_model = par_model, metaPar
   if n_pets == 1
     pars_initnm = "pars_init_" * pets[1]
     resultsnm = "results_" * pets[1] * ".jld2"
-    calibration_options("results_filename", resultsnm)
+    #calibration_options("results_filename", resultsnm) # TO DO - uncomment once globals removed
   else
     pars_initnm = "pars_init_group"
     resultsnm = "results_group.jdl2"
@@ -121,7 +127,7 @@ function estim_pars(pets = ["Emydura_macquarii"], par_model = par_model, metaPar
   # end
 
   # check parameter set if you are using a filter
-  parPets = parGrp2Pets(par) # convert parameter structure of group of pets to cell string for each pet
+  parPets = parGrp2Pets(par, pets) # convert parameter structure of group of pets to cell string for each pet
   if filter == 1
     pass = true
     filternm = n_pets[1]#cell(n_pets,1);
@@ -166,7 +172,7 @@ function estim_pars(pets = ["Emydura_macquarii"], par_model = par_model, metaPar
   #  case "nm"
   if method == "nm"
     #if n_pets == 1
-    par, info, nsteps, fval = petregr_f("predict_pets", par, data, auxData, weights, filternm)   # estimate parameters using overwrite
+    par, info, nsteps, fval = petregr_f("predict_pets", par, data, auxData, weights, filternm, estim_opts, pets)   # estimate parameters using overwrite
     #else
     #  [par, info, nsteps, fval] = groupregr_f("predict_pets", par, data, auxData, weights, weightsPar, filternm); # estimate parameters using overwrite
     #end

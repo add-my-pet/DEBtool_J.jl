@@ -2,7 +2,7 @@
 # converts parameter-structure for a group of pets to a structure of parameters for each pet
 
 ##
-function parGrp2Pets(parGrp)
+function parGrp2Pets(parGrp, pets)
 # created 2018/05/23 by Bas Kooijman
 
 ## Syntax

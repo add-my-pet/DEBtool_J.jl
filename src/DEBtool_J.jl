@@ -28,7 +28,7 @@ export fieldnm_wtxt, filter_std, mydata_pets, parGrp2Pets, parscomp_st, petregr_
 export predict_pets, predict_pseudodata, print_filterflag, reach_birth, struct2vector
 export fieldnmst_st, lossfunction_sb, dget_l_ISO, dget_l_ISO_t, get_lb, get_lb2
 export get_lp, get_tb, get_tp, get_ue0, get_tm_s, initial_scaled_reserve, reprod_rate
-export @unpack
+export @unpack, @merge_cPar
 
 include("../src/lib/misc/beta0.jl")
 include("../src/lib/misc/tempcorr.jl")
