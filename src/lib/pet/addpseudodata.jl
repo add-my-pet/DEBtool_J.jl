@@ -29,13 +29,6 @@
 # [data, units, label, weight] = addpseudodata([], [], [], []);
 # Will create the four structures data, units, label and weight with pseudodata information
 
-#global loss_function
-#= module addpseudodata
-using Parameters
-using ModelParameters
-using Unitful
-using Unitful: °C, K, d, g, cm, mol, J =#
-# set pseudodata
 @with_kw mutable struct psdData_struct{L,R,M}
     v::L = 0.02cm/d
     kap::Float64 = 0.8
@@ -83,16 +76,3 @@ psdWeight = psdWeight_struct()
 
 psdWeight.kap_G = 200 * psdWeight.kap_G;   # more weight to kap_G
 
-# if strcmp(loss_function, 'su')
-#   psdWeight.v     = 10^(-4) * psdWeight.v;
-#   psdWeight.p_M   = 10^(-4) * psdWeight.p_M;
-#   psdWeight.k_J   = 10^(-4) * psdWeight.k_J;
-#   psdWeight.kap_R = 10^(-4) * psdWeight.kap_R;
-#   psdWeight.kap   = 10^(-4) * psdWeight.kap;
-#   psdWeight.kap_G = 10^(-4) * psdWeight.kap_G;
-# end
-# export(psdData)
-# export(psdLabel)
-# export(psdWeight)
-# export(psdUnits)
-# end

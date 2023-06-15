@@ -22,8 +22,6 @@ function fieldnmnst_st(st)
     #  x.reprod.dat
     #  the list of field names will be:
     #  nm = ["len.dat1", "len.dat2", "temp", "repod.dat"]
-    
-    ## Code
     nm = fieldnames(typeof(st));
     nst = length(nm); # number of data sets
     baux = 1;
@@ -51,5 +49,6 @@ function fieldnmnst_st(st)
       nst = length(nm);
     end
     return(nm, nst)
+    return(nmaux, nst)
 end 
   

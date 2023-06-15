@@ -26,36 +26,19 @@ function predict_pseudodata(par, data, prdData)
 ## Example of use
 # prdData = predict_pseudodata(par, data, prdData)
 
-nm, nst = fieldnm_wtxt(data, "psd");
-if nst > 0
-  # unpack coefficients
-  cPar = parscomp_st(par);  #allPar = par;
-  #allPar = ntuple(i -> getfield(par, fieldnames(typeof(par))[i]), length(fieldnames(typeof(par))))
-  #allPar = NamedTuple{Tuple(fieldnames(typeof(par)))}(tuple(getfield(par, f) for f in fieldnames(typeof(par))))
-  npar = length(fieldnames(typeof(par)))
-  global allPar = NamedTuple{Tuple(map(Symbol, fieldnames(typeof(par)))[1:npar-1])}(getfield.(Ref(par), fieldnames(typeof(par))[1:npar-1]))
-  fieldNames = fieldnames(typeof(cPar));
-  for i = 1:length(fieldNames)
-    fldnm = fieldNames[i]
-    eval(Meta.parse("allPar = merge(allPar, ($fldnm = cPar.$fldnm,))"));
-  end
-  
-  fldnm = nm[1]
+  nm, nst = fieldnm_wtxt(data, "psd")
+  if nst > 0
+    # unpack coefficients
+    cPar = parscomp_st(par)
+    npar = length(fieldnames(typeof(par)))
+    allPar = NamedTuple{Tuple(map(Symbol, fieldnames(typeof(par)))[1:npar-1])}(getfield.(Ref(par), fieldnames(typeof(par))[1:npar-1]))
 
-  # TO DO - why does it need .Emydura_macquarii here?
-  varnm = eval(Meta.parse("fieldnames(typeof(data.Emydura_macquarii.$fldnm))")); 
-
-  # adds pseudodata predictions to structure
-  for i = 1:length(varnm)
-    varnm2 = String(varnm[i])
-    if i == 1
-        eval(Meta.parse("psdtemp = ($varnm2 = allPar.$varnm2,)"));
-    else
-        eval(Meta.parse("psdtemp = merge(psdtemp, ($varnm2 = allPar.$varnm2,))"));
-    end
-    #prdData.psd.(varnm{i}) = allPar.(varnm{i});
+    fieldNames = fieldnames(typeof(cPar))
+    allPar = merge(allPar, NamedTuple(fldnm => getfield(cPar, fldnm) for fldnm in fieldNames))
+    # TO DO - need to make this use 'nm' instead
+    varnm = fieldnames(typeof(data.psd))
+    psdtemp = NamedTuple{varnm}(getfield(allPar, Symbol(v)) for v in varnm)
+    prdData = merge(prdData, (psd=psdtemp,))
   end
-  prdData = merge(prdData, (psd = psdtemp,))
-end
-return(prdData)
+  return (prdData)
 end

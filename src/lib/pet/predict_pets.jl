@@ -1,8 +1,4 @@
-## predict_pets
-# get predictions from predict files
-
-##
-function predict_pets(pets, parGrp, data, auxData)
+function predict_pets(parGrp, data, auxData)
     # created 2015/01/17 by Goncalo Marques, modified 2015/03/30 by Goncalo Marques
     # modified 2015/08/03 by Starrlight, 2015/08/26 by Goncalo Marques, 2018/05/22 by Bas Kooijman
 
@@ -23,31 +19,24 @@ function predict_pets(pets, parGrp, data, auxData)
     # * prdData: structure with predictions for several pets
     # * info: scalar with combined success (1) or failure (0) of predictions
 
-    global outData, outPseudoData
-
     info = false
-    parPets = parGrp2Pets(parGrp, pets) # convert parameter structure of group of that of pets 
-
+    mypet = parGrp
+    parPets = parPets_struct(mypet)
+    prdData = NamedTuple()
     # produce predictions
-    n_pets = length(pets)
-    for i = 1:n_pets
-        petnm = pets[i]
-        #[prdData.(pets{i}), info] = feval(["predict_", pets{i}], parPets.(pets{i}), data.(pets{i}), auxData.(pets{i}));
-        out = eval(Meta.parse("predict_$petnm(parPets.$petnm, data.$petnm, auxData.$petnm)"))
+
+        petnm = "mypet"
+        out = predict(parPets.mypet, data.mypet, auxData.mypet)
         outData = out[1]
         info = out[2]
-        petnm = pets[i]
-        eval(Meta.parse("prdData = (;$petnm = outData)"))
-
+        petnm = "mypet"
+        prdData = (; mypet = outData)
         if ~info
             return
         end
-
         # predict pseudodata
-        outPseudoData = eval(Meta.parse("predict_pseudodata(parPets.$petnm, data.$petnm, prdData.$petnm)"))
-        eval(Meta.parse("prdData = (;$petnm = outPseudoData)"))
+        outPseudoData = predict_pseudodata(parPets.mypet, data.mypet, prdData.mypet)
+        prdData = (; mypet = outPseudoData)
 
-        #prdData.(pets{i}) = predict_pseudodata(parPets.(pets{i}), data.(pets{i}), prdData.(pets{i}));
-    end
     return(;prdData, info)
 end

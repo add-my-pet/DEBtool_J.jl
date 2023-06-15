@@ -1,4 +1,4 @@
-function predict_Emydura_macquarii(par, data, auxData)# predict
+function predict(par, data, auxData)# predict
 cPar2 = parscomp_st(par)
 @unpack T_ref, T_A, del_M, f, kap, kap_R, v, k_J, h_a, s_G, p_M, z_m, E_G = par
 @unpack k, l_T, v_Hb, v_Hp, L_m, w, k_M, w, L_T, U_Hb, U_Hp, w_E, w_V, y_E_V, v_Hpm = cPar2
@@ -8,6 +8,7 @@ cPar2 = parscomp_st(par)
 E_m, J_E_T, L_T, M_Hp, U_Hp, eta_O, eta_XA, j_E_M, kap_G, n_M, p_Am, u_Hb, v_Hp, w_P, y_E_V, y_P_X, y_X_P,
 J_E_Am, J_X_Am, L_m, M_V, V_Hb, eta_PA, k, l_T, n_O, p_Xm, u_Hp, w, w_V, y_E_X, y_V_E = cPar2
 g2 = cPar2.g
+
 # compute temperature correction factors
 TC = tempcorr(temp.am, T_ref, T_A);
 TC_30 = tempcorr(temp.ab30, T_ref, T_A);
@@ -61,24 +62,6 @@ Ww_pm = L_pm^3 * d_V * (1 + f * w_m); # g, wet weight at puberty
 L_im = f * L_mm; Lw_im = L_im/ del_M; # cm, ultimate struct, plastrom length
 Ww_im = L_im^3 * d_V * (1 + f * w_m);       # g, ultimate wet weight
 
-# pack to output
-# prdData.ab = aT_b;
-# prdData.ab30 = a30_b;
-# prdData.tp = tT_p;
-# prdData.tpm = tT_pm;
-# prdData.am = aT_m;
-# prdData.Lb = Lw_b;
-# prdData.Lp = Lw_p;
-# prdData.Lpm = Lw_pm;
-# prdData.Li = Lw_i;
-# prdData.Lim = Lw_im;
-# prdData.Wwb = Ww_b;
-# prdData.Wwp = Ww_p;
-# prdData.Wwpm = Ww_pm;
-# prdData.Wwi = Ww_i;
-# prdData.Wwim = Ww_im;
-# prdData.Ri = RT_i;
-  
 # uni-variate data
   
 # time-length

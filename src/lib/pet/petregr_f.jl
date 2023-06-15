@@ -2,7 +2,7 @@
 # Finds parameter values for a pet that minimizes the lossfunction using Nelder Mead's simplex method using a filter
 
 ##
-function petregr_f(func, par, data, auxData, weights, filternm, estim_opts, pets)
+function petregr_f(func, par, data, auxData, weights, filternm, estim_opts, data_mod)
 # created 2001/09/07 by Bas Kooijman; 
 # modified 2015/01/29 by Goncalo Marques, 
 #   2015/03/21 by Bas Kooijman, 
@@ -39,9 +39,7 @@ function petregr_f(func, par, data, auxData, weights, filternm, estim_opts, pets
 # The number of fields in data is variable.
 # See <groupregr_f.html *groupregr_f*> for the multi-species situation.
 
-  #global lossfunction, report, max_step_number, max_fun_evals, tol_simplex, tol_fun, simplex_size
-  global st, fieldsInCells, auxVar, Y, meanY, W, P, meanP, q#, pets
-
+  global st, fieldsInCells, auxVar, Y, meanY, W, P, meanP, q
   @unpack method, lossfunction, filter, pars_init_method, results_output, max_fun_evals,
   report, max_step_number, tol_simplex, tol_fun, simplex_size, search_method, num_results, 
   gen_factor, factor_type, bounds_from_ind, max_calibration_time, num_runs, add_initial, 
@@ -56,19 +54,16 @@ function petregr_f(func, par, data, auxData, weights, filternm, estim_opts, pets
   #   st: structure with dependent data values only
   st = deepcopy(data);
   nm, nst = fieldnmnst_st(st); # nst: number of data sets
-
   fieldsInCells = []
   auxVar = []
-  for i = 1:nst   # makes st only with dependent variables
+  for i = 1:nst   # makes st only with dependent variables,e.g. removing time from tL
     fieldsInCells = split(nm[i], ".")
-    #auxVar = getfield(st, fieldsInCells{1}{:});   # data in field nm{i}
     fieldsInCells1 = join(fieldsInCells[1:end-1], ".")
     auxVar = eval(Meta.parse("getfield(st.$fieldsInCells1, Symbol(fieldsInCells[end]))"))   # data in field nm[i]
+    #auxVar = getfield(st.mypet, Symbol(fieldsInCells[end]))   # data in field nm[i]
     if isa(auxVar, Vector) && length(auxVar) >=2
-    #[~, k, npage] = size(auxVar);
-    #if k>=2 && npage==1# columns 2,3,.. are treated as data to be predicted if npage==1
-      #st = setfield(st, fieldsInCells{1}{:}, auxVar(:,2:end));
       eval(Meta.parse("setfield!(st.$fieldsInCells1, Symbol(fieldsInCells[end]), auxVar[2,:])"))
+      #setfield!(st.mypet, Symbol(fieldsInCells[end]), auxVar[2,:])
     end
   end
 
@@ -78,6 +73,10 @@ function petregr_f(func, par, data, auxData, weights, filternm, estim_opts, pets
   Y = YmeanY[1] 
   meanY = YmeanY[2]
   W = struct2vector(weights, nm, st)[1]; 
+  
+  #stfields = [getfield(st.mypet, field) for field in fieldnames(typeof(st.mypet))]
+  #stdims = [el isa AbstractArray ? size(el) : () for el in stfields]
+  #Y = flatten([getfield(st.mypet, field) for field in fieldnames(typeof(st.mypet))])
   
   parnm = fieldnames(typeof(par.free));
   np = Int(length(parnm));
@@ -135,7 +134,7 @@ function petregr_f(func, par, data, auxData, weights, filternm, estim_opts, pets
   one2n = 1:n_par;
   np1 = n_par + 1;
 
-  call_func = Meta.parse("$func(q, data, auxData, pets)")
+  call_func = Meta.parse("$func(q, data, auxData)")
   call_fileLossfunc = Meta.parse("$fileLossfunc(Y, meanY, P, meanP, W)")
   call_filternm = Meta.parse("$filternm(q)")
   # Set up a simplex near the initial guess.
@@ -145,7 +144,7 @@ function petregr_f(func, par, data, auxData, weights, filternm, estim_opts, pets
   v = zeros(Float64, length(xin), Int(n_par)+1).*unit_xin
   v[:,1] = xin;
   #f = eval(call_func)[1];
-  f = predict_pets(pets, q, data, auxData)[1]
+  f = predict_pets(q, data, auxData)[1]
   PmeanP = struct2vector(f, nm, st);
   P = PmeanP[1]
   meanP = PmeanP[2]
@@ -179,7 +178,7 @@ function petregr_f(func, par, data, auxData, weights, filternm, estim_opts, pets
         step_reducer = 2 * step_reducer;
       else
         #[f, f_test] = feval(func, q, data, auxData);
-        f, f_test = predict_pets(pets, q, data, auxData)#eval(call_func);
+        f, f_test = predict_pets(q, data, auxData)#eval(call_func);
 
         if !f_test 
           println("The parameter set for the simplex construction is not realistic. \n");
@@ -232,7 +231,7 @@ function petregr_f(func, par, data, auxData, weights, filternm, estim_opts, pets
       fxr = fv[:,np1] + 1;
     else
       #f, f_test = feval(func, q, data, auxData);
-      f, f_test = predict_pets(pets, q, data, auxData)#eval(call_func);
+      f, f_test = predict_pets(q, data, auxData)#eval(call_func);
       if !f_test 
         fxr = fv[:,np1] + 1;
       else
@@ -256,7 +255,7 @@ function petregr_f(func, par, data, auxData, weights, filternm, estim_opts, pets
          fxe = fxr + 1;
       else
         #[f, f_test] = feval(func, q, data, auxData);
-        f, f_test = predict_pets(pets, q, data, auxData)#eval(call_func);
+        f, f_test = predict_pets(q, data, auxData)#eval(call_func);
         if !f_test 
           fxe = fv[:,np1] + 1;
         else
@@ -295,7 +294,7 @@ function petregr_f(func, par, data, auxData, weights, filternm, estim_opts, pets
               fxc = fxr + 1;
             else            
               #[f, f_test] = feval(func, q, data, auxData);
-              f, f_test = predict_pets(pets, q, data, auxData)#eval(call_func);
+              f, f_test = predict_pets(q, data, auxData)#eval(call_func);
               if !f_test 
                 fxc = fv[:,np1] + 1;
               else
@@ -328,7 +327,7 @@ function petregr_f(func, par, data, auxData, weights, filternm, estim_opts, pets
               fxcc = fv[:,np1] + 1;
             else
               #[f, f_test] = feval(func, q, data, auxData);
-              f, f_test = predict_pets(pets, q, data, auxData)#eval(call_func);
+              f, f_test = predict_pets(q, data, auxData)#eval(call_func);
               if !f_test 
                 fxcc = fv[:,np1] + 1;
               else
@@ -365,7 +364,7 @@ function petregr_f(func, par, data, auxData, weights, filternm, estim_opts, pets
                      step_reducer = 2 * step_reducer;
                   else
                     #[f, f_test] = feval(func, q, data, auxData);
-                    f, f_test = predict_pets(pets, q, data, auxData)#eval(call_func);
+                    f, f_test = predict_pets(q, data, auxData)#eval(call_func);
                     if !f_test 
                       println("The parameter set for the simplex shrinking is not realistic. \n");
                       step_reducer = 2 * step_reducer;
@@ -425,13 +424,16 @@ function struct2vector(structin, fieldNames, structRef)
   # struct2vector is called for data (which might have NaN's), but also for predictions, which do not have NaN's
   vec = Any[]
   meanVec = Any[]
+  fieldNames2 = collect(fieldnames(typeof(structin.mypet)))
   for i = 1:size(fieldNames, 1)
     fieldsInCells = split(fieldNames[i], '.')
     fieldsInCells1 = join(fieldsInCells[1:end-1], ".")
     global structin2 = deepcopy(structin)
     global fieldsInCells2 = deepcopy(fieldsInCells)
     global structRef2 = deepcopy(structRef)
+    #aux = getfield(structin.mypet, fieldNames2[i])#
     aux = eval(Meta.parse("getfield(structin2.$fieldsInCells1, Symbol(fieldsInCells2[end]))"))   # data in field nm[i]
+    #auxRef = getfield(structRef.mypet, fieldNames2[i])#
     auxRef = eval(Meta.parse("getfield(structRef2.$fieldsInCells1, Symbol(fieldsInCells2[end]))"))   # data in field nm[i]
     #aux = aux[.!isnan.(auxRef)] # remove values that have NaN's in structRef - TO DO
     if !isa(aux, AbstractArray)
@@ -443,3 +445,4 @@ function struct2vector(structin, fieldNames, structRef)
   end
   return (vec, meanVec)
 end
+

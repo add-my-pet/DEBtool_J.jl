@@ -160,19 +160,7 @@
   
   function estim_options(key::String)
 
-    # global method, lossfunction, filter, pars_init_method, results_output, max_fun_evals 
-    # global report, max_step_number, tol_simplex, tol_fun, simplex_size 
-    # global search_method, num_results, gen_factor, factor_type, bounds_from_ind # method mmea only
-    # global max_calibration_time, num_runs, add_initial, refine_best
-    # global verbose, verbose_options
-    # global random_seeds, seed_index, ranges, mat_file, results_display
-    # global results_filename, save_results, sigma_share
-
     availableMethodOptions = ["no", "nm", "mmea", "nr"];
-
-    #if exist("key","var") == 0
-    #  key = "inexistent";
-    #end
 
     if key == "default"
     lossfunction = "sb";
@@ -662,19 +650,7 @@ end
 
 function estim_options(key::String, val)
 
-    # global method, lossfunction, filter, pars_init_method, results_output, max_fun_evals 
-    # global report, max_step_number, tol_simplex, tol_fun, simplex_size 
-    # global search_method, num_results, gen_factor, factor_type, bounds_from_ind # method mmea only
-    # global max_calibration_time, num_runs, add_initial, refine_best
-    # global verbose, verbose_options
-    # global random_seeds, seed_index, ranges, mat_file, results_display
-    # global results_filename, save_results, sigma_share
-
     availableMethodOptions = ["no", "nm", "mmea", "nr"];
-
-    #if exist("key","var") == 0
-    #  key = "inexistent";
-    #end
 
     if key == "loss_function"
         lossfunction[1] = val;

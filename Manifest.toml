@@ -2,7 +2,7 @@
 
 julia_version = "1.8.5"
 manifest_format = "2.0"
-project_hash = "c3c68a53d5f57ad683c6bf720335e63ebd33993a"
+project_hash = "7bb9ea1336058f2eb42ac0b3b9879118063f0423"
 
 [[deps.AbstractNumbers]]
 deps = ["SpecialFunctions"]
@@ -1060,6 +1060,12 @@ deps = ["ConstructionBase", "Dates", "LinearAlgebra", "Random"]
 git-tree-sha1 = "dba3eba51b9512695b59e0bd8263ac074c5ed2d9"
 uuid = "1986cc42-f94f-5a68-af5c-568840ba703d"
 version = "1.13.1"
+
+[[deps.UnitfulMoles]]
+deps = ["Unitful"]
+git-tree-sha1 = "cf6ae3461c3408332de9ac1253dc81600348a994"
+uuid = "999f2bd7-36bf-5ba7-9bc1-c9473aa75374"
+version = "0.1.1"
 
 [[deps.VectorizationBase]]
 deps = ["ArrayInterface", "CPUSummary", "HostCPUFeatures", "IfElse", "LayoutPointers", "Libdl", "LinearAlgebra", "SIMDTypes", "Static", "StaticArrayInterface"]

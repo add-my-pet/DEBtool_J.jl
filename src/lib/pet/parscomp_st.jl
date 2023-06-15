@@ -173,47 +173,31 @@ function parscomp_st(p)
    matLev = parNames[findall(x->x=="E_H", first.(parNames, 3))];
    matInd = replace.(matLev, "E_H" => "");
 
-  for i = 1:length(matInd)
-    stri = matInd[i];
-    
-    M_Hx = getproperty(p, Symbol("E_H" * stri))/ p.mu_E
-    symbol_name = Symbol("M_H", stri)
-    eval(:($symbol_name=$M_Hx))
-    eval(Meta.parse("cPar = (; cPar..., $(Symbol("M_H$stri")))"))
-
-    U_Hx = getproperty(p, Symbol("E_H" * stri))/ p_Am
-    symbol_name = Symbol("U_H", stri)
-    eval(:($symbol_name=$U_Hx))
-    eval(Meta.parse("cPar = (; cPar..., $(Symbol("U_H$stri")))"))
-
-    V_Hx = getproperty(cPar, Symbol("U_H" * stri))/ (1 - p.kap)
-    symbol_name = Symbol("V_H", stri)
-    eval(:($symbol_name=$V_Hx))
-    eval(Meta.parse("cPar = (; cPar..., $(Symbol("V_H$stri")))"))
-
-    v_Hx = getproperty(cPar, Symbol("V_H" * stri)) * g2^2 * k_M^3/ p.v^2
-    symbol_name = Symbol("v_H", stri)
-    eval(:($symbol_name=$v_Hx))
-    eval(Meta.parse("cPar = (; cPar..., $(Symbol("v_H$stri")))"))
-
-    u_Hx = getproperty(cPar, Symbol("U_H" * stri)) * g2^2 * k_M^3/ p.v^2
-    symbol_name = Symbol("u_H", stri)
-    eval(:($symbol_name=$u_Hx))
-    eval(Meta.parse("cPar = (; cPar..., $(Symbol("u_H$stri")))"))
-    #cPar.(['M_H', stri]) = p.(['E_H', stri])/ p.mu_E;                 % mmol, maturity at level i
-    #cPar.(['U_H', stri]) = p.(['E_H', stri])/ p_Am;                   % cm^2 d, scaled maturity at level i
-    #cPar.(['V_H', stri]) = cPar.(['U_H', stri])/ (1 - p.kap);         % cm^2 d, scaled maturity at level i
-    #cPar.(['v_H', stri]) = cPar.(['V_H', stri]) * g^2 * k_M^3/ p.v^2; % -, scaled maturity density at level i
-    #cPar.(['u_H', stri]) = cPar.(['U_H', stri]) * g^2 * k_M^3/ p.v^2; % -, scaled maturity density at level i 
-  end          
-
+   for i = 1:length(matInd)
+       stri = matInd[i]
+       
+       M_Hx = getproperty(p, Symbol("E_H" * stri)) / p.mu_E
+       symbol_name = Symbol("M_H", stri)
+       cPar = (; cPar..., symbol_name => M_Hx)
+   
+       U_Hx = getproperty(p, Symbol("E_H" * stri)) / p_Am
+       symbol_name = Symbol("U_H", stri)
+       cPar = (; cPar..., symbol_name => U_Hx)
+   
+       V_Hx = getproperty(cPar, Symbol("U_H" * stri)) / (1 - p.kap)
+       symbol_name = Symbol("V_H", stri)
+       cPar = (; cPar..., symbol_name => V_Hx)
+   
+       v_Hx = getproperty(cPar, Symbol("V_H" * stri)) * g2^2 * k_M^3 / p.v^2
+       symbol_name = Symbol("v_H", stri)
+       cPar = (; cPar..., symbol_name => v_Hx)
+   
+       u_Hx = getproperty(cPar, Symbol("U_H" * stri)) * g2^2 * k_M^3 / p.v^2
+       symbol_name = Symbol("u_H", stri)
+       cPar = (; cPar..., symbol_name => u_Hx)
+   end
+  
   # -------------------------------------------------------------------------
   # pack output:
   return(cPar)
-  #return(p_Am=p_Am, w_X=w_X, w_V=w_V, w_E=w_E, w_P=w_P, M_V=M_V, y_V_E=y_V_E, y_E_V=y_E_V, 
-                # k_M=k_M, k=k, E_m=E_m, m_Em=m_Em, g=g, L_m=L_m, L_T=L_T, l_T=l_T, ome=ome, w=w, s_H=s_H,
-                # J_E_Am=J_E_Am, J_E_M=J_E_M, J_E_T=J_E_T, j_E_M=j_E_M, j_E_J=j_E_J, kap_G=kap_G, E_V=E_V, n_O=n_O, n_M=n_M,
-                # M_Hb = M_Hb, U_Hb = U_Hb, V_Hb = V_Hb, v_Hb = v_Hb, u_Hb = u_Hb, M_Hp = M_Hp, U_Hp = U_Hp, V_Hp = V_Hp, v_Hp = v_Hp, u_Hp = u_Hp,
-                # y_P_X = y_P_X, y_X_P = y_X_P, y_E_X = y_E_X, y_X_E = y_X_E, p_Xm = p_Xm, J_X_Am = J_X_Am, 
-                # y_P_E = y_P_E, eta_XA = eta_XA, eta_PA = eta_PA, eta_VG = eta_VG, eta_O = eta_O, K = K)
 end

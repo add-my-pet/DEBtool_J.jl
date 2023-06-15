@@ -1,9 +1,3 @@
-# module mydata_Emydura_macquarii
-# using Parameters
-# using ModelParameters
-# using Unitful
-# using Unitful: °C, K, d, g, cm, mol, J
-# using ..addpseudodata
 @with_kw mutable struct metaData_struct{T}
     phylum::String = "Chordata"
     class::String = "Reptilia"
@@ -312,10 +306,23 @@ biblist = biblist_struct()
 
 metaData = metaData_struct(ecoCode = ecoCode, links = links, facts = facts, discussion = discussion, bibkey = bibkey, biblist = biblist)
 
-# export(data)
-# export(auxData)
-# export(metaData)
-# export(txtData)
-# export(weights)
-# #(data, auxData, metaData, txtData, weights)
-# end
+Base.@kwdef struct data_mod_struct{A,L,W,R}
+    ab::A = Param(78.0, units = u"d", temperature = Unitful.K(22Unitful.°C), label = "age at birth", bibkey = "carettochelys", weight = (1), comment = "all temps are guessed")
+    ab30::A = Param(48.0, units = u"d", temperature = Unitful.K(30Unitful.°C), label = "age at birth", bibkey = "carettochelys", weight = (1), comment = "")
+    tp::A = Param(10.0*365.0, units = u"d", temperature = Unitful.K(22Unitful.°C), label = "time since birth at puberty for females", bibkey = "Spen2002", weight = (1), comment = "")
+    tpm::A = Param(5.5*365.0, units = u"d", temperature = Unitful.K(22Unitful.°C), label = "time since birth at puberty for males", bibkey = "Spen2002", weight = (1), comment = "")
+    am::A = Param(20.9*365.0, units = u"d", temperature = Unitful.K(22Unitful.°C), label = "life span", bibkey = "life span", weight = (1), comment = "")
+    Lb::L = Param(2.7, units = u"cm", temperature = nothing, label = "plastron length at birth", bibkey = "Spen2002", weight = (1), comment = "")
+    Lp::L = Param(18.7, units = u"cm", temperature = nothing, label = "plastron length at puberty for females", bibkey = "Spen2002", weight = (1), comment = "")
+    Lpm::L = Param(14.7, units = u"cm", temperature = nothing, label = "plastron length at puberty for males", bibkey = "Spen2002", weight = (1), comment = "")
+    Li::L = Param(21.4, units = u"cm", temperature = nothing, label = "ultimate plastron length for females", bibkey = "Spen2002", weight = (1), comment = "")
+    Lim::L = Param(20.8, units = u"cm", temperature = nothing, label = "ultimate plastron length for males", bibkey = "Spen2002", weight = (1), comment = "")
+    Wwb::W = Param(8.0, units = u"g", temperature = nothing, label = "wet weight at birth", bibkey = "Spen2002", weight = (1), comment = "based on (Lb/Li)^3*Wwi")
+    Wwp::W = Param(2669.0, units = u"g", temperature = nothing, label = "wet weight at puberty for females", bibkey = "Spen2002", weight = (1), comment = "based on (Lp/Li)^3*Wwi")
+    Wwpm::W = Param(1297.0, units = u"g", temperature = nothing, label = "wet weight at puberty for males", bibkey = "Spen2002", weight = (1), comment = "based on (Lpm/Li)^3*Ww")
+    Wwi::W = Param(4000.0, units = u"g", temperature = nothing, label = "ultimate wet weight for females", bibkey = "carettochelys", weight = (1), comment = "all temps are guessed")
+    Wwim::W = Param(3673.0, units = u"g", temperature = nothing, label = "ultimate wet weight for males", bibkey = "carettochelys", weight = (1), comment = "based on (Lim/Li)^3*Wwi")
+    Ri::R = Param(36.0/365.0, units = u"1/d", temperature = Unitful.K(22Unitful.°C), label = "maximum reprod rate", bibkey = "Spen2002", weight = (1), comment = "#/d")
+end
+
+data_mod = Model(data_mod_struct())
