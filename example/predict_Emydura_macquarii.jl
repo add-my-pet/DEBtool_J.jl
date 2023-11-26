@@ -1,81 +1,18 @@
 function predict_Emydura_macquarii(par, data, auxData)# predict
     cPar = parscomp_st(par)
     @unpack T_ref, T_A, del_M, f, kap, kap_R, v, k_J, h_a, s_G, p_M, z_m, E_G = par
-    @unpack k, l_T, v_Hb, v_Hp, L_m, w, k_M, w, L_T, U_Hb, U_Hp, w_E, w_V, y_E_V, v_Hpm =
-        cPar
+    @unpack k, l_T, v_Hb, v_Hp, L_m, w, k_M, w, L_T, U_Hb, U_Hp, w_E, w_V, y_E_V, v_Hpm = cPar 
     @unpack temp = auxData
-    @unpack Lb,
-    Li,
-    Lim,
-    Lp,
-    Lpm,
-    Ri,
-    Wwb,
-    Wwi,
-    Wwim,
-    Wwp,
-    Wwpm,
-    ab,
-    ab30,
-    am,
-    psd,
-    tL,
-    tp,
-    tpm = data
-    @unpack E_V,
-    J_E_M,
-    M_Hb,
-    U_Hb,
-    V_Hp,
-    eta_VG,
-    j_E_J,
-    k_M,
-    m_Em,
-    ome,
-    s_H,
-    v_Hb,
-    w_E,
-    w_X,
-    y_P_E,
-    y_X_E,
-    E_m,
-    J_E_T,
-    L_T,
-    M_Hp,
-    U_Hp,
-    eta_O,
-    eta_XA,
-    j_E_M,
-    kap_G,
-    n_M,
-    p_Am,
-    u_Hb,
-    v_Hp,
-    w_P,
-    y_E_V,
-    y_P_X,
-    y_X_P,
-    J_E_Am,
-    J_X_Am,
-    L_m,
-    M_V,
-    V_Hb,
-    eta_PA,
-    k,
-    l_T,
-    n_O,
-    p_Xm,
-    u_Hp,
-    w,
-    w_V,
-    y_E_X,
-    y_V_E = cPar
+    @unpack Lb, Li, Lim, Lp, Lpm, Ri, Wwb, Wwi, Wwim, Wwp, Wwpm, ab, ab30, am, psd, tL, tp, tpm = data
+    @unpack E_V, J_E_M, M_Hb, U_Hb, V_Hp, eta_VG, j_E_J, k_M, m_Em, ome, s_H, v_Hb, w_E, w_X, y_P_E, y_X_E,
+    E_m, J_E_T, L_T, M_Hp, U_Hp, eta_O, eta_XA, j_E_M, kap_G, n_M, p_Am, u_Hb, v_Hp, w_P, y_E_V, y_P_X, y_X_P,
+    J_E_Am, J_X_Am, L_m, M_V, V_Hb, eta_PA, k, l_T, n_O, p_Xm, u_Hp, w, w_V, y_E_X, y_V_E = cPar
     g2 = cPar.g
     # compute temperature correction factors
-    TC = tempcorr(temp.am, T_ref, T_A)
-    TC_30 = tempcorr(temp.ab30, T_ref, T_A)
-    TC_Ri = tempcorr(temp.ri, T_ref, T_A)
-    TC_am = tempcorr(temp.am, T_ref, T_A)
+    TC = tempcorr(temp.am, T_ref, T_A);
+    TC_30 = tempcorr(temp.ab30, T_ref, T_A);
+    TC_Ri = tempcorr(temp.ri, T_ref, T_A);
+    TC_am = tempcorr(temp.am, T_ref, T_A);
 
     d_V = 1g / cm^3                # cm, physical length at birth at f
 
