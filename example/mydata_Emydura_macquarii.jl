@@ -11,9 +11,10 @@
     family::String = "Chelidae"
     species::String = "Emydura_macquarii"
     species_en::String = "Murray River turtle"
-    ecoCode
+    ecoCode::Any
     T_typical::T = Unitful.K(22Unitful.°C)
-    data_0::Vector{String} = ["ab_T", "ap", "am", "Lb", "Lp", "Li", "Wwb", "Wwp", "Wwi", "Ri"]
+    data_0::Vector{String} =
+        ["ab_T", "ap", "am", "Lb", "Lp", "Li", "Wwb", "Wwp", "Wwi", "Ri"]
     data_1::Vector{String} = ["t-L"]
     COMPLETE::Float32 = 2.5
     author::String = "Bas Kooijman"
@@ -23,11 +24,11 @@
     curator::String = "Starrlight Augustine"
     email_cur::String = "starrlight@akvaplan.niva.no"
     date_acc::Vector{Int32} = [2017, 10, 09]
-    links
-    facts
-    discussion
-    bibkey
-    biblist
+    links::Any
+    facts::Any
+    discussion::Any
+    bibkey::Any
+    biblist::Any
 end
 
 @with_kw mutable struct ecoCode_struct
@@ -45,9 +46,9 @@ ecoCode = ecoCode_struct()
 @with_kw mutable struct data_struct{A,L,W,R}
     ab::A = 78.0d
     ab30::A = 48.0d
-    tp::A = 10.0*365.0d
-    tpm::A = 5.5*365.0d
-    am::A = 20.9*365.0d
+    tp::A = 10.0 * 365.0d
+    tpm::A = 5.5 * 365.0d
+    am::A = 20.9 * 365.0d
     Lb::L = 2.7cm
     Lp::L = 18.7cm
     Lpm::L = 14.7cm
@@ -58,36 +59,38 @@ ecoCode = ecoCode_struct()
     Wwpm::W = 1297.0g
     Wwi::W = 4000.0g
     Wwim::W = 3673.0g
-    Ri::R = 36.0/365.0d
-    tL
-    psd
+    Ri::R = 36.0 / 365.0d
+    tL::Any
+    psd::Any
 end
-tL1 = [0.981	6.876
-            0.981	7.090
-            1.956	8.369
-            1.956	8.689
-            1.957	9.115
-            1.957	9.435
-            1.957	9.808
-            1.958	10.075
-            1.958	10.235
-            1.983	10.661
-            2.833	11.141
-            2.908	11.354
-            2.931	9.701
-            2.932	10.768
-            2.984	12.420
-            3.008	11.674
-            3.833	13.220
-            3.834	13.326
-            3.834	13.646
-            3.857	12.100
-            3.883	12.420
-            3.883	12.633
-            3.883	12.953
-            3.934	14.072]
-tL_age = tL1[:,1]*365*u"d"
-tL_length = tL1[:,2]*u"cm"
+tL1 = [
+    0.981 6.876
+    0.981 7.090
+    1.956 8.369
+    1.956 8.689
+    1.957 9.115
+    1.957 9.435
+    1.957 9.808
+    1.958 10.075
+    1.958 10.235
+    1.983 10.661
+    2.833 11.141
+    2.908 11.354
+    2.931 9.701
+    2.932 10.768
+    2.984 12.420
+    3.008 11.674
+    3.833 13.220
+    3.834 13.326
+    3.834 13.646
+    3.857 12.100
+    3.883 12.420
+    3.883 12.633
+    3.883 12.953
+    3.934 14.072
+]
+tL_age = tL1[:, 1] * 365 * u"d"
+tL_length = tL1[:, 2] * u"cm"
 tL2 = [tL_age, tL_length]
 data = data_struct(tL = tL2, psd = psdData)
 
@@ -120,7 +123,7 @@ temp = temp_struct()
     Wwim::String = "ultimate wet weight for males"
     Ri::String = "maximum reprod rate"
     tL::Vector{String} = ["time since birth", "carapace length"]
-    psd
+    psd::Any
 end
 label = label_struct(psd = psdLabel)
 
@@ -164,7 +167,7 @@ bibkey = bibkey_struct()
     Wwim::String = "g"
     Ri::String = "#/d"
     tL::Vector{String} = ["time since birth", "carapace length"]
-    psd
+    psd::Any
 end
 units = units_struct(psd = psdUnits)
 
@@ -185,20 +188,23 @@ units = units_struct(psd = psdUnits)
     Wwi::Float64 = 1
     Wwim::Float64 = 1
     Ri::Float64 = 1
-    tL
-    psd
+    tL::Any
+    psd::Any
 end
 nvar = length(tL2)
 N = length(tL2[1])
-weights = weight_struct(tL = ones(N, nvar-1)/ N/ (nvar-1), psd = psdWeight)
+weights = weight_struct(tL = ones(N, nvar - 1) / N / (nvar - 1), psd = psdWeight)
 ## set weights for all real data
 #weights = setweights(data, weights);
 weights.tL = 2 * weights.tL;
 
 ## set pseudodata and respective weights
 # [data, units, label, weights] = addpseudodata(data, units, label, weights);
-weights.psd.k_J = 0; weights.psd.k = 0.1;
-data.psd.k = 0.3; units.psd.k  = "-"; label.psd.k  = "maintenance ratio"; 
+weights.psd.k_J = 0;
+weights.psd.k = 0.1;
+data.psd.k = 0.3;
+units.psd.k = "-";
+label.psd.k = "maintenance ratio";
 
 # Discussion points
 @with_kw mutable struct discussion_struct
@@ -263,43 +269,50 @@ end
 auxData = struct_auxData()
 
 # ## References
-bibkey = "Wiki"; type = "Misc"; bib = 
- "howpublished = {\\url{http://en.wikipedia.org/wiki/Emydura_macquarii}}";
- #metaData.biblist.(bibkey) = ["""@", type, "{", bibkey, ", " bib, "}"";"];
- Wiki = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
+bibkey = "Wiki";
+type = "Misc";
+bib = "howpublished = {\\url{http://en.wikipedia.org/wiki/Emydura_macquarii}}";
+#metaData.biblist.(bibkey) = ["""@", type, "{", bibkey, ", " bib, "}"";"];
+Wiki = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
 
 # #
 bibkey = "Kooy2010"
 type = "Book"
 bib = [ # used in setting of chemical parameters and pseudodata
- "author = {Kooijman, S.A.L.M.}, ", 
- "year = {2010}, ", 
- "title  = {Dynamic Energy Budget theory for metabolic organisation}, ", 
- "publisher = {Cambridge Univ. Press, Cambridge}, ",
- "pages = {Table 4.2 (page 150), 8.1 (page 300)}, ", 
- "howpublished = {\\url{../../../bib/Kooy2010.html}}"]
- Kooy2010 = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
- #Kooy2010 = ["''@" * type * "{" * bibkey * ", " * bib[1] * "}'';"];
+    "author = {Kooijman, S.A.L.M.}, ",
+    "year = {2010}, ",
+    "title  = {Dynamic Energy Budget theory for metabolic organisation}, ",
+    "publisher = {Cambridge Univ. Press, Cambridge}, ",
+    "pages = {Table 4.2 (page 150), 8.1 (page 300)}, ",
+    "howpublished = {\\url{../../../bib/Kooy2010.html}}",
+]
+Kooy2010 = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
+#Kooy2010 = ["''@" * type * "{" * bibkey * ", " * bib[1] * "}'';"];
 # #
-bibkey = "Spen2002"; type = "Article"; bib = [  
- "author = {R.-J. Spencer}, " 
- "year = {2002}, "
- "title = {Growth patterns in two widely distributed freshwater turtles and a comparison of methods used to estimate age}, "
- "journal = {Austr. J. Zool.}, "
- "volume = {50}, "
- "pages = {477--490}"];
- #Spen2002 = ["''@" * type * "{" * bibkey * ", " * bib * "}'';"];
- Spen2002 = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
+bibkey = "Spen2002";
+type = "Article";
+bib = [
+    "author = {R.-J. Spencer}, "
+    "year = {2002}, "
+    "title = {Growth patterns in two widely distributed freshwater turtles and a comparison of methods used to estimate age}, "
+    "journal = {Austr. J. Zool.}, "
+    "volume = {50}, "
+    "pages = {477--490}"
+];
+#Spen2002 = ["''@" * type * "{" * bibkey * ", " * bib * "}'';"];
+Spen2002 = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
 # metaData.biblist.(bibkey) = ["""@", type, "{", bibkey, ", " bib, "}"";"];
 # #
-bibkey = "AnAge"; type = "Misc"; bib =
- "howpublished = {\\url{http://genomics.senescence.info/species/entry.php?species=Emydura_macquarii}}";
- AnAge = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
- #metaData.biblist.(bibkey) = ["""@", type, "{", bibkey, ", " bib, "}"";"];
+bibkey = "AnAge";
+type = "Misc";
+bib = "howpublished = {\\url{http://genomics.senescence.info/species/entry.php?species=Emydura_macquarii}}";
+AnAge = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
+#metaData.biblist.(bibkey) = ["""@", type, "{", bibkey, ", " bib, "}"";"];
 # #
- bibkey = "carettochelys"; type = "Misc"; bib = 
- "howpublished = {\\url{http://www.carettochelys.com/emydura/emydura_mac_mac_3.htm}}";
- carettochelys = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
+bibkey = "carettochelys";
+type = "Misc";
+bib = "howpublished = {\\url{http://www.carettochelys.com/emydura/emydura_mac_mac_3.htm}}";
+carettochelys = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
 # metaData.biblist.(bibkey) = ["""@", type, "{", bibkey, ", " bib, "}"";"];
 
 @with_kw mutable struct biblist_struct
@@ -310,7 +323,14 @@ bibkey = "AnAge"; type = "Misc"; bib =
 end
 biblist = biblist_struct()
 
-metaData = metaData_struct(ecoCode = ecoCode, links = links, facts = facts, discussion = discussion, bibkey = bibkey, biblist = biblist)
+metaData = metaData_struct(
+    ecoCode = ecoCode,
+    links = links,
+    facts = facts,
+    discussion = discussion,
+    bibkey = bibkey,
+    biblist = biblist,
+)
 
 # export(data)
 # export(auxData)

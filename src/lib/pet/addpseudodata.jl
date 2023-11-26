@@ -37,10 +37,10 @@ using Unitful
 using Unitful: °C, K, d, g, cm, mol, J =#
 # set pseudodata
 @with_kw mutable struct psdData_struct{L,R,M}
-    v::L = 0.02cm/d
+    v::L = 0.02cm / d
     kap::Float64 = 0.8
     kap_R::Float64 = 0.95
-    p_M::M = 18J/d/cm^3
+    p_M::M = 18J / d / cm^3
     k_J::R = 0.002d^-1
     kap_G::Float64 = 0.8
     k::Float64 = 0.3

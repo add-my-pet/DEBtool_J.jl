@@ -33,7 +33,8 @@ function predict_pets(parGrp, data, auxData, pets)
     for i = 1:n_pets
         petnm = pets[i]
         #[prdData.(pets{i}), info] = feval(["predict_", pets{i}], parPets.(pets{i}), data.(pets{i}), auxData.(pets{i}));
-        out = eval(Meta.parse("predict_$petnm(parPets.$petnm, data.$petnm, auxData.$petnm)"))
+        out =
+            eval(Meta.parse("predict_$petnm(parPets.$petnm, data.$petnm, auxData.$petnm)"))
         outData = out[1]
         info = out[2]
         petnm = pets[i]
@@ -44,10 +45,12 @@ function predict_pets(parGrp, data, auxData, pets)
         end
 
         # predict pseudodata
-        outPseudoData = eval(Meta.parse("predict_pseudodata(parPets.$petnm, data.$petnm, prdData.$petnm)"))
+        outPseudoData = eval(
+            Meta.parse("predict_pseudodata(parPets.$petnm, data.$petnm, prdData.$petnm)"),
+        )
         eval(Meta.parse("prdData = (;$petnm = outPseudoData)"))
 
         #prdData.(pets{i}) = predict_pseudodata(parPets.(pets{i}), data.(pets{i}), prdData.(pets{i}));
     end
-    return(;prdData, info)
+    return (; prdData, info)
 end
