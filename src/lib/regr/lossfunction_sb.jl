@@ -29,7 +29,9 @@ function lossfunction_sb(data, meanData, prdData, meanPrdData, weights)
 
 
     sel = .!isnan.(data)
-    lf = weights[sel]' * ((data[sel] .- prdData[sel]) .^ 2 ./ (meanData[sel] .^ 2 .+ meanPrdData[sel] .^ 2))
+    lf =
+        weights[sel]' *
+        ((data[sel] .- prdData[sel]) .^ 2 ./ (meanData[sel] .^ 2 .+ meanPrdData[sel] .^ 2))
 
     return (lf)
 end

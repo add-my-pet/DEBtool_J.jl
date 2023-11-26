@@ -26,7 +26,9 @@ df = DataFrame(par)
 
 # combine values and units
 
-vals_units = NamedTuple{names}(Tuple([u === nothing ? typeof(v)(v) : v*u for (v, u) in zip(vals, units)]))
+vals_units = NamedTuple{names}(
+    Tuple([u === nothing ? typeof(v)(v) : v * u for (v, u) in zip(vals, units)]),
+)
 # explanation of line above:
 # zip(vals, units) creates an iterator that produces tuples of corresponding elements from vals and units. This iterator as two 'is' 
 # columns, one for vals and one for units and these
