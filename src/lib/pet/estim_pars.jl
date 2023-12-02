@@ -3,7 +3,7 @@
 
 ##
 #function estim_pars(pets, pars_init_method, method, filter, covRules)
-function estim_pars(pets, par_model, metaPar, mydata_pets)
+function estim_pars(options, pets, par_model, metaPar, mydata_pets)
 
     # created 2015/02/10 by Goncalo Marques
     # modified 2015/02/10 by Bas Kooijman, 
