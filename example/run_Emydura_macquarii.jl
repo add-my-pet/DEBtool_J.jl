@@ -1,12 +1,17 @@
 using DEBtool_J
-using Parameters
 using ModelParameters
 using Unitful
 
+srcpath = dirname(pathof(DEBtool_J))
+examplepath = realpath(joinpath(srcpath, "../example"))
+
 pets = ["Emydura_macquarii"];
 #include("predict_Emydura_macquarii.jl")
-include("pars_init_" * pets[1] * ".jl")
-par_model = Model(Par()) # create a 'Model' out of the Pars struct
+(; par, metapar) = let # Let block so we only import the last variable into scope
+    include(joinpath(examplepath, "pars_init_" * pets[1] * ".jl"))
+end
+par_model = Model(par) # create a 'Model' out of the Pars struct
+data_pets = mydata_pets(pets, examplepath)
 
 #check_my_pet(pets); 
 estim_options("default");
@@ -18,4 +23,4 @@ estim_options("results_output", 3);
 estim_options("method", "nm");
 
 # currently takes 55 seconds to do 500 steps, matlab takes just under 40
-estim_pars(pets, par_model, metaPar)
+estim_pars(pets, par_model, metapar, data)

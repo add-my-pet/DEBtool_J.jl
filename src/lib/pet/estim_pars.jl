@@ -3,7 +3,7 @@
 
 ##
 #function estim_pars(pets, pars_init_method, method, filter, covRules)
-function estim_pars(pets = ["Emydura_macquarii"], par_model = par_model, metaPar = metaPar)
+function estim_pars(pets, par_model, metaPar, mydata_pets)
 
     # created 2015/02/10 by Goncalo Marques
     # modified 2015/02/10 by Bas Kooijman, 
@@ -45,14 +45,10 @@ function estim_pars(pets = ["Emydura_macquarii"], par_model = par_model, metaPar
     global pets, pars_init_method, method, filter, covRules
     global parPets, par
 
-    global pets = ["Emydura_macquarii"]
-    include("predict_Emydura_macquarii.jl")
-
     n_pets = length(pets)
 
     # get data
-    #[data, auxData, metaData, txtData, weights] = mydata_pets;
-    data, auxData, metaData, txtData, weights = mydata_pets(pets)
+    data, auxData, metaData, txtData, weights = mydata_pets
 
     if n_pets == 1
         pars_initnm = "pars_init_" * pets[1]

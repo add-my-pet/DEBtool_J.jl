@@ -3,7 +3,7 @@
 
 ##
 #function [data, auxData, metaData, txtData, weights] = mydata_pets
-function mydata_pets(pets)
+function mydata_pets(pets, srcpath)
     # created by Goncalo Marques at 2015/01/28, modified Bas Kooijman 2021/01/17
 
     ## Syntax
@@ -20,7 +20,7 @@ function mydata_pets(pets)
     # * metaData: catenated metadata structure
     # * weights: catenated weights structure
 
-    global pets, pseudodata_pets, petnm
+    # global pets, pseudodata_pets, petnm
     #  ["mydata_" * x for x in pets]
     #  function load_modules(module_names::Vector{String})
     #   for name in module_names
@@ -44,49 +44,10 @@ function mydata_pets(pets)
     #   #@get_mydata_pets(pets[i])
     # end  
 
-    i = 0
-    for file_name in ["c:/git/DEBtool_J.jl/example/mydata_" * x * ".jl" for x in pets]
-        i = i + 1
-        include(file_name) # load the mydata file
-
-        # stuff the results into new objects of style e.g. data.mypet.etc, auxData.mypet.etc
-        # TO DO - simplify this!
-        petnm = Symbol(pets[i])
-        eval(:($petnm = data))
-        @eval begin
-            struct data_struct2
-                $petnm
-            end
-            data = data_struct2($petnm)
-        end
-        eval(:($petnm = auxData))
-        @eval begin
-            struct auxData_struct2
-                $petnm
-            end
-            auxData = auxData_struct2($petnm)
-        end
-        eval(:($petnm = metaData))
-        @eval begin
-            struct metaData_struct2
-                $petnm
-            end
-            metaData = metaData_struct2($petnm)
-        end
-        eval(:($petnm = txtData))
-        @eval begin
-            struct txtData_struct2
-                $petnm
-            end
-            txtData = txtData_struct2($petnm)
-        end
-        eval(:($petnm = weights))
-        @eval begin
-            struct weights_struct2
-                $petnm
-            end
-            weights = weights_struct2($petnm)
-        end
+    # TODO combine these somehow when there are multiple pets
+    local data
+    for file_name in (joinpath(srcpath, "mydata_" * pet * ".jl") for pet in pets)
+        data = include(file_name) # load the mydata file
     end
 
     #[data.(pets{i}), auxData.(pets{i}), metaData.(pets{i}), txtData.(pets{i}), weights.(pets{i})] = feval(['mydata_', pets{i}]);
@@ -109,5 +70,5 @@ function mydata_pets(pets)
     #   weights.psd = weightsG.psd;
     #   txtData.psd.units = unitsG.psd;
     #   txtData.psd.label = labelG.psd;
-    return (data, auxData, metaData, txtData, weights)
+    return (; data, auxData, metaData, txtData, weights)
 end
