@@ -4,65 +4,43 @@
 # using Unitful
 # using Unitful: °C, K, d, g, cm, mol, J
 # using ..addpseudodata
-@with_kw mutable struct metaData_struct{T}
-    phylum::String = "Chordata"
-    class::String = "Reptilia"
-    order::String = "Testudines"
-    family::String = "Chelidae"
-    species::String = "Emydura_macquarii"
-    species_en::String = "Murray River turtle"
-    ecoCode::Any
-    T_typical::T = Unitful.K(22Unitful.°C)
-    data_0::Vector{String} =
-        ["ab_T", "ap", "am", "Lb", "Lp", "Li", "Wwb", "Wwp", "Wwi", "Ri"]
-    data_1::Vector{String} = ["t-L"]
-    COMPLETE::Float32 = 2.5
-    author::String = "Bas Kooijman"
-    date_subm::Vector{Int32} = [2017, 10, 09]
-    email::String = "bas.kooijman@vu.nl"
-    address::String = "VU University, Amsterdam"
-    curator::String = "Starrlight Augustine"
-    email_cur::String = "starrlight@akvaplan.niva.no"
-    date_acc::Vector{Int32} = [2017, 10, 09]
-    links::Any
-    facts::Any
-    discussion::Any
-    bibkey::Any
-    biblist::Any
-end
+metaData = (;
+    phylum = "Chordata",
+    class = "Reptilia",
+    order = "Testudines",
+    family = "Chelidae",
+    species = "Emydura_macquarii",
+    species_en = "Murray River turtle",
+    # ecoCode::Any,
+    T_typical = Unitful.K(22Unitful.°C),
+    data_0 = ["ab_T", "ap", "am", "Lb", "Lp", "Li", "Wwb", "Wwp", "Wwi", "Ri"],
+    data_1 = ["t-L"],
+    COMPLETE = 2.5,
+    author = "Bas Kooijman",
+    date_subm = [2017, 10, 09],
+    email = "bas.kooijman@vu.nl",
+    address = "VU University, Amsterdam",
+    curator = "Starrlight Augustine",
+    email_cur = "starrlight@akvaplan.niva.no",
+    date_acc = [2017, 10, 09],
+    # links
+    # facts
+    # discussion
+    # bibkey
+    # biblist
+)
 
-@with_kw mutable struct ecoCode_struct
-    climate::Vector{String} = ["Cfa", "Cfb"]
-    ecozone::Vector{String} = ["TA"]
-    habitat::Vector{String} = ["0bTd", "biFr"]
-    embryo::Vector{String} = ["Tt"]
-    migrate::Vector{String} = []
-    food::Vector{String} = ["biCi"]
-    gender::Vector{String} = ["Dg"]
-    reprod::Vector{String} = ["O"]
-end
-ecoCode = ecoCode_struct()
+ecoCode = (;
+    climate = ["Cfa", "Cfb"],
+    ecozone = ["TA"],
+    habitat = ["0bTd", "biFr"],
+    embryo = ["Tt"],
+    migrate = String[],
+    food = ["biCi"],
+    gender = ["Dg"],
+    reprod = ["O"],
+)
 
-@with_kw mutable struct data_struct{A,L,W,R}
-    ab::A = 78.0d
-    ab30::A = 48.0d
-    tp::A = 10.0 * 365.0d
-    tpm::A = 5.5 * 365.0d
-    am::A = 20.9 * 365.0d
-    Lb::L = 2.7cm
-    Lp::L = 18.7cm
-    Lpm::L = 14.7cm
-    Li::L = 21.4cm
-    Lim::L = 20.8cm
-    Wwb::W = 8.0g
-    Wwp::W = 2669.0g
-    Wwpm::W = 1297.0g
-    Wwi::W = 4000.0g
-    Wwim::W = 3673.0g
-    Ri::R = 36.0 / 365.0d
-    tL::Any
-    psd::Any
-end
 tL1 = [
     0.981 6.876
     0.981 7.090
@@ -89,184 +67,199 @@ tL1 = [
     3.883 12.953
     3.934 14.072
 ]
+
 tL_age = tL1[:, 1] * 365 * u"d"
 tL_length = tL1[:, 2] * u"cm"
 tL2 = [tL_age, tL_length]
-data = data_struct(tL = tL2, psd = psdData)
 
-@with_kw mutable struct temp_struct{T}
-    ab::T = Unitful.K(22Unitful.°C)
-    ab30::T = Unitful.K(30Unitful.°C)
-    tp::T = Unitful.K(22Unitful.°C)
-    tpm::T = Unitful.K(22Unitful.°C)
-    am::T = Unitful.K(22Unitful.°C)
-    ri::T = Unitful.K(22Unitful.°C)
-    tL::T = Unitful.K(22Unitful.°C)
-end
-temp = temp_struct()
+data = (;
+    ab = 78.0d,
+    ab30 = 48.0d,
+    tp = 10.0 * 365.0d,
+    tpm = 5.5 * 365.0d,
+    am = 20.9 * 365.0d,
+    Lb = 2.7cm,
+    Lp = 18.7cm,
+    Lpm = 14.7cm,
+    Li = 21.4cm,
+    Lim = 20.8cm,
+    Wwb = 8.0g,
+    Wwp = 2669.0g,
+    Wwpm = 1297.0g,
+    Wwi = 4000.0g,
+    Wwim = 3673.0g,
+    Ri = 36.0 / 365.0d,
+    tl = tL2 ,
+    psd = psdData,
+)
 
-@with_kw mutable struct label_struct
-    ab::String = "age at birth"
-    ab30::String = "age at birth"
-    tp::String = "time since birth at puberty for females"
-    tpm::String = "time since birth at puberty for males"
-    am::String = "life span"
-    Lb::String = "plastron length at birth"
-    Lp::String = "plastron length at puberty for females"
-    Lpm::String = "plastron length at puberty for males"
-    Li::String = "ultimate plastron length for females"
-    Lim::String = "ultimate plastron length for females"
-    Wwb::String = "wet weight at birth"
-    Wwp::String = "wet weight at puberty for females"
-    Wwpm::String = "wet weight at puberty for males"
-    Wwi::String = "ultimate wet weight for females"
-    Wwim::String = "ultimate wet weight for males"
-    Ri::String = "maximum reprod rate"
-    tL::Vector{String} = ["time since birth", "carapace length"]
-    psd::Any
-end
-label = label_struct(psd = psdLabel)
+temp = (;
+    abg = Unitful.K(22Unitful.°C),
+    ab30g = Unitful.K(30Unitful.°C),
+    tpg = Unitful.K(22Unitful.°C),
+    tpmg = Unitful.K(22Unitful.°C),
+    amg = Unitful.K(22Unitful.°C),
+    rig = Unitful.K(22Unitful.°C),
+    tLg = Unitful.K(22Unitful.°C),
+)
 
-@with_kw mutable struct bibkey_struct
-    ab::String = "carettochelys"
-    ab30::String = "carettochelys"
-    tp::String = "Spen2002"
-    tpm::String = "Spen2002"
-    am::String = "life span"
-    Lb::String = "Spen2002"
-    Lp::String = "Spen2002"
-    Lpm::String = "Spen2002"
-    Li::String = "Spen2002"
-    Lim::String = "Spen2002"
-    Wwb::String = "Spen2002"
-    Wwp::String = "Spen2002"
-    Wwpm::String = "Spen2002"
-    Wwi::String = "carettochelys"
-    Wwim::String = "carettochelys"
-    Ri::String = "Spen2002"
-    tL::String = "Spen2002"
-    F1::String = "Wiki"
-end
-bibkey = bibkey_struct()
+label = (;
+    ab = "age at birth",
+    ab30 = "age at birth",
+    tp = "time since birth at puberty for females",
+    tpm = "time since birth at puberty for males",
+    am = "life span",
+    Lb = "plastron length at birth",
+    Lp = "plastron length at puberty for females",
+    Lpm = "plastron length at puberty for males",
+    Li = "ultimate plastron length for females",
+    Lim = "ultimate plastron length for females",
+    Wwb = "wet weight at birth",
+    Wwp = "wet weight at puberty for females",
+    Wwpm = "wet weight at puberty for males",
+    Wwi = "ultimate wet weight for females",
+    Wwim = "ultimate wet weight for males",
+    Ri = "maximum reprod rate",
+    tL = ["time since birth", "carapace length"],
+    psd = psdLabel,
+)
 
-@with_kw mutable struct units_struct
-    ab::String = "d"
-    ab30::String = "d"
-    tp::String = "d"
-    tpm::String = "d"
-    am::String = "d"
-    Lb::String = "cm"
-    Lp::String = "cm"
-    Lpm::String = "cm"
-    Li::String = "cm"
-    Lim::String = "cm"
-    Wwb::String = "g"
-    Wwp::String = "g"
-    Wwpm::String = "g"
-    Wwi::String = "g"
-    Wwim::String = "g"
-    Ri::String = "#/d"
-    tL::Vector{String} = ["time since birth", "carapace length"]
-    psd::Any
-end
-units = units_struct(psd = psdUnits)
+bibkey = (
+    ab = "carettochelys",
+    ab30 = "carettochelys",
+    tp = "Spen2002",
+    tpm = "Spen2002",
+    am = "life span",
+    Lb = "Spen2002",
+    Lp = "Spen2002",
+    Lpm = "Spen2002",
+    Li = "Spen2002",
+    Lim = "Spen2002",
+    Wwb = "Spen2002",
+    Wwp = "Spen2002",
+    Wwpm = "Spen2002",
+    Wwi = "carettochelys",
+    Wwim = "carettochelys",
+    Ri = "Spen2002",
+    tL = "Spen2002",
+    F1 = "Wiki",
+)
 
-@with_kw mutable struct weight_struct
-    ab::Float64 = 1
-    ab30::Float64 = 1
-    tp::Float64 = 1
-    tpm::Float64 = 1
-    am::Float64 = 1
-    Lb::Float64 = 1
-    Lp::Float64 = 1
-    Lpm::Float64 = 1
-    Li::Float64 = 1
-    Lim::Float64 = 1
-    Wwb::Float64 = 1
-    Wwp::Float64 = 1
-    Wwpm::Float64 = 1
-    Wwi::Float64 = 1
-    Wwim::Float64 = 1
-    Ri::Float64 = 1
-    tL::Any
-    psd::Any
-end
+units = (
+    ab = "d",
+    ab30 = "d",
+    tp = "d",
+    tpm = "d",
+    am = "d",
+    Lb = "cm",
+    Lp = "cm",
+    Lpm = "cm",
+    Li = "cm",
+    Lim = "cm",
+    Wwb = "g",
+    Wwp = "g",
+    Wwpm = "g",
+    Wwi = "g",
+    Wwim = "g",
+    Ri = "#/d",
+    tL = ["time since birth", "carapace length"],
+    psd = psdUnits,
+)
+
 nvar = length(tL2)
 N = length(tL2[1])
-weights = weight_struct(tL = ones(N, nvar - 1) / N / (nvar - 1), psd = psdWeight)
 ## set weights for all real data
 #weights = setweights(data, weights);
-weights.tL = 2 * weights.tL;
+# weights.tL = 2 * weights.tL;
 
 ## set pseudodata and respective weights
 # [data, units, label, weights] = addpseudodata(data, units, label, weights);
-weights.psd.k_J = 0;
-weights.psd.k = 0.1;
+# weights.psd.k_J = 0;
+# weights.psd.k = 0.1;
+
+weights = (;
+    abg = 1,
+    ab30g = 1,
+    tpg = 1,
+    tpmg = 1,
+    amg = 1,
+    Lbg = 1,
+    Lpg = 1,
+    Lpmg = 1,
+    Lig = 1,
+    Limg = 1,
+    Wwbg = 1,
+    Wwpg = 1,
+    Wwpmg = 1,
+    Wwig = 1,
+    Wwimg = 1,
+    Rig = 1,
+    tL = ones(N, nvar - 1) / N / (nvar - 1),
+    psd = psdWeight,
+)
+
 data.psd.k = 0.3;
 units.psd.k = "-";
 label.psd.k = "maintenance ratio";
 
 # Discussion points
-@with_kw mutable struct discussion_struct
-    D1::String = "Males are assumed to differ from females by {p_Am} and E_Hb only" # Cat of Life
-end
-discussion = discussion_struct()
+discussion = (;
+    D1 = "Males are assumed to differ from females by {p_Am} and E_Hb only", # Cat of Life
+)
 
 # Facts
-@with_kw mutable struct facts_struct
-    F1::String = "Omnivorous"
-end
-facts = facts_struct()
+facts = (
+    F1= "Omnivorous"
+)
 
 # Links
-@with_kw mutable struct links_struct
-    id_CoL::String = "39LSX" # Cat of Life
-    id_ITIS::String = "949506" # ITIS
-    id_EoL::String = "794804" # Ency of Life
-    id_Wiki::String = "Emydura_macquarii" # Wikipedia
-    id_ADW::String = "Emydura_macquarii" # ADW
-    id_Taxo::String = "93062" # Taxonomicon
-    id_WoRMS::String = "1447999" # WoRMS
-    id_ReptileDB::String = "genus=Emydura&species=macquarii" # ReptileDB
-    id_AnAge::String = "Emydura_macquarii" # AnAge
-end
-links = links_struct()
+links = (; 
+    id_CoL = "39LSX", # Cat of Life
+    id_ITIS = "949506", # ITIS
+    id_EoL = "794804", # Ency of Life
+    id_Wiki = "Emydura_macquarii", # Wikipedia
+    id_ADW = "Emydura_macquarii", # ADW
+    id_Taxo = "93062", # Taxonomicon
+    id_WoRMS = "1447999", # WoRMS
+    id_ReptileDB = "genus=Emydura&species=macquarii", # ReptileDB
+    id_AnAge = "Emydura_macquarii", # AnAge
+)
 
-@with_kw mutable struct struct_comment
-    ab::String = "all temps are guessed"
-    ab30::String = ""
-    tp::String = ""
-    tpm::String = ""
-    am::String = ""
-    Lb::String = ""
-    Lp::String = ""
-    Lpm::String = ""
-    Li::String = ""
-    Lim::String = ""
-    Wwb::String = "based on (Lb/Li)^3*Wwi"
-    Wwp::String = "based on (Lp/Li)^3*Wwi"
-    Wwpm::String = "based on (Lpm/Li)^3*Ww"
-    Wwi::String = ""
-    Wwim::String = "based on (Lim/Li)^3*Wwi"
-    Ri::String = "#/d"
-    tL::Vector{String} = ["time since birth", "carapace length"]
-end
-comment = struct_comment()
+comment = (;
+    ab = "all temps are guessed",
+    ab30 = "",
+    tp = "",
+    tpm = "",
+    am = "",
+    Lb = "",
+    Lp = "",
+    Lpm = "",
+    Li = "",
+    Lim = "",
+    Wwb = "based on (Lb/Li)^3*Wwi",
+    Wwp = "based on (Lp/Li)^3*Wwi",
+    Wwpm = "based on (Lpm/Li)^3*Ww",
+    Wwi = "",
+    Wwim = "based on (Lim/Li)^3*Wwi",
+    Ri = "#/d",
+    tL = ["time since birth", "carapace length"],
+)
 
 # pack auxData and txtData for output
 
-@with_kw mutable struct struct_txtData{A,B,C,D}
-    units::A = units
-    label::B = label
-    bibkey::C = bibkey
-    comment::D = comment
-end
-txtData = struct_txtData()
+# TODO: move this somewhere shared if this is a common structure?
+# struct TxtData{A,B,C,D}
+#     units::A
+#     label::B
+#     bibkey::C
+#     comment::D
+# end
 
-@with_kw mutable struct struct_auxData{T}
-    temp::T = temp
-end
-auxData = struct_auxData()
+txtData = (; units, label, bibkey, comment)
+
+auxData = (;
+    temp = temp,
+)
 
 # ## References
 bibkey = "Wiki";
@@ -315,15 +308,9 @@ bib = "howpublished = {\\url{http://www.carettochelys.com/emydura/emydura_mac_ma
 carettochelys = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
 # metaData.biblist.(bibkey) = ["""@", type, "{", bibkey, ", " bib, "}"";"];
 
-@with_kw mutable struct biblist_struct
-    Kooy2010::String = Kooy2010
-    Spen2002::String = Spen2002
-    AnAge::String = AnAge
-    carettochelys::String = carettochelys
-end
-biblist = biblist_struct()
+biblist = [Kooy2010, Kooy2010, Spen2002, AnAge, carettochelys]
 
-metaData = metaData_struct(
+metaData = (;
     ecoCode = ecoCode,
     links = links,
     facts = facts,
@@ -332,10 +319,4 @@ metaData = metaData_struct(
     biblist = biblist,
 )
 
-# export(data)
-# export(auxData)
-# export(metaData)
-# export(txtData)
-# export(weights)
-# #(data, auxData, metaData, txtData, weights)
-# end
+(; data, auxData, metaData, txtData, weights)

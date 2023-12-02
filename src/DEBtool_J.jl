@@ -8,7 +8,7 @@ using Statistics
 using Random
 using SpecialFunctions
 using QuadGK
-using OrdinaryDiffEq
+using DiffEqBase
 
 abstract type AbstractDEBModel end
 
