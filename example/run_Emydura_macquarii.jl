@@ -15,8 +15,8 @@ data_pets = mydata_pets(pets, examplepath)
 
 # EstimOptions to replace the globals set by `estim_options` below
 options = DEBtool_J.EstimOptions(;
-    max_step_number = 5e2,
-    max_fun_evals = 5e3,
+    max_step_number = 500,
+    max_fun_evals = 5000,
     pars_init_method = 2, 
     results_output = 3, 
     method = :nm
@@ -32,4 +32,4 @@ estim_options("results_output", 3);
 estim_options("method", "nm");
 
 # currently takes 55 seconds to do 500 steps, matlab takes just under 40
-estim_pars(options, pets, par_model, metapar, data)
+estim_pars(options, pets, par_model, metapar, data_pets.data)
