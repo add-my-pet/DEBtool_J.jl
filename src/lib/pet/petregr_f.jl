@@ -2,7 +2,7 @@
 # Finds parameter values for a pet that minimizes the lossfunction using Nelder Mead's simplex method using a filter
 
 ##
-function petregr_f(func, par, data, auxData, weights, filternm)
+function petregr_f(func, par, data, auxData, weights, filternm, options)
     # created 2001/09/07 by Bas Kooijman; 
     # modified 2015/01/29 by Goncalo Marques, 
     #   2015/03/21 by Bas Kooijman, 
@@ -39,11 +39,10 @@ function petregr_f(func, par, data, auxData, weights, filternm)
     # The number of fields in data is variable.
     # See <groupregr_f.html *groupregr_f*> for the multi-species situation.
 
-    global lossfunction, report, max_step_number, max_fun_evals, tol_simplex, tol_fun, simplex_size
     global st, fieldsInCells, auxVar, Y, meanY, W, P, meanP, q, pets
     # option settings
     info = true # initiate info setting
-    fileLossfunc = "lossfunction_" * lossfunction
+    fileLossfunc = "lossfunction_" * options.lossfunction
 
     # prepare variable
     #   st: structure with dependent data values only
@@ -109,24 +108,24 @@ function petregr_f(func, par, data, auxData, weights, filternm)
     end
     # set options if necessary
 
-    if !@isdefined(max_step_number) || isempty(max_step_number)
-        nmregr_options("max_step_number", 200 * n_par)
-    end
-    if !@isdefined(max_fun_evals) || isempty(max_fun_evals)
-        nmregr_options("max_fun_evals", 200 * n_par)
-    end
-    if !@isdefined(tol_simplex) || isempty(tol_simplex)
-        nmregr_options("tol_simplex", 1e-4)
-    end
-    if !@isdefined(tol_fun) || isempty(tol_fun)
-        nmregr_options("tol_fun", 1e-4)
-    end
-    if !@isdefined(simplex_size) || isempty(simplex_size)
-        nmregr_options("simplex_size", 0.05)
-    end
-    if !@isdefined(report) || isempty(report)
-        nmregr_options("report", 1)
-    end
+    # if !@isdefined(options.max_step_number) || isempty(options.max_step_number)
+    #     nmregr_options("max_step_number", 200 * n_par)
+    # end
+    # if !@isdefined(options.max_fun_evals) || isempty(options.max_fun_evals)
+    #     nmregr_options("max_fun_evals", 200 * n_par)
+    # end
+    # if !@isdefined(options.tol_simplex) || isempty(options.tol_simplex)
+    #     nmregr_options("tol_simplex", 1e-4)
+    # end
+    # if !@isdefined(options.tol_fun) || isempty(options.tol_fun)
+    #     nmregr_options("tol_fun", 1e-4)
+    # end
+    # if !@isdefined(options.simplex_size) || isempty(options.simplex_size)
+    #     nmregr_options("simplex_size", 0.05)
+    # end
+    # if !@isdefined(options.report) || isempty(options.report)
+    #     nmregr_options("report", 1)
+    # end
 
     # Initialize parameters
     rho = 1
@@ -157,8 +156,8 @@ function petregr_f(func, par, data, auxData, weights, filternm)
     #fv(:,1) = feval(fileLossfunc, Y, meanY, P, meanP, W);
 
     # Following improvement suggested by L.Pfeffer at Stanford
-    usual_delta = simplex_size         # 5 percent deltas is the default for non-zero terms
-    zero_term_delta = simplex_size / 20 # Even smaller delta for zero elements of q
+    usual_delta = options.simplex_size         # 5 percent deltas is the default for non-zero terms
+    zero_term_delta = options.simplex_size / 20 # Even smaller delta for zero elements of q
     for j = 1:Int(n_par)
         y = deepcopy(xin)
         f_test = false
@@ -207,7 +206,7 @@ function petregr_f(func, par, data, auxData, weights, filternm)
     how = "initial"
     itercount = 1
     func_evals = n_par + 1
-    if report == 1
+    if options.report
         println(
             "step " * string(itercount) * " ssq ",
             string(minimum(fv)) * "-",
@@ -217,13 +216,13 @@ function petregr_f(func, par, data, auxData, weights, filternm)
     info = true
 
     # Main algorithm
-    # Iterate until the diameter of the simplex is less than tol_simplex
-    #   AND the function values differ from the min by less than tol_fun,
+    # Iterate until the diameter of the simplex is less than options.tol_simplex
+    #   AND the function values differ from the min by less than options.tol_fun,
     #   or the max function evaluations are exceeded. (Cannot use OR instead of AND.)
-    while func_evals < max_fun_evals && itercount < max_step_number
-        #if maximum(Unitful.ustrip(abs.(v[:, two2np1] .- v[:, onesn]))) <= tol_simplex && maximum(Unitful.ustrip(abs.(fv[1].-fv[two2np1]))) <= tol_fun
+    while func_evals < options.max_fun_evals && itercount < options.max_step_number
+        #if maximum(Unitful.ustrip(abs.(v[:, two2np1] .- v[:, onesn]))) <= options.tol_simplex && maximum(Unitful.ustrip(abs.(fv[1].-fv[two2np1]))) <= options.tol_fun
         if maximum(Unitful.ustrip(abs.(view(v, :, two2np1) .- view(v, :, onesn)))) <=
-           tol_simplex && maximum(Unitful.ustrip(abs.(fv[1] .- fv[two2np1]))) <= tol_fun
+           options.tol_simplex && maximum(Unitful.ustrip(abs.(fv[1] .- fv[two2np1]))) <= options.tol_fun
             break
         end
         how = ""
@@ -403,7 +402,7 @@ function petregr_f(func, par, data, auxData, weights, filternm)
         v = v[:, j]
         itercount = itercount + 1
 
-        if report == 1 && mod(itercount, 10) == 0
+        if options.report && mod(itercount, 10) == 0
             println(
                 "step " * string(itercount) * " ssq ",
                 string(minimum(fv)) * "-",
@@ -420,20 +419,20 @@ function petregr_f(func, par, data, auxData, weights, filternm)
     q = merge(q, (free = free,))
 
     fval = minimum(fv)
-    if func_evals >= max_fun_evals
-        if report > 0
+    if func_evals >= options.max_fun_evals
+        if options.report
             println(
-                "No convergences with " * string(max_fun_evals) * " function evaluations\n",
+                "No convergences with " * string(options.max_fun_evals) * " function evaluations\n",
             )
         end
         info = false
-    elseif itercount >= max_step_number
-        if report > 0
-            println("No convergences with " * string(max_step_number) * " steps\n")
+    elseif itercount >= options.max_step_number
+        if options.report
+            println("No convergences with " * string(options.max_step_number) * " steps\n")
         end
         info = false
     else
-        if report > 0
+        if options.report
             println("Successful convergence \n")
         end
         info = true

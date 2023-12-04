@@ -62,7 +62,7 @@ function parscomp_st(p)
         p_Am = p.p_Am
     end
 
-    cPar = (; p_Am)
+    global cPar = (; p_Am)
 
     #         X       V       E       P
     n_O =

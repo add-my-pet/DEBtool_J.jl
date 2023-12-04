@@ -843,9 +843,9 @@ function estim_options(key::String, val)
     end
 end =#
 
-@with_kw struct struct_EstimOptions
-   method::Symbol
-   lossfunction::Symbol
+struct EstimOptions
+   method::String
+   lossfunction::String
    filter::Bool
    pars_init_method::Int
    results_output::Int
@@ -855,10 +855,10 @@ end =#
    tol_simplex::Float64
    tol_fun::Float64
    simplex_size::Float64
-   search_method::Symbol
+   search_method::String
    num_results::Int
    gen_factor::Float64
-   factor_type::Symbol
+   factor_type::String
    bounds_from_ind::Int
    max_calibration_time::Int
    num_runs::Int
@@ -870,7 +870,7 @@ end =#
    seed_index::Int
    ranges::Union{Float64,Nothing}
    mat_file::Union{String,Nothing}
-   results_display::Symbol
+   results_display::String
    results_filename::String
    save_results::Bool
    sigma_share::Float64
@@ -878,8 +878,8 @@ end =#
 end
 
 function EstimOptions(;
-    method = :nm,
-    lossfunction = :sb,
+    method = "nm",
+    lossfunction = "sb",
     filter = true,
     pars_init_method = 2,
     results_output = 3,
@@ -890,7 +890,7 @@ function EstimOptions(;
     tol_fun = 1e-4,
     simplex_size = 0.05,
     # for mmea method (taken from calibration_options)
-    search_method = :mm_shade, # Use mm_shade: Success-History based Adaptive Differential Evolution
+    search_method = "mm_shade", # Use mm_shade: Success-History based Adaptive Differential Evolution
     num_results = 50,   # The size for the multimodal algorithm's population.
     # If not defined then sets the values recommended by the author,
     # which are 100 for mm_shade ('mm_shade') and 18 * problem size for L-mm_shade.
@@ -898,7 +898,7 @@ function EstimOptions(;
     # initialization. (e.g. A value of 0.9 means that, for a parameter value of 1,
     # the range for generation is [(1 - 0.9) * 1, 1 * (1 + 0.9)] so
     # the new parameter value will be a random between [0.1, 1.9]
-    factor_type = :mult, # The kind of factor to be applied when generatin individuals
+    factor_type = "mult", # The kind of factor to be applied when generatin individuals
     #('mult' is multiplicative (Default) | 'add' if
     # additive);
     bounds_from_ind = 1, # This options selects from where the parameters for the initial population of individuals are taken.
@@ -945,23 +945,23 @@ function EstimOptions(;
     seed_index = 1, # index for seeds for random number generator
     ranges = nothing, #struct(); # The range struct is empty by default.
     mat_file = "",
-    results_display = :Basic, # The results output style.
+    results_display = "Basic", # The results output style.
     results_filename = "Default",
     save_results = false, # If results output are saved.
     sigma_share = 0.1,
     rng = MersenneTwister(random_seeds[seed_index]) # initialize the number generator is with a seed, to be updated for each run of the calibration method.
 )
 
-    rd = (:Basic, :Best, :Set, :Complete)
+    rd = ("Basic", "Best", "Set", "Complete")
     results_display in rd || throw(ArgumentError("results_display must be one of $rd"))
 
-    m = (:no, :nm, :mmea)
+    m = ("no", "nm", "mmea")
     method in m || throw(ArgumentError("method must be one of $m"))
     
     method == "mmea" && !filter && @warn "estim_options: use a filter with method `:mmea`"
     0 <= sigma_share <= 1 || throw(ArgumentError("sigma_share must be between 0 and 1"))
 
-    return struct_EstimOptions(;
+    return EstimOptions(
         method,
         lossfunction,
         filter,
