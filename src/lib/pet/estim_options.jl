@@ -158,7 +158,7 @@
 ## Example of use
 #  estim_options('default'); estim_options('filter', 0); estim_options('method', 'no')
 
-function estim_options(key::String)
+#= function estim_options(key::String)
 
     global method, lossfunction, filter, pars_init_method, results_output, max_fun_evals
     global report, max_step_number, tol_simplex, tol_fun, simplex_size
@@ -841,24 +841,24 @@ function estim_options(key::String, val)
             "Warning from estim_options: method mmea without using filters amounts to asking for trouble\n",
         )
     end
-end
+end =#
 
-struct EstimOptions{F}
-   method::Symbol
-   lossfunction::Symbol
+struct EstimOptions
+   method::String
+   lossfunction::String
    filter::Bool
    pars_init_method::Int
    results_output::Int
-   max_fun_evals::Float64
+   max_fun_evals::Int
    report::Bool
    max_step_number::Int
    tol_simplex::Float64
    tol_fun::Float64
    simplex_size::Float64
-   search_method::Symbol
+   search_method::String
    num_results::Int
    gen_factor::Float64
-   factor_type::Symbol
+   factor_type::String
    bounds_from_ind::Int
    max_calibration_time::Int
    num_runs::Int
@@ -869,8 +869,8 @@ struct EstimOptions{F}
    random_seeds::Vector{Int}
    seed_index::Int
    ranges::Union{Float64,Nothing}
-   mat_file::Union{Float64,Nothing}
-   results_display::Symbol
+   mat_file::Union{String,Nothing}
+   results_display::String
    results_filename::String
    save_results::Bool
    sigma_share::Float64
@@ -878,19 +878,19 @@ struct EstimOptions{F}
 end
 
 function EstimOptions(;
-    lossfunction = :sb,
+    method = "nm",
+    lossfunction = "sb",
     filter = true,
     pars_init_method = 2,
     results_output = 3,
-    method = :nm,
-    max_fun_evals = 1e4,
+    max_fun_evals = 10000,
     report = true,
     max_step_number = 500,
     tol_simplex = 1e-4,
     tol_fun = 1e-4,
     simplex_size = 0.05,
     # for mmea method (taken from calibration_options)
-    search_method = :mm_shade, # Use mm_shade: Success-History based Adaptive Differential Evolution
+    search_method = "mm_shade", # Use mm_shade: Success-History based Adaptive Differential Evolution
     num_results = 50,   # The size for the multimodal algorithm's population.
     # If not defined then sets the values recommended by the author,
     # which are 100 for mm_shade ('mm_shade') and 18 * problem size for L-mm_shade.
@@ -898,16 +898,16 @@ function EstimOptions(;
     # initialization. (e.g. A value of 0.9 means that, for a parameter value of 1,
     # the range for generation is [(1 - 0.9) * 1, 1 * (1 + 0.9)] so
     # the new parameter value will be a random between [0.1, 1.9]
-    factor_type = :mult, # The kind of factor to be applied when generatin individuals
+    factor_type = "mult", # The kind of factor to be applied when generatin individuals
     #('mult' is multiplicative (Default) | 'add' if
     # additive);
     bounds_from_ind = 1, # This options selects from where the parameters for the initial population of individuals are taken.
     # If the value is equal to 1 the parameters are generated from the data initial values
     # if is 0 then the parameters are generated from the pseudo data values.
-    add_initial = false,     # If to add an invidivual taken from initial data into first population.                     # (only if it the 'add_initial' option is activated)
-    refine_best = false,     # If a local search is applied to the best individual found.
     max_calibration_time = 30, # The maximum calibration time calibration process.
     num_runs = 5, # The number of runs to perform.
+    add_initial = false,     # If to add an invidivual taken from initial data into first population.                     # (only if it the 'add_initial' option is activated)
+    refine_best = false,     # If a local search is applied to the best individual found.
     verbose = false,  # If to print some information while the calibration process is running.
     verbose_options = 5, # The number of solutions to show from the  set of optimal solutions found by the  algorithm through the calibration process.
     random_seeds = [
@@ -944,22 +944,22 @@ function EstimOptions(;
     ],
     seed_index = 1, # index for seeds for random number generator
     ranges = nothing, #struct(); # The range struct is empty by default.
-    results_display = :Basic, # The results output style.
+    mat_file = "",
+    results_display = "Basic", # The results output style.
     results_filename = "Default",
     save_results = false, # If results output are saved.
-    mat_file = "",
     sigma_share = 0.1,
+    rng = MersenneTwister(random_seeds[seed_index]) # initialize the number generator is with a seed, to be updated for each run of the calibration method.
 )
-    rng = MersenneTwister(random_seeds[seed_index]), # initialize the number generator is with a seed, to be updated for each run of the calibration method.
 
-    rd = (:Basic, :Best, :Set, :Complete)
+    rd = ("Basic", "Best", "Set", "Complete")
     results_display in rd || throw(ArgumentError("results_display must be one of $rd"))
 
-    m = (:no, :nm, :mmea)
+    m = ("no", "nm", "mmea")
     method in m || throw(ArgumentError("method must be one of $m"))
     
     method == "mmea" && !filter && @warn "estim_options: use a filter with method `:mmea`"
-    0 <= sigmshare <= 1 || throw(ArgumentError("sigma_share must be between 0 and 1"))
+    0 <= sigma_share <= 1 || throw(ArgumentError("sigma_share must be between 0 and 1"))
 
     return EstimOptions(
         method,

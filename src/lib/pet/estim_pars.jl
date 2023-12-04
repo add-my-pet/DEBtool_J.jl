@@ -42,7 +42,7 @@ function estim_pars(options, pets, par_model, metaPar, mydata_pets)
     # Option output >= 5 allow the filling of global refPets to choose
     # comparison species, otherwise this is done automatically.
 
-    global pets, pars_init_method, method, filter, covRules
+    global pars_init_method, method, filter, covRules
     global parPets, par
 
     n_pets = length(pets)
@@ -121,8 +121,8 @@ function estim_pars(options, pets, par_model, metaPar, mydata_pets)
     # end
 
     # check parameter set if you are using a filter
-    parPets = parGrp2Pets(par) # convert parameter structure of group of pets to cell string for each pet
-    if filter == 1
+    parPets = parGrp2Pets(par, pets) # convert parameter structure of group of pets to cell string for each pet
+    if options.filter == 1
         pass = true
         filternm = n_pets[1]#cell(n_pets,1);
         for i = 1:n_pets
@@ -164,10 +164,10 @@ function estim_pars(options, pets, par_model, metaPar, mydata_pets)
     # perform the actual estimation
     #switch method
     #  case "nm"
-    if method == "nm"
+    if options.method == "nm"
         #if n_pets == 1
         par, info, nsteps, fval =
-            petregr_f("predict_pets", par, data, auxData, weights, filternm)   # estimate parameters using overwrite
+            petregr_f("predict_pets", par, data, auxData, weights, filternm, options)   # estimate parameters using overwrite
         #else
         #  [par, info, nsteps, fval] = groupregr_f("predict_pets", par, data, auxData, weights, weightsPar, filternm); # estimate parameters using overwrite
         #end
@@ -189,7 +189,7 @@ function estim_pars(options, pets, par_model, metaPar, mydata_pets)
 
     # Results
     #switch method
-    if method in ["nm", "no"]
+    if options.method in [:nm, :no]
         #  results_pets(par, metaPar, txtPar, data, auxData, metaData, txtData, weights);
         # elseif method == "mmea" # TO DO
         #   mmea_name =  strsplit(resultsnm, ".");
