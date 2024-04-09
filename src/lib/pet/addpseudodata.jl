@@ -1,4 +1,5 @@
-## addpseudodata
+function addpseudodata()
+    ## addpseudodata
 # Adds pseudodata information into inputed data structures 
 
 ##
@@ -36,52 +37,37 @@ using ModelParameters
 using Unitful
 using Unitful: °C, K, d, g, cm, mol, J =#
 # set pseudodata
-@with_kw mutable struct psdData_struct{L,R,M}
-    v::L = 0.02cm / d
-    kap::Float64 = 0.8
-    kap_R::Float64 = 0.95
-    p_M::M = 18J / d / cm^3
-    k_J::R = 0.002d^-1
-    kap_G::Float64 = 0.8
-    k::Float64 = 0.3
-end
-psdData = psdData_struct()
+    
+psdData = (;
+    v = 0.02u"cm/d",
+    kap = 0.8,
+    kap_R = 0.95,
+    p_M = 18u"J/d/cm^3",
+    k_J = 0.002u"d^-1",
+    kap_G = 0.8,
+    k = 0.3
+)
 
-@with_kw mutable struct psdUnits_struct
-    v::String = "cm/d"
-    kap::String = "-"
-    kap_R::String = "-"
-    p_M::String = "J/d.cm^3"
-    k_J::String = "1/d"
-    kap_G::String = "-"
-    k::String = "-"
-end
-psdUnits = psdUnits_struct()
-
-@with_kw mutable struct psdLabel_struct
-    v::String = "energy conductance"
-    kap::String = "allocation fraction to soma"
-    kap_R::String = "reproduction efficiency"
-    p_M::String = "vol-spec som maint"
-    k_J::String = "maturity maint rate coefficient"
-    kap_G::String = "growth efficiency"
-    k::String = "maintenance ratio"
-end
-psdLabel = psdLabel_struct()
+psdLabel = (;
+    v = "energy conductance",
+    kap = "allocation fraction to soma",
+    kap_R = "reproduction efficiency",
+    p_M = "vol-spec som maint",
+    k_J = "maturity maint rate coefficient",
+    kap_G = "growth efficiency",
+    k = "maintenance ratio"
+)
 
 # set weights
-@with_kw mutable struct psdWeight_struct
-    v::Float64 = 0.1
-    kap::Float64 = 0.1
-    kap_R::Float64 = 0.1
-    p_M::Float64 = 0.1
-    k_J::Float64 = 0.1
-    kap_G::Float64 = 0.1
-    k::Float64 = 0.1
-end
-psdWeight = psdWeight_struct()
-
-psdWeight.kap_G = 200 * psdWeight.kap_G;   # more weight to kap_G
+psdWeight = (;
+    v = 0.1,
+    kap = 0.1,
+    kap_R = 0.1,
+    p_M = 0.1,
+    k_J = 0.1,
+    kap_G = 0.1 * 200, # more weight to kap_G
+    k = 0.1
+)
 
 # if strcmp(loss_function, 'su')
 #   psdWeight.v     = 10^(-4) * psdWeight.v;
@@ -96,3 +82,5 @@ psdWeight.kap_G = 200 * psdWeight.kap_G;   # more weight to kap_G
 # export(psdWeight)
 # export(psdUnits)
 # end
+(psdData, psdLabel, psdWeight)
+end

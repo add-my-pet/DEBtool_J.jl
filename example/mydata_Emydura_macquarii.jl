@@ -1,28 +1,22 @@
-# module mydata_Emydura_macquarii
-# using Parameters
-# using ModelParameters
-# using Unitful
-# using Unitful: °C, K, d, g, cm, mol, J
-# using ..addpseudodata
 metaData = (;
-    phylum = "Chordata",
-    class = "Reptilia",
-    order = "Testudines",
-    family = "Chelidae",
-    species = "Emydura_macquarii",
-    species_en = "Murray River turtle",
+    phylum="Chordata",
+    class="Reptilia",
+    order="Testudines",
+    family="Chelidae",
+    species="Emydura_macquarii",
+    species_en="Murray River turtle",
     # ecoCode::Any,
-    T_typical = Unitful.K(22Unitful.°C),
-    data_0 = ["ab_T", "ap", "am", "Lb", "Lp", "Li", "Wwb", "Wwp", "Wwi", "Ri"],
-    data_1 = ["t-L"],
-    COMPLETE = 2.5,
-    author = "Bas Kooijman",
-    date_subm = [2017, 10, 09],
-    email = "bas.kooijman@vu.nl",
-    address = "VU University, Amsterdam",
-    curator = "Starrlight Augustine",
-    email_cur = "starrlight@akvaplan.niva.no",
-    date_acc = [2017, 10, 09],
+    T_typical=Unitful.K(22Unitful.°C),
+    data_0=["ab_T", "ap", "am", "Lb", "Lp", "Li", "Wwb", "Wwp", "Wwi", "Ri"],
+    data_1=["t-L"],
+    COMPLETE=2.5,
+    author="Bas Kooijman",
+    date_subm=[2017, 10, 09],
+    email="bas.kooijman@vu.nl",
+    address="VU University, Amsterdam",
+    curator="Starrlight Augustine",
+    email_cur="starrlight@akvaplan.niva.no",
+    date_acc=[2017, 10, 09],
     # links
     # facts
     # discussion
@@ -31,14 +25,14 @@ metaData = (;
 )
 
 ecoCode = (;
-    climate = ["Cfa", "Cfb"],
-    ecozone = ["TA"],
-    habitat = ["0bTd", "biFr"],
-    embryo = ["Tt"],
-    migrate = String[],
-    food = ["biCi"],
-    gender = ["Dg"],
-    reprod = ["O"],
+    climate=["Cfa", "Cfb"],
+    ecozone=["TA"],
+    habitat=["0bTd", "biFr"],
+    embryo=["Tt"],
+    migrate=String[],
+    food=["biCi"],
+    gender=["Dg"],
+    reprod=["O"],
 )
 
 tL1 = [
@@ -68,181 +62,142 @@ tL1 = [
     3.934 14.072
 ]
 
-tL_age = tL1[:, 1] * 365 * u"d"
-tL_length = tL1[:, 2] * u"cm"
-tL2 = [tL_age, tL_length]
+# Define units
+unit_age = u"d"
+unit_length = u"cm"
+
+# Convert the matrix tL1 into a named tuple with units assigned to each column
+tL = hcat(tL1[:, 1] * 365 * unit_age, tL1[:, 2] * unit_length)
 
 data = (;
-    ab = 78.0d,
-    ab30 = 48.0d,
-    tp = 10.0 * 365.0d,
-    tpm = 5.5 * 365.0d,
-    am = 20.9 * 365.0d,
-    Lb = 2.7cm,
-    Lp = 18.7cm,
-    Lpm = 14.7cm,
-    Li = 21.4cm,
-    Lim = 20.8cm,
-    Wwb = 8.0g,
-    Wwp = 2669.0g,
-    Wwpm = 1297.0g,
-    Wwi = 4000.0g,
-    Wwim = 3673.0g,
-    Ri = 36.0 / 365.0d,
-    tl = tL2 ,
-    psd = psdData,
+    ab=78.0u"d",
+    ab30=48.0u"d",
+    tp=10.0 * 365.0u"d",
+    tpm=5.5 * 365.0u"d",
+    am=20.9 * 365.0u"d",
+    Lb=2.7u"cm",
+    Lp=18.7u"cm",
+    Lpm=14.7u"cm",
+    Li=21.4u"cm",
+    Lim=20.8u"cm",
+    Wwb=8.0u"g",
+    Wwp=2669.0u"g",
+    Wwpm=1297.0u"g",
+    Wwi=4000.0u"g",
+    Wwim=3673.0u"g",
+    Ri=36.0 / 365.0u"d"
 )
+
+data = merge(data, (; tL))
 
 temp = (;
-    abg = Unitful.K(22Unitful.°C),
-    ab30g = Unitful.K(30Unitful.°C),
-    tpg = Unitful.K(22Unitful.°C),
-    tpmg = Unitful.K(22Unitful.°C),
-    amg = Unitful.K(22Unitful.°C),
-    rig = Unitful.K(22Unitful.°C),
-    tLg = Unitful.K(22Unitful.°C),
-)
-
-label = (;
-    ab = "age at birth",
-    ab30 = "age at birth",
-    tp = "time since birth at puberty for females",
-    tpm = "time since birth at puberty for males",
-    am = "life span",
-    Lb = "plastron length at birth",
-    Lp = "plastron length at puberty for females",
-    Lpm = "plastron length at puberty for males",
-    Li = "ultimate plastron length for females",
-    Lim = "ultimate plastron length for females",
-    Wwb = "wet weight at birth",
-    Wwp = "wet weight at puberty for females",
-    Wwpm = "wet weight at puberty for males",
-    Wwi = "ultimate wet weight for females",
-    Wwim = "ultimate wet weight for males",
-    Ri = "maximum reprod rate",
-    tL = ["time since birth", "carapace length"],
-    psd = psdLabel,
+    ab=Unitful.K(22Unitful.°C),
+    ab30=Unitful.K(30Unitful.°C),
+    tp=Unitful.K(22Unitful.°C),
+    tpm=Unitful.K(22Unitful.°C),
+    am=Unitful.K(22Unitful.°C),
+    ri=Unitful.K(22Unitful.°C),
+    tL=Unitful.K(22Unitful.°C),
 )
 
 bibkey = (
-    ab = "carettochelys",
-    ab30 = "carettochelys",
-    tp = "Spen2002",
-    tpm = "Spen2002",
-    am = "life span",
-    Lb = "Spen2002",
-    Lp = "Spen2002",
-    Lpm = "Spen2002",
-    Li = "Spen2002",
-    Lim = "Spen2002",
-    Wwb = "Spen2002",
-    Wwp = "Spen2002",
-    Wwpm = "Spen2002",
-    Wwi = "carettochelys",
-    Wwim = "carettochelys",
-    Ri = "Spen2002",
-    tL = "Spen2002",
-    F1 = "Wiki",
+    ab="carettochelys",
+    ab30="carettochelys",
+    tp="Spen2002",
+    tpm="Spen2002",
+    am="life span",
+    Lb="Spen2002",
+    Lp="Spen2002",
+    Lpm="Spen2002",
+    Li="Spen2002",
+    Lim="Spen2002",
+    Wwb="Spen2002",
+    Wwp="Spen2002",
+    Wwpm="Spen2002",
+    Wwi="carettochelys",
+    Wwim="carettochelys",
+    Ri="Spen2002",
+    tL="Spen2002",
+    F1="Wiki",
 )
 
-units = (
-    ab = "d",
-    ab30 = "d",
-    tp = "d",
-    tpm = "d",
-    am = "d",
-    Lb = "cm",
-    Lp = "cm",
-    Lpm = "cm",
-    Li = "cm",
-    Lim = "cm",
-    Wwb = "g",
-    Wwp = "g",
-    Wwpm = "g",
-    Wwi = "g",
-    Wwim = "g",
-    Ri = "#/d",
-    tL = ["time since birth", "carapace length"],
-    psd = psdUnits,
-)
-
-nvar = length(tL2)
-N = length(tL2[1])
 ## set weights for all real data
-#weights = setweights(data, weights);
-# weights.tL = 2 * weights.tL;
-
+weights=DEBtool_J.setweights(data);
+weights=merge(weights, (tL=2*weights.tL,))
 ## set pseudodata and respective weights
-# [data, units, label, weights] = addpseudodata(data, units, label, weights);
-# weights.psd.k_J = 0;
-# weights.psd.k = 0.1;
+(psd, psdLabel, psdweights)=addpseudodata()
+psd=merge(psd, (k=0.3,))
 
-weights = (;
-    abg = 1,
-    ab30g = 1,
-    tpg = 1,
-    tpmg = 1,
-    amg = 1,
-    Lbg = 1,
-    Lpg = 1,
-    Lpmg = 1,
-    Lig = 1,
-    Limg = 1,
-    Wwbg = 1,
-    Wwpg = 1,
-    Wwpmg = 1,
-    Wwig = 1,
-    Wwimg = 1,
-    Rig = 1,
-    tL = ones(N, nvar - 1) / N / (nvar - 1),
-    psd = psdWeight,
+label = (;
+    ab="age at birth",
+    ab30="age at birth",
+    tp="time since birth at puberty for females",
+    tpm="time since birth at puberty for males",
+    am="life span",
+    Lb="plastron length at birth",
+    Lp="plastron length at puberty for females",
+    Lpm="plastron length at puberty for males",
+    Li="ultimate plastron length for females",
+    Lim="ultimate plastron length for females",
+    Wwb="wet weight at birth",
+    Wwp="wet weight at puberty for females",
+    Wwpm="wet weight at puberty for males",
+    Wwi="ultimate wet weight for females",
+    Wwim="ultimate wet weight for males",
+    Ri="maximum reprod rate",
+    tL=["time since birth", "carapace length"],
+    psd=psdLabel,
 )
 
-data.psd.k = 0.3;
-units.psd.k = "-";
-label.psd.k = "maintenance ratio";
+data=merge(data, (; psd))
+psdweights=merge(psdweights, (k_J=0,))
+psdweights=merge(psdweights, (k=0.1,))
+psd=psdweights
+weights=merge(weights, (; psd))
+
+# label.psd.k = "maintenance ratio";
 
 # Discussion points
 discussion = (;
-    D1 = "Males are assumed to differ from females by {p_Am} and E_Hb only", # Cat of Life
+    D1="Males are assumed to differ from females by {p_Am} and E_Hb only", # Cat of Life
 )
 
 # Facts
 facts = (
-    F1= "Omnivorous"
+    F1 = "Omnivorous"
 )
 
 # Links
-links = (; 
-    id_CoL = "39LSX", # Cat of Life
-    id_ITIS = "949506", # ITIS
-    id_EoL = "794804", # Ency of Life
-    id_Wiki = "Emydura_macquarii", # Wikipedia
-    id_ADW = "Emydura_macquarii", # ADW
-    id_Taxo = "93062", # Taxonomicon
-    id_WoRMS = "1447999", # WoRMS
-    id_ReptileDB = "genus=Emydura&species=macquarii", # ReptileDB
-    id_AnAge = "Emydura_macquarii", # AnAge
+links = (;
+    id_CoL="39LSX", # Cat of Life
+    id_ITIS="949506", # ITIS
+    id_EoL="794804", # Ency of Life
+    id_Wiki="Emydura_macquarii", # Wikipedia
+    id_ADW="Emydura_macquarii", # ADW
+    id_Taxo="93062", # Taxonomicon
+    id_WoRMS="1447999", # WoRMS
+    id_ReptileDB="genus=Emydura&species=macquarii", # ReptileDB
+    id_AnAge="Emydura_macquarii", # AnAge
 )
 
 comment = (;
-    ab = "all temps are guessed",
-    ab30 = "",
-    tp = "",
-    tpm = "",
-    am = "",
-    Lb = "",
-    Lp = "",
-    Lpm = "",
-    Li = "",
-    Lim = "",
-    Wwb = "based on (Lb/Li)^3*Wwi",
-    Wwp = "based on (Lp/Li)^3*Wwi",
-    Wwpm = "based on (Lpm/Li)^3*Ww",
-    Wwi = "",
-    Wwim = "based on (Lim/Li)^3*Wwi",
-    Ri = "#/d",
-    tL = ["time since birth", "carapace length"],
+    ab="all temps are guessed",
+    ab30="",
+    tp="",
+    tpm="",
+    am="",
+    Lb="",
+    Lp="",
+    Lpm="",
+    Li="",
+    Lim="",
+    Wwb="based on (Lb/Li)^3*Wwi",
+    Wwp="based on (Lp/Li)^3*Wwi",
+    Wwpm="based on (Lpm/Li)^3*Ww",
+    Wwi="",
+    Wwim="based on (Lim/Li)^3*Wwi",
+    Ri="#/d",
+    tL=["time since birth", "carapace length"],
 )
 
 # pack auxData and txtData for output
@@ -255,10 +210,10 @@ comment = (;
 #     comment::D
 # end
 
-txtData = (; units, label, bibkey, comment)
+txtData = (; label, bibkey, comment)
 
 auxData = (;
-    temp = temp,
+    temp=temp,
 )
 
 # ## References
@@ -311,12 +266,12 @@ carettochelys = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
 biblist = [Kooy2010, Kooy2010, Spen2002, AnAge, carettochelys]
 
 metaData = (;
-    ecoCode = ecoCode,
-    links = links,
-    facts = facts,
-    discussion = discussion,
-    bibkey = bibkey,
-    biblist = biblist,
+    ecoCode=ecoCode,
+    links=links,
+    facts=facts,
+    discussion=discussion,
+    bibkey=bibkey,
+    biblist=biblist,
 )
 
 (; data, auxData, metaData, txtData, weights)

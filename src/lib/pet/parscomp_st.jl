@@ -62,7 +62,7 @@ function parscomp_st(p)
         p_Am = p.p_Am
     end
 
-    global cPar = (; p_Am)
+    cPar = (; p_Am)
 
     #         X       V       E       P
     n_O =
@@ -171,34 +171,40 @@ function parscomp_st(p)
     parNames = string.(fieldnames(typeof(p)))
     matLev = parNames[findall(x -> x == "E_H", first.(parNames, 3))]
     matInd = replace.(matLev, "E_H" => "")
+    mat_H = replace.(matLev, "E_" => "M_")
+    mat_U = replace.(matLev, "E_" => "U_")
+    mat_u = replace.(matLev, "E_" => "u_")
+    mat_V = replace.(matLev, "E_" => "V_")
+    mat_v = replace.(matLev, "E_" => "v_")
+
+   # do something like this to avoid globals?:
+#    par_names = par_model[:fieldname] # get the field names
+#    par_vals = par_model[:val] # get the values
+#    par_units = par_model[:units] # get the units
+#    par = NamedTuple{par_names}(
+#        Tuple([
+#            u === nothing ? typeof(v)(v) : v * u for (v, u) in zip(par_vals, par_units)
+#        ]),
+#    ) # adjoin units to parameter values
 
     for i = 1:length(matInd)
         stri = matInd[i]
 
         M_Hx = getproperty(p, Symbol("E_H" * stri)) / p.mu_E
-        symbol_name = Symbol("M_H", stri)
-        eval(:($symbol_name = $M_Hx))
-        eval(Meta.parse("cPar = merge(cPar, (;$(Symbol("M_H$stri"))))"))
+        cPar = merge(cPar, NamedTuple{(Symbol(mat_H[i]),)}((M_Hx,)))
 
         U_Hx = getproperty(p, Symbol("E_H" * stri)) / p_Am
-        symbol_name = Symbol("U_H", stri)
-        eval(:($symbol_name = $U_Hx))
-        eval(Meta.parse("cPar = merge(cPar, (;$(Symbol("U_H$stri"))))"))
+        cPar = merge(cPar, NamedTuple{(Symbol(mat_U[i]),)}((U_Hx,)))
 
         V_Hx = getproperty(cPar, Symbol("U_H" * stri)) / (1 - p.kap)
-        symbol_name = Symbol("V_H", stri)
-        eval(:($symbol_name = $V_Hx))
-        eval(Meta.parse("cPar = merge(cPar, (;$(Symbol("V_H$stri"))))"))
+        cPar = merge(cPar, NamedTuple{(Symbol(mat_V[i]),)}((V_Hx,)))
 
         v_Hx = getproperty(cPar, Symbol("V_H" * stri)) * g2^2 * k_M^3 / p.v^2
-        symbol_name = Symbol("v_H", stri)
-        eval(:($symbol_name = $v_Hx))
-        eval(Meta.parse("cPar = merge(cPar, (;$(Symbol("v_H$stri"))))"))
+        cPar = merge(cPar, NamedTuple{(Symbol(mat_v[i]),)}((v_Hx,)))
 
         u_Hx = getproperty(cPar, Symbol("U_H" * stri)) * g2^2 * k_M^3 / p.v^2
-        symbol_name = Symbol("u_H", stri)
-        eval(:($symbol_name = $u_Hx))
-        eval(Meta.parse("cPar = merge(cPar, (;$(Symbol("u_H$stri"))))"))
+        cPar = merge(cPar, NamedTuple{(Symbol(mat_u[i]),)}((u_Hx,)))
+
         #cPar.(['M_H', stri]) = p.(['E_H', stri])/ p.mu_E;                 % mmol, maturity at level i
         #cPar.(['U_H', stri]) = p.(['E_H', stri])/ p_Am;                   % cm^2 d, scaled maturity at level i
         #cPar.(['V_H', stri]) = cPar.(['U_H', stri])/ (1 - p.kap);         % cm^2 d, scaled maturity at level i

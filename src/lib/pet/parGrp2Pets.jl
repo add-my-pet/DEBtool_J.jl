@@ -30,9 +30,9 @@ function parGrp2Pets(parGrp, pets)
     # parPets = parGrp2Pets(parGrp)
 
     #global pets covRules(pets, par)
-    global parGrp2 = parGrp
-    n_pets = length(pets)
-    if n_pets == 1
+    #global parGrp2 = parGrp
+    #n_pets = length(pets)
+    #if n_pets == 1
         #parPets.(pets{1}) = parGrp;
         var_name = Symbol(pets[1])
         @eval begin
@@ -43,7 +43,7 @@ function parGrp2Pets(parGrp, pets)
             parPets = parPets_struct($var_name)
         end
         return (parPets)
-    end
+   # end
 
     # TO DO
     #   parNms = fieldnames(parGrp); n_parNms = length(parNms);
