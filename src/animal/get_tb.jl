@@ -53,7 +53,7 @@ function get_tb(p, eb, lb)
     if isempty(lb)
         lb, info = get_lb(p, eb)
     end
-    lb = get_lb(p, eb)
+    lb, info = get_lb(p, eb)
     # unpack p
     g = p[1]  # energy investment ratio
 
@@ -118,7 +118,7 @@ function get_tb(p, eb)
 
     xb = g / (eb + g) # f = e_b 
     ab = 3 * g * xb^(1 / 3) / lb # \alpha_b
-    tau_b = 3 * quadgk(x -> dget_tb(x, ab, xb), 1e-15, xb)[1]
+    tau_b = 3 * quadgk(x -> dget_tb(x, ab, xb), 1e-15, xb, atol=1e-6)[1]
     (tau_b, lb, info)
 end
 

@@ -28,7 +28,7 @@ par = (;
     #T_H = Param(54.5 + 273.15, units=u"K", free=(0), label="high Arrhenius temperature"),
     del_M = Param(0.61719, units=nothing, free=(1), label="shape coefficient"),
     f = Param(1.0, units=nothing, free=(0), label="scaled functional response for 0-var data"),
-    z_m = Param(13.2002, units=u"cm", free=(1), label="zoom factor for male"),
+    z_m = Param(12.8559, units=u"cm", free=(1), label="zoom factor for male"),
 
     # chemical parameters
     # specific densities; multiply free by d_V to convert to vector if necessary

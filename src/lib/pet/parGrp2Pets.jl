@@ -2,7 +2,7 @@
 # converts parameter-structure for a group of pets to a structure of parameters for each pet
 
 ##
-function parGrp2Pets(parGrp)
+function parGrp2Pets(parGrp, pets)
     # created 2018/05/23 by Bas Kooijman
 
     ## Syntax
@@ -30,9 +30,9 @@ function parGrp2Pets(parGrp)
     # parPets = parGrp2Pets(parGrp)
 
     #global pets covRules(pets, par)
-    global parGrp2 = parGrp
-    n_pets = length(pets)
-    if n_pets == 1
+    #global parGrp2 = parGrp
+    #n_pets = length(pets)
+    #if n_pets == 1
         #parPets.(pets{1}) = parGrp;
         var_name = Symbol(pets[1])
         @eval begin
@@ -43,7 +43,7 @@ function parGrp2Pets(parGrp)
             parPets = parPets_struct($var_name)
         end
         return (parPets)
-    end
+   # end
 
     # TO DO
     #   parNms = fieldnames(parGrp); n_parNms = length(parNms);

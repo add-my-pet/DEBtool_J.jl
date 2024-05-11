@@ -1,241 +1,157 @@
 ## get_tp
-# Gets scaled age at puberty
+# Gets scaled age and length at puberty, birth
 
 ##
-function get_tp(p, f, lb0)
-    # created at 2008/06/04 by Bas Kooijman, 
-    # modified 2014/03/04 Starrlight Augustine, 2015/01/18 Bas Kooijman
-    # modified 2018/09/10 (t -> tau) Nina Marn
-    # modified 2021/11/24 Bas Kooijman
-
+function get_tp(p, f=1, tel_b=nothing, tau=nothing)
     ## Syntax
-    # [tau_p, tau_b, lp, lb, info] = <../get_tp.m *get_tp*>(p, f, lb0)
-
+    # varargout = <../get_tp.m *get_tp*>(p, f, tel_b, tau)
+    
     ## Description
-    # Obtains scaled age at puberty.
-    # Food density is assumed to be constant.
-    # Multiply the result with the somatic maintenance rate coefficient to arrive at age at puberty. 
+    # Obtains scaled ages, lengths at puberty, birth for the std model at constant food, temperature;
+    # Assumes that scaled reserve density e always equals f; if third input is specified and its second
+    # element is not equal to second input (if specified), <get_tpm *get_tpm*> is run.
     #
     # Input
     #
     # * p: 5-vector with parameters: g, k, l_T, v_H^b, v_H^p 
-    # * f: optional scalar with functional response (default f = 1)
-    # * lb0: optional scalar with scaled length at birth
+    # * f: optional scalar with functional response (default f = 1) or (n,2)-array with scaled time since birth and functional response
+    # * tel_b: optional scalar with scaled length at birth
     #
-    #      or optional 2-vector with scaled length, l, and scaled maturity, vH
-    #      for a juvenile that is now exposed to f, but previously at another f
+    #      or 3-vector with scaled age at birth, reserve density and length at 0
+    # * tau: optional n-vector with scaled times since birth
     #
     # Output
     #
-    # * tau_p: scaled with age at puberty \tau_p = a_p k_M
-    #
-    #      if length(lb0)==2, tp is the scaled time till puberty
-    #
-    # * tau_b: scaled with age at birth \tau_b = a_b k_M
-    # * lp: scaler length at puberty
-    # * lb: scaler length at birth
-    # * info: indicator equals 1 if successful
-
+    # * tvel: optional (n,4)-array with scaled time-since-birth, maturity, reserve density and length
+    # * tau_p: scaled age at puberty \tau_p = a_p k_M
+    # * tau_b: scaled age at birth \tau_b = a_b k_M
+    # * lp: scaled length at puberty
+    # * lb: scaled length at birth
+    # * info: indicator equals 1 if successful, 0 otherwise
+    
     ## Remarks
-    # Function <get_tp_foetus.html *get_tp_foetus*> does the same for foetal development; the result depends on embryonal development. 
-
+    # Function <get_tp_foetus.html *get_tp_foetus*> does the same for foetal development; the result depends on embryonal development.
+    # A previous version of get_tp had as optional 3rd input a 2-vector with scaled length, l, and scaled maturity, vH, for a juvenile that is now exposed to f, but previously at another f.
+    # Function <get_tpm *get_tpm*> took over this use.
+    # Optional inputs might be empty
+  
     ## Example of use
-    # get_tp([.5, .1, .1, .01, .2])
+    # tau_p = get_tp([.5, .1, .1, .01, .2]) or tvel = get_tp([.5, .1, .1, .01, .2],[],[],0:0.014:) 
+   
+        #  unpack pars
+        g = p[1] # energy investment ratio
+        k = p[2] # k_J/ k_M, ratio of maturity and somatic maintenance rate coeff
+        l_T = p[3] # scaled heating length {p_T}/[p_M]Lm
+        v_Hb = p[4] # v_H^b = U_H^b g^2 kM^3/ (1 - kap) v^2; U_H^b = M_H^b/ {J_EAm} = E_H^b/ {p_Am}
+        v_Hp = p[5] # v_H^p = U_H^p g^2 kM^3/ (1 - kap) v^2; U_H^p = M_H^p/ {J_EAm} = E_H^p/ {p_Am}
+            
+        # Set default value for f if not provided
+        if !isa(f, Vector) || length(f) == 0
+            f = 1
+        end
+        
+       # If f has 2 columns and tau is not specified, issue a warning and return
+        if size(f, 2) == 2
+            if tau === nothing
+                println("Warning from get_tp: f has 2 columns, but tau is not specified")
+                return get_tpm(p, f, tel_b, tau)
+            end
+        end
+        
+        # If tel_b is provided and not empty, and the second element of tel_b is not equal to f
+        # and tau is specified, call get_tpm and return the result
+        if tel_b !== nothing
+            if length(tel_b) == 1
+                tau_b = get_tb(p[[1, 2, 4]], f)
+                l_b = tel_b
+            elseif tel_b[2] != f && tau != nothing
+                return get_tpm(p, f, tel_b, tau)
+            elseif tel_b[2] != f
+                return get_tpm(p, f, tel_b)
+            else
+                tau_b = tel_b[1]
+                #e_b   = tel_b[2];
+                l_b = tel_b[3]
+            end
+        else
+            tau_b, l_b, info = get_tb(p[[1, 2, 4]], f)
+        end
 
-    #  unpack pars
-    g = p[1] # energy investment ratio
-    k = p[2] # k_J/ k_M, ratio of maturity and somatic maintenance rate coeff
-    lT = p[3] # scaled heating length {p_T}/[p_M]Lm
-    vHb = p[4] # v_H^b = U_H^b g^2 kM^3/ (1 - kap) v^2; U_H^b = M_H^b/ {J_EAm} = E_H^b/ {p_Am}
-    vHp = p[5] # v_H^p = U_H^p g^2 kM^3/ (1 - kap) v^2; U_H^p = M_H^p/ {J_EAm} = E_H^p/ {p_Am}
 
-    if !@isdefined(f)
-        f = 1
-    elseif isempty(f)
-        f = 1
-    end
-    if !@isdefined(lb0)
-        lb0 = [;]
-    end
-
-    if vHp < vHb
-        println("Warning from get_tp: vHp < vHb\n")
-        tau_b, l_b = get_tb(p([1 2 4]), f)
-        tau_p = [;]
-        l_p = [;]
-        info = false
-        return
-    end
-
-    if k == 1 && f * (f - lT)^2 > vHp * k
-        lb = vHb^(1 / 3)
-        tau_b = get_tb(p([1 2 4]), f, lb)
-        lp = vHp^(1 / 3)
-        li = f - lT
-        rB = 1 / 3 / (1 + f / g)
-        tau_p = tau_b + log((li - lb) / (li - lp)) / rB
-        info = true
-    elseif f * (f - lT)^2 <= vHp * k # reproduction is not possible
-        pars_lb = p[1 2 4]
-        tau_b, lb = get_tb(pars_lb, f)
-        tau_p = 1e20 # tau_p is never reached
-        lp = 1    # lp is never reached
-        info = false
-    else # reproduction is possible
-        if length(lb0) != 2 # lb0 = l_b 
-            tau_b, lb, info = get_tb([g, k, vHb], f)
-            cb = ContinuousCallback(event_puberty_tp, terminate_affect_tp!)
-            u0 = [vHb, lb]
-            tspan = (0, 1e8)
-            s_M = 1.0
-            prob = ODEProblem(dget_l_ISO_t, u0, tspan, [k, lT, g, f, s_M, vHp])
-            #sol = solve(prob, Tsit5(), reltol=1e-9, abstol=1e-9, callback=cb)
-            sol = solve(prob, DP5(), reltol = 1e-9, abstol = 1e-9, callback = cb)
-            t = sol.t
-            vHl = sol.u
-            tp = t[end]
-            vHlp = vHl[end]
-            #options = odeset('Events',@event_puberty, 'NonNegative',ones(2,1), 'AbsTol',1e-9, 'RelTol',1e-9); s_M = 1;
-            #[t, vHl, tp, vHlp] = ode45(@dget_l_ISO_t, [0; 1e8], [vHb; lb], options, k, lT, g, f, s_M, vHp);
-            tau_p = tau_b + tp
-            lp = vHlp[2]
-
-        else # lb0 = l and t for a juvenile
-            tau_b = NaN
-            #[lp, lb, info] = get_lp(p, f, lb0);
-            l = lb0(1)
-            li = f - lT
-            irB = 3 * (1 + f / g) # k_M/ r_B
-            tau_p = irB * log((li - l) / (li - lp))
+        # if tel_b !== nothing && length(tel_b) == 1
+        #     tau_b, l_b, _ = get_tb(p[[1, 2, 4]], f)
+        #     tau_p, l_p, _ = get_tp(p, f, tel_b, tau)
+        #     return tau_p, tau_b, l_p, l_b, 1
+        # elseif tel_b !== nothing && tel_b[2] != f && tau !== nothing
+        #     return get_tpm(p, f, tel_b, tau)
+        # elseif tel_b !== nothing && tel_b[2] != f
+        #     return get_tpm(p, f, tel_b)
+        # elseif tel_b !== nothing
+        #     tau_b = tel_b[1]
+        #     l_b = tel_b[3]
+        # else
+        #     tau_b, l_b, _ = get_tb(p[[1, 2, 4]], f)
+        # end
+        
+        # Ensure v_Hp is greater than v_Hb
+        if v_Hp < v_Hb
+            println("Warning from get_tp: v_Hp < v_Hb")
+            tau_b, l_b = get_tb(p[[1, 2, 4]], f)
+            tau_p = nothing
+            l_p = nothing
+            return tau_p, tau_b, l_p, l_b, 0
+        end
+        
+        # Calculate necessary parameters
+        rho_B = 1 / (3 * (1 + f / g))
+        l_i = f - l_T
+        l_d = l_i - l_b
+        
+        # Determine if reproduction is possible and calculate l_p and tau_p accordingly
+        if k == 1 && f * l_i^2 > v_Hp * k
+            l_b = v_Hb^(1/3)
+            tau_b = get_tb(p[[1, 2, 4]], f, l_b)
+            l_p = v_Hp^(1/3)
+            tau_p = tau_b + log(l_d / (l_i - l_p)) / rho_B
+            info = true
+        elseif f * l_i^2 <= v_Hp * k
+            tau_b, l_b = get_tb(p[[1, 2, 4]], f)
+            tau_p = NaN
+            l_p = NaN
+            info = false
+        else
+            l_p, _, info = get_lp1(p, f, l_b)
+            tau_p = tau_b + log(l_d / (l_i - l_p)) / rho_B
+        end
+        
+        # If tau is specified, compute additional values for maturity
+        if tau !== nothing
+            b3 = 1 / (1 + g / f)
+            b2 = f - b3 * l_i
+            a0 = - (b2 + b3 * l_i) * l_i^2 / k
+            a1 = - l_i * l_d * (2 * b2 + 3 * b3 * l_i) / (rho_B - k)
+            a2 = l_d^2 * (b2 + 3 * b3 * l_i) / (2 * rho_B - k)
+            a3 = - b3 * l_d^3 / (3 * rho_B - k)
+            ak = v_Hb + a0 + a1 + a2 + a3
+            
+            tau = reshape(tau, :, 1)  # Make sure tau is a column vector
+            ert = exp(-rho_B * tau)
+            ekt = exp(-k * tau)
+            l = l_i - l_d * exp(-rho_B * tau)
+            v_H = min(v_Hp, -a0 - a1 * ert - a2 * ert.^2 - a3 * ert.^3 + ak * ekt)
+            tvel = hcat(tau, v_H, f .* ones(size(tau)), l)
+        end
+        
+        # Check if tau_p is real and positive
+        if !isreal(tau_p) || tau_p < 0
+            info = false
+        end
+        
+        # Return results
+        if tau !== nothing
+            return tvel, tau_p, tau_b, l_p, l_b, info
+        else
+            return tau_p, tau_b, l_p, l_b, info
         end
     end
-
-    if !isreal(tau_p) # tp must be real and positive
-        info = false
-    elseif tau_p < 0
-        info = false
-    end
-    (tau_p, tau_b, lp, lb, info)
-end
-
-function get_tp(p, f)
-    # created at 2008/06/04 by Bas Kooijman, 
-    # modified 2014/03/04 Starrlight Augustine, 2015/01/18 Bas Kooijman
-    # modified 2018/09/10 (t -> tau) Nina Marn
-    # modified 2021/11/24 Bas Kooijman
-
-    ## Syntax
-    # [tau_p, tau_b, lp, lb, info] = <../get_tp.m *get_tp*>(p, f)
-
-    ## Description
-    # Obtains scaled age at puberty.
-    # Food density is assumed to be constant.
-    # Multiply the result with the somatic maintenance rate coefficient to arrive at age at puberty. 
-    #
-    # Input
-    #
-    # * p: 5-vector with parameters: g, k, l_T, v_H^b, v_H^p 
-    # * f: optional scalar with functional response (default f = 1)
-    #
-    #      or optional 2-vector with scaled length, l, and scaled maturity, vH
-    #      for a juvenile that is now exposed to f, but previously at another f
-    #
-    # Output
-    #
-    # * tau_p: scaled with age at puberty \tau_p = a_p k_M
-    #
-    #
-    # * tau_b: scaled with age at birth \tau_b = a_b k_M
-    # * lp: scaler length at puberty
-    # * lb: scaler length at birth
-    # * info: indicator equals 1 if successful
-
-    ## Remarks
-    # Function <get_tp_foetus.html *get_tp_foetus*> does the same for foetal development; the result depends on embryonal development. 
-
-    ## Example of use
-    # get_tp([.5, .1, .1, .01, .2])
-
-    #  unpack pars
-    g = p[1] # energy investment ratio
-    k = p[2] # k_J/ k_M, ratio of maturity and somatic maintenance rate coeff
-    lT = p[3] # scaled heating length {p_T}/[p_M]Lm
-    vHb = p[4] # v_H^b = U_H^b g^2 kM^3/ (1 - kap) v^2; U_H^b = M_H^b/ {J_EAm} = E_H^b/ {p_Am}
-    vHp = p[5] # v_H^p = U_H^p g^2 kM^3/ (1 - kap) v^2; U_H^p = M_H^p/ {J_EAm} = E_H^p/ {p_Am}
-
-    if !@isdefined(f)
-        f = 1
-    elseif isempty(f)
-        f = 1
-    end
-    # if !@isdefined(lb0)
-    #   lb0 = [;];
-    # end
-
-    if vHp < vHb
-        println("Warning from get_tp: vHp < vHb\n")
-        tau_b, l_b = get_tb(p([1 2 4]), f)
-        tau_p = [;]
-        l_p = [;]
-        info = false
-        return
-    end
-
-    if k == 1 && f * (f - lT)^2 > vHp * k
-        lb = vHb^(1 / 3)
-        tau_b = get_tb(p([1 2 4]), f, lb)
-        lp = vHp^(1 / 3)
-        li = f - lT
-        rB = 1 / 3 / (1 + f / g)
-        tau_p = tau_b + log((li - lb) / (li - lp)) / rB
-        info = true
-    elseif f * (f - lT)^2 <= vHp * k # reproduction is not possible
-        pars_lb = p[1 2 4]
-        tau_b, lb = get_tb(pars_lb, f)
-        tau_p = 1e20 # tau_p is never reached
-        lp = 1    # lp is never reached
-        info = false
-    else # reproduction is possible
-        #if length(lb0) != 2 # lb0 = l_b 
-        tau_b, lb, info = get_tb([g, k, vHb], f)
-        cb = ContinuousCallback(event_puberty_tp, terminate_affect_tp!)
-        u0 = [vHb, lb]
-        tspan = (0, 1e8)
-        s_M = 1.0
-        prob = ODEProblem(dget_l_ISO_t, u0, tspan, [k, lT, g, f, s_M, vHp])
-        #sol = solve(prob, Tsit5(), reltol=1e-9, abstol=1e-9, callback=cb)
-        sol = solve(prob, DP5(), reltol = 1e-9, abstol = 1e-9, callback = cb)
-        t = sol.t
-        vHl = sol.u
-        tp = t[end]
-        vHlp = vHl[end]
-        #options = odeset('Events',@event_puberty, 'NonNegative',ones(2,1), 'AbsTol',1e-9, 'RelTol',1e-9); s_M = 1;
-        #[t, vHl, tp, vHlp] = ode45(@dget_l_ISO_t, [0; 1e8], [vHb; lb], options, k, lT, g, f, s_M, vHp);
-        tau_p = tau_b + tp
-        lp = vHlp[2]
-
-        # else # lb0 = l and t for a juvenile
-        #   tau_b = NaN;
-        #   #[lp, lb, info] = get_lp(p, f, lb0);
-        #   l = lb0(1);
-        #   li = f - lT;
-        #   irB = 3 * (1 + f/ g); # k_M/ r_B
-        #   tau_p = irB * log((li - l)/ (li - lp));
-        # end
-    end
-
-    if !isreal(tau_p) # tp must be real and positive
-        info = false
-    elseif tau_p < 0
-        info = false
-    end
-    (tau_p, tau_b, lp, lb, info)
-end
-
-function event_puberty_tp(vHl, t, integrator)
-    # vHl: 2-vector with [vH; l]
-    vHp = integrator.p[6]
-    vHp - vHl[1]
-end
-
-terminate_affect_tp!(integrator) = terminate!(integrator)
+    

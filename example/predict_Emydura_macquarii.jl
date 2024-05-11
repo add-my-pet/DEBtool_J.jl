@@ -1,20 +1,23 @@
-function predict_Emydura_macquarii(par, data, auxData)# predict
+#module Predict
+#export predict
+#using Unitful
+function predict(par, data, auxData)# predict
     cPar = parscomp_st(par)
     (; T_ref, T_A, del_M, f, kap, kap_R, v, k_J, h_a, s_G, p_M, z_m, E_G) = par
-    (; k, l_T, v_Hb, v_Hp, L_m, w, k_M, w, L_T, U_Hb, U_Hp, w_E, w_V, y_E_V, v_Hpm) = cPar 
+    (; k, l_T, v_Hb, v_Hp, L_m, w, k_M, w, L_T, U_Hb, U_Hp, w_E, w_V, y_E_V, v_Hpm) = cPar
     (; temp) = auxData
     (; Lb, Li, Lim, Lp, Lpm, Ri, Wwb, Wwi, Wwim, Wwp, Wwpm, ab, ab30, am, psd, tL, tp, tpm) = data
     (; E_V, J_E_M, M_Hb, U_Hb, V_Hp, eta_VG, j_E_J, k_M, m_Em, ome, s_H, v_Hb, w_E, w_X, y_P_E, y_X_E,
-    E_m, J_E_T, L_T, M_Hp, U_Hp, eta_O, eta_XA, j_E_M, kap_G, n_M, p_Am, u_Hb, v_Hp, w_P, y_E_V, y_P_X, y_X_P,
-    J_E_Am, J_X_Am, L_m, M_V, V_Hb, eta_PA, k, l_T, n_O, p_Xm, u_Hp, w, w_V, y_E_X, y_V_E) = cPar
+        E_m, J_E_T, L_T, M_Hp, U_Hp, eta_O, eta_XA, j_E_M, kap_G, n_M, p_Am, u_Hb, v_Hp, w_P, y_E_V, y_P_X, y_X_P,
+        J_E_Am, J_X_Am, L_m, M_V, V_Hb, eta_PA, k, l_T, n_O, p_Xm, u_Hp, w, w_V, y_E_X, y_V_E) = cPar
     g2 = cPar.g
     # compute temperature correction factors
-    TC = tempcorr(temp.am, T_ref, T_A);
-    TC_30 = tempcorr(temp.ab30, T_ref, T_A);
-    TC_Ri = tempcorr(temp.ri, T_ref, T_A);
-    TC_am = tempcorr(temp.am, T_ref, T_A);
+    TC = tempcorr(temp.am, T_ref, T_A)
+    TC_30 = tempcorr(temp.ab30, T_ref, T_A)
+    TC_Ri = tempcorr(temp.ri, T_ref, T_A)
+    TC_am = tempcorr(temp.am, T_ref, T_A)
 
-    d_V = 1g / cm^3                # cm, physical length at birth at f
+    d_V = 1Unitful.u"g/cm^3"               # cm, physical length at birth at f
 
     pars_tp = [g2 k l_T v_Hb v_Hp]
     t_p, t_b, l_p, l_b, info = get_tp(pars_tp, f)
@@ -41,7 +44,7 @@ function predict_Emydura_macquarii(par, data, auxData)# predict
 
     # reproduction
     pars_R = [kap kap_R g2 k_J k_M L_T v U_Hb U_Hp] # compose parameter vector at T
-    RT_i = TC_Ri * reprod_rate(L_i, f, pars_R)[1]             # #/d, ultimate reproduction rate at T
+    RT_i = TC_Ri * reprod_rate(L_i, f, pars_R)[1][1]             # #/d, ultimate reproduction rate at T
 
     # life span
     pars_tm = [g2 l_T h_a / k_M^2 s_G]  # compose parameter vector at T_ref
@@ -87,28 +90,30 @@ function predict_Emydura_macquarii(par, data, auxData)# predict
 
     # time-length
     rT_B = TC * k_M / 3 / (1 + f / g2)
-    ELw = Lw_i .- (Lw_i - Lw_b) * exp.(-rT_B * data.tL[1])
+    ELw = Lw_i .- (Lw_i - Lw_b) * exp.(-rT_B * data.tL[:,1])
 
     # pack to output
     #prdData.tL = ELw;
     prdData = (;
-        ab = aT_b,
-        ab30 = a30_b,
-        tp = tT_p,
-        tpm = tT_pm,
-        am = aT_m,
-        Lb = Lw_b,
-        Lp = Lw_p,
-        Lpm = Lw_pm,
-        Li = Lw_i,
-        Lim = Lw_im,
-        Wwb = Ww_b,
-        Wwp = Ww_p,
-        Wwpm = Ww_pm,
-        Wwi = Ww_i,
-        Wwim = Ww_im,
-        Ri = RT_i,
-        tL = ELw,
+        ab=aT_b,
+        ab30=a30_b,
+        tp=tT_p,
+        tpm=tT_pm,
+        am=aT_m,
+        Lb=Lw_b,
+        Lp=Lw_p,
+        Lpm=Lw_pm,
+        Li=Lw_i,
+        Lim=Lw_im,
+        Wwb=Ww_b,
+        Wwp=Ww_p,
+        Wwpm=Ww_pm,
+        Wwi=Ww_i,
+        Wwim=Ww_im,
+        Ri=RT_i,
+        tL=ELw,
     )
     return (; prdData, info)
 end
+
+#end

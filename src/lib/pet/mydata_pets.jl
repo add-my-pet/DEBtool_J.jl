@@ -3,7 +3,7 @@
 
 ##
 #function [data, auxData, metaData, txtData, weights] = mydata_pets
-function mydata_pets(pets, srcpath)
+function mydata_pet(pet, srcpath)
     # created by Goncalo Marques at 2015/01/28, modified Bas Kooijman 2021/01/17
 
     ## Syntax
@@ -44,11 +44,13 @@ function mydata_pets(pets, srcpath)
     #   #@get_mydata_pets(pets[i])
     # end  
 
-    # TODO combine these somehow when there are multiple pets
-    local data
-    for file_name in (joinpath(srcpath, "mydata_" * pet * ".jl") for pet in pets)
-        data = include(file_name) # load the mydata file
-    end
+    #local data
+    data = include(joinpath(srcpath, "mydata_" * pet * ".jl")) # load the mydata file
+    data_out = (; Symbol(pet) => data.data,)
+    auxData_out = (; Symbol(pet) => data.auxData,)
+    metaData_out = (; Symbol(pet) => data.metaData,)
+    txtData_out = (; Symbol(pet) => data.txtData,)
+    weights_out = (; Symbol(pet) => data.weights,)
 
     #[data.(pets{i}), auxData.(pets{i}), metaData.(pets{i}), txtData.(pets{i}), weights.(pets{i})] = feval(['mydata_', pets{i}]);
     # TO DO
@@ -70,5 +72,6 @@ function mydata_pets(pets, srcpath)
     #   weights.psd = weightsG.psd;
     #   txtData.psd.units = unitsG.psd;
     #   txtData.psd.label = labelG.psd;
-    return (; data, auxData, metaData, txtData, weights)
+
+    return (; data_out, auxData_out, metaData_out, txtData_out, weights_out)
 end
