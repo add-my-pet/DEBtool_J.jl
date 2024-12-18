@@ -19,7 +19,7 @@ function beta0(x0, x1)
     #
     # Output
     #
-    # * f: scalar with particular incomple beta function
+    # * f: scalar with particular incomplete beta function
 
     ## Remarks
     # See also <../lib/misc/beta_34_0 *beta_34_0*>
