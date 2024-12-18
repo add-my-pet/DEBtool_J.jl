@@ -1,5 +1,5 @@
 ## fsolve
-# find x for which 0 = nm(x) using Nead-Melder simplex method
+# find x for which 0 = nm(x) using Nelder-Mead simplex method
 
 ##
 function fsolve(func, xin, opt, varargin)
