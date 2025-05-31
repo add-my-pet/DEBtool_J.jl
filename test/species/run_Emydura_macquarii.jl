@@ -5,15 +5,16 @@ using MAT
 using Test
 
 srcpath = dirname(pathof(DEBtool_J))
-examplepath = realpath(joinpath(srcpath, "../example"))
+speciespath = realpath(joinpath(srcpath, "../test/species"))
 
-pet = "Emydura_macquarii";
+species = "Emydura_macquarii"
 
+include(joinpath(speciespath, "predict_" * species * ".jl"))
 (; par, metapar) = let # Let block so we only import the last variable into scope
-    include(joinpath(examplepath, "pars_init_" * pet * ".jl"))
+    include(joinpath(speciespath, "pars_init_" * species * ".jl"))
 end
 par_model = Model(par) # create a 'Model' out of the Pars struct
-data, auxData, metaData, txtData, weights = include(joinpath(examplepath, "mydata_" * pet * ".jl")) # load the mydata file
+data, auxData, metaData, txtData, weights = include(joinpath(speciespath, "mydata_" * species * ".jl")) # load the mydata file
 
 data_pet = (data, auxData, metaData, txtData, weights)
 # EstimOptions to replace the globals set by `estim_options` below
@@ -29,10 +30,10 @@ options = DEBtool_J.EstimOptions(;
 
 # currently takes 20 seconds to converge in 1660 steps, matlab takes 1 in 8 seconds in 1650 steps
 #@time estim_pars(options, pet, par_model, metapar, data_pet)
-@time parout, nsteps, info, fval = estim_pars(options, pet, par_model, metapar, data_pet)
+@time parout, nsteps, info, fval = estim_pars(predict, options, species, par_model, metapar, data_pet)
 
 # get results from Matlab
-file = matopen("tests/Emydura_macquarii_20171009/Emydura_macquarii/results_Emydura_macquarii.mat")
+file = matopen(joinpath(speciespath, "data", species, "results_$species.mat"))
 varname = "par"
 par_matlab = read(file, varname)
 close(file)
@@ -41,7 +42,7 @@ par_free = Dict(
     string(k) => v for (k, v) in sort(collect(pairs(parout.free)); by=first)
 )
 par_jul = (; filter(p -> p[1] != :free, pairs(parout))...)
-par_jul_stripped = NamedTuple{keys(pars_jul)}(ustrip.(values(par_jul)))
+par_jul_stripped = NamedTuple{keys(par_jul)}(ustrip.(values(par_jul)))
 par_julia = Dict(
     string(k) => v for (k, v) in sort(collect(pairs(par_jul_stripped)); by=first)
 )
@@ -50,6 +51,7 @@ par_julia_free = Dict(k => v for (k, v) in par_julia if get(par_free, k, 0) == 1
 par_matlab_free = Dict(k => v for (k, v) in par_matlab if get(par_free, k, 0) == 1)
 
 common_keys = intersect(keys(par_matlab_free), keys(par_julia_free))
+
 for k in sort(collect(common_keys))
     v1 = par_matlab_free[k]
     v2 = par_julia_free[k]

@@ -3,7 +3,7 @@
 
 ##
 #function estim_pars(pets, pars_init_method, method, filter, covRules)
-function estim_pars(options, pet, par_model, metaPar, mydata_pet)
+function estim_pars(predict, options, pet, par_model, metaPar, mydata_pet)
 
     # created 2015/02/10 by Goncalo Marques
     # modified 2015/02/10 by Bas Kooijman, 
@@ -90,7 +90,7 @@ function estim_pars(options, pet, par_model, metaPar, mydata_pet)
     #  case "nm"
     if options.method == "nm"
         par, info, nsteps, fval =
-            petregr_f("predict_pets", par, data, auxData, weights, filternm, options)   # estimate parameters using overwrite
+            petregr_f(predict, "predict_pets", par, data, auxData, weights, filternm, options)   # estimate parameters using overwrite
     end
 
     if options.method in [:nm, :no]
