@@ -48,9 +48,6 @@ function estim_pars(predict, options, pet, par_model, metaPar, mydata_pet)
     # get data
     data, auxData, metaData, txtData, weights = mydata_pet
 
-    resultsnm = "results_" * pet * ".jld2"
-    calibration_options("results_filename", resultsnm)
-
     par_names = par_model[:fieldname] # get the field names
     par_vals = par_model[:val] # get the values
     par_units = par_model[:units] # get the units
@@ -68,22 +65,22 @@ function estim_pars(predict, options, pet, par_model, metaPar, mydata_pet)
         covRules = "no"
     end
 
-    if options.filter
-        pass = true
-                filternm = "filter_" * metaPar.model
-                passSpec, flag = filter_std(par) # avoid globals here by having one filter that dispatches by model type, and pass parPets.(petnm) where petnm is a symbol
-            if ~passSpec
-                println("The seed parameter set for " * pet * " is not realistic. \n")
-                print_filterflag(flag)
-            end
-            pass = pass && passSpec
-        if ~pass
-            error("The seed parameter set is not realistic")
-        end
-    else
+    # if options.filter
+    #     pass = true
+    #             filternm = "filter_" * metaPar.model
+    #             passSpec, flag = filter_std(par) # avoid globals here by having one filter that dispatches by model type, and pass parPets.(petnm) where petnm is a symbol
+    #         if ~passSpec
+    #             println("The seed parameter set for " * pet * " is not realistic. \n")
+    #             print_filterflag(flag)
+    #         end
+    #         pass = pass && passSpec
+    #     if ~pass
+    #         error("The seed parameter set is not realistic")
+    #     end
+    # else
         filternm = "filter_nat" # this filter always gives a pass
         pass = 1
-    end
+    # end
 
     # perform the actual estimation
     #switch method
