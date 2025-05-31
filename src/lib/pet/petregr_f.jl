@@ -2,7 +2,18 @@
 # Finds parameter values for a pet that minimizes the lossfunction using Nelder Mead's simplex method using a filter
 
 ##
-function petregr_f(func, par, data, auxData, weights, filternm, options)
+function petregr_f(predict, func, par, data, auxData, weights, filternm, options)
+
+    function call_func(par, data, auxData)
+        out=predict(par, data, auxData)
+        prdData = out[1]
+        info = out[2]
+        # if ~info
+        #     return
+        # end
+        prdData=predict_pseudodata(par, data, prdData)
+        (prdData, info)
+    end
     # created 2001/09/07 by Bas Kooijman; 
     # modified 2015/01/29 by Goncalo Marques, 
     #   2015/03/21 by Bas Kooijman, 
@@ -43,11 +54,11 @@ function petregr_f(func, par, data, auxData, weights, filternm, options)
     #global q, pets
     # option settings
     info = true # initiate info setting
-    fileLossfunc = "lossfunction_" * options.lossfunction
-    srcpath = dirname(pathof(DEBtool_J))
-    examplepath = realpath(joinpath(srcpath, "../example"))
-    pet = "Emydura_macquarii";
-    include(joinpath(examplepath, "predict_" * pet * ".jl"))
+    # fileLossfunc = "lossfunction_" * options.lossfunction
+    # srcpath = dirname(pathof(DEBtool_J))
+    # examplepath = realpath(joinpath(srcpath, "../example"))
+    # pet = "Emydura_macquarii";
+    # include(joinpath(examplepath, "predict_" * pet * ".jl"))
     #using .Predict
     # prepare variable
     #   st: structure with dependent data values only
@@ -456,16 +467,6 @@ function petregr_f(func, par, data, auxData, weights, filternm, options)
         info = true
     end
     (q, info, itercount, fval)
-end
-call_func = function(par, data, auxData)
-    out=predict(par, data, auxData)
-    prdData = out[1]
-    info = out[2]
-    # if ~info
-    #     return
-    # end
-    prdData=predict_pseudodata(par, data, prdData)
-    (prdData, info)
 end
 function struct2vector(structin, fieldNames, structRef)
     function get_nested_field(obj, fields::Vector{Symbol})
