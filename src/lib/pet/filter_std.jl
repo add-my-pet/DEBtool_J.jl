@@ -37,50 +37,45 @@ function filter_std(p)
     filter = false
     flag = 0 # default setting of filter and flag
 
-    parvec = [
-        p.z
-        p.kap_X
-        p.kap_P
-        p.v
-        p.kap
-        p.p_M
-        p.E_G
-        p.k_J
-        p.E_Hb
-        p.E_Hp
-        p.kap_R
-        p.h_a
-        p.T_A
-    ]
+    parvec = (
+        p.z,
+        p.kap_X,
+        p.kap_P,
+        p.v,
+        p.kap,
+        p.p_M,
+        p.E_G,
+        p.k_J,
+        p.E_Hb,
+        p.E_Hp,
+        p.kap_R,
+        p.h_a,
+        p.T_A,
+    )
 
-    if sum(Unitful.ustrip.(parvec) .<= 0) > 0 # all pars must be positive
+    if count(x -> x <= zero(x), parvec) > 0 # all pars must be positive
         flag = 1
         return (filter, flag)
-        return
-    elseif p.p_T < 0u"J/d/cm^2"
+    elseif p.p_T < zero(p.p_T)
         flag = 1
         return (filter, flag)
-        return
     end
 
     if p.E_Hb >= p.E_Hp # maturity at birth, puberty
         flag = 4
         return (filter, flag)
-        return
     end
 
     if p.f > 1
         flag = 2
         return (filter, flag)
-        return
     end
 
-    parvec = [p.kap; p.kap_R; p.kap_X; p.kap_P]
+    parvec = (p.kap, p.kap_R, p.kap_X, p.kap_P)
 
-    if sum(Unitful.ustrip.(parvec .>= 1)) > 0
+    if count(x -> x >= oneunit(x), parvec) > 0 # all pars must be positive
         flag = 2
         return (filter, flag)
-        return
     end
 
     # compute and unpack cpar (compound parameters)
@@ -89,19 +84,16 @@ function filter_std(p)
     if c.kap_G >= 1 # growth efficiency
         flag = 3
         return (filter, flag)
-        return
     end
 
     if c.k * c.v_Hp >= p.f * (p.f - c.l_T)^2 # constraint required for reaching puberty
         flag = 5
         return (filter, flag)
-        return
     end
 
     if !reach_birth(c.g, c.k, c.v_Hb, p.f) # constraint required for reaching birth
         flag = 6
         return (filter, flag)
-        return
     end
 
     filter = true

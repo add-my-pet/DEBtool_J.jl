@@ -19,7 +19,7 @@ function predict(par, data, auxData)# predict
 
     d_V = 1Unitful.u"g/cm^3"               # cm, physical length at birth at f
 
-    pars_tp = [g2 k l_T v_Hb v_Hp]
+    pars_tp = (; g=g2, k, l_T, v_Hb, v_Hp)
     t_p, t_b, l_p, l_b, info = get_tp(pars_tp, f)
 
     # birth
@@ -47,7 +47,7 @@ function predict(par, data, auxData)# predict
     RT_i = TC_Ri * reprod_rate(L_i, f, pars_R)[1][1]             # #/d, ultimate reproduction rate at T
 
     # life span
-    pars_tm = [g2 l_T h_a / k_M^2 s_G]  # compose parameter vector at T_ref
+    pars_tm = (; g=g2, l_T, x=h_a / k_M^2, s_G)  # compose parameter vector at T_ref
     t_m = get_tm_s(pars_tm, f, l_b)[1]      # -, scaled mean life span at T_ref
     aT_m = t_m / k_M / TC_am               # d, mean life span at T
 
@@ -58,7 +58,7 @@ function predict(par, data, auxData)# predict
     m_Em_m = y_E_V * E_m_m / E_G         # mol/mol, reserve capacity 
     w_m = m_Em_m * w_E / w_V             # -, contribution of reserve to weight
     L_mm = v / k_M / g_m                  # cm, max struct length
-    pars_tpm = [g_m k l_T v_Hb v_Hpm]
+    pars_tpm = (; g=g_m, k, l_T, v_Hb, v_Hp=v_Hpm)
     t_pm, t_bm, l_pm, l_bm = get_tp(pars_tpm, f)
     tT_pm = (t_pm - t_bm) / k_M / TC      # d, time since birth at puberty
     L_pm = L_mm * l_pm

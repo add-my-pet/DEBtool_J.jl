@@ -9,6 +9,8 @@ using SpecialFunctions
 using QuadGK
 using OrdinaryDiffEq
 using Roots
+using ModelParameters.Flatten
+using StaticArrays
 
 export beta0, tempcorr, calibration_options, addpseudodata, estim_options, estim_pars
 export fieldnm_wtxt, filter_std, mydata_pets, parscomp_st, petregr_f

@@ -69,13 +69,13 @@ function reprod_rate(L, f, p, Lf)
     k = kJ / kM       # -, maintenance ratio
     VHb = UHb / (1 - kap)
     VHp = UHp / (1 - kap)
-    vHb = VHb * g^2 * kM^3 / v^2
-    vHp = VHp * g^2 * kM^3 / v^2
+    v_Hb = VHb * g^2 * kM^3 / v^2
+    v_Hp = VHp * g^2 * kM^3 / v^2
 
-    p_lb = [g k vHb]             # pars for get_lb
-    p_lp = [g k LT / Lm vHb vHp] # pars for get_tp
-    p_UE0 = [VHb g kJ kM v]     # pars for initial_scaled_reserve  
-    p_mat = [kap kapR g kJ kM LT v UHb UHp] # pars for maturity
+    p_lb = (; g, k, v_Hb)             # pars for get_lb
+    p_lp = (; g, k, l_T=LT / Lm, v_Hb, v_Hp) # pars for get_tp
+    p_UE0 = (; VHb, g, kJ, kM, v)     # pars for initial_scaled_reserve  
+    p_mat = (; kap, kapR, g, kJ, kM, LT, v, UHb, UHp) # pars for maturity
 
     if !@isdefined Lf
         Lf = [;]
@@ -100,7 +100,7 @@ function reprod_rate(L, f, p, Lf)
         f0 = Lf(2) # -, scaled func response before time 0
         UH0, a, info_mat = maturity(L0, f0, p_mat)  # d.cm^2, maturity at zero
         if info_mat != 1# return at failure for tp
-            println("maturity could not be obtained in reprod_rate \n")
+            @warn "maturity could not be obtained in reprod_rate"
             R = L * 0
             UE0 = []
             Lb = []
@@ -190,13 +190,14 @@ function reprod_rate(L, f, p)
     k = kJ / kM       # -, maintenance ratio
     VHb = UHb / (1 - kap)
     VHp = UHp / (1 - kap)
-    vHb = VHb * g^2 * kM^3 / v^2
-    vHp = VHp * g^2 * kM^3 / v^2
+    v_Hb = VHb * g^2 * kM^3 / v^2
+    v_Hp = VHp * g^2 * kM^3 / v^2
 
-    p_lb = [g k vHb]             # pars for get_lb
-    p_lp = [g k LT / Lm vHb vHp] # pars for get_tp
-    p_UE0 = [VHb g kJ kM v]     # pars for initial_scaled_reserve  
-    p_mat = [kap kapR g kJ kM LT v UHb UHp] # pars for maturity
+    l_T = LT / Lm
+    p_lb = (; g, k, v_Hb)             # pars for get_lb
+    p_lp = (; g, k, l_T, v_Hb, v_Hp) # pars for get_tp
+    p_UE0 = (; VHb, g, kJ, kM, v)     # pars for initial_scaled_reserve  
+    p_mat = (; kap, kapR, g, kJ, kM, LT, v, UHb, UHp) # pars for maturity
 
     # if !@isdefined Lf
     #   Lf = [;];

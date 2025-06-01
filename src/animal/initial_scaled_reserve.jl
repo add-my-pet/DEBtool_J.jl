@@ -31,11 +31,7 @@ function initial_scaled_reserve(f, p, Lb0)
     # p = [.8 .42 1.7 1.7 3.24 .012]; initial_scaled_reserve(1,p)
 
     #  unpack parameters
-    VHb = p[1] # d mm^2, scaled maturity at birth: M_H^b/((1-kap){J_EAm})
-    g = p[2] # -, energy investment ratio
-    kJ = p[3] # 1/d, maturity maintenance rate coefficient
-    kM = p[4] # 1/d, somatic maintenance rate coefficient
-    v = p[5] # mm/d, energy conductance
+    (; VHb, g, kJ, kM, v) = p
 
     # if kJ = kM: VHb = g * Lb^3/ v;
 
@@ -43,7 +39,7 @@ function initial_scaled_reserve(f, p, Lb0)
     U0 = zeros(nf, 1)Unitful.d * Unitful.cm^2
     Lb = zeros(nf, 1)Unitful.cm
     info = zeros(nf, 1)
-    q = [g, kJ / kM, VHb * g^2 * kM^3 / v^2]
+    q = (; g, k=kJ / kM, v_Hb=VHb * g^2 * kM^3 / v^2)
     #if exist('Lb0','var') == 1
     lb0 = ones(nf, 1) .* Lb0 * kM * g / v
     #else
@@ -56,7 +52,8 @@ function initial_scaled_reserve(f, p, Lb0)
         uE0 = get_ue0(q, f[i], lb)
         U0[i] = uE0 * v^2 / g^2 / kM^3
     end
-    (U0, Lb, info)
+
+    return (U0, Lb, info)
 end
 
 function initial_scaled_reserve(f, p)
@@ -87,11 +84,7 @@ function initial_scaled_reserve(f, p)
     # p = [.8 .42 1.7 1.7 3.24 .012]; initial_scaled_reserve(1,p)
 
     #  unpack parameters
-    VHb = p[1] # d mm^2, scaled maturity at birth: M_H^b/((1-kap){J_EAm})
-    g = p[2] # -, energy investment ratio
-    kJ = p[3] # 1/d, maturity maintenance rate coefficient
-    kM = p[4] # 1/d, somatic maintenance rate coefficient
-    v = p[5] # mm/d, energy conductance
+    (; VHb, g, kJ, kM, v) = p
 
     # if kJ = kM: VHb = g * Lb^3/ v;
 
@@ -99,7 +92,7 @@ function initial_scaled_reserve(f, p)
     U0 = zeros(nf, 1)Unitful.d * Unitful.cm^2
     Lb = zeros(nf, 1)Unitful.cm
     info = zeros(nf, 1)
-    q = [g, kJ / kM, VHb * g^2 * kM^3 / v^2]
+    q = (; g, k=kJ / kM, v_Hb=VHb * g^2 * kM^3 / v^2)
     #if exist('Lb0','var') == 1
     #  lb0 = ones(nf,1) .* Lb0 * kM * g/ v;
     #else
@@ -112,5 +105,6 @@ function initial_scaled_reserve(f, p)
         uE0 = get_ue0(q, f[i], lb)[1]
         U0[i] = uE0 * v^2 / g^2 / kM^3
     end
-    (U0, Lb, info)
+
+    return (U0, Lb, info)
 end

@@ -41,6 +41,7 @@ varname = "par"
 par_matlab = read(file, varname)
 close(file)
 
+# TODO clean this up 
 par_free = Dict(
     string(k) => v for (k, v) in sort(collect(pairs(parout.free)); by=first)
 )

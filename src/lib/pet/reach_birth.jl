@@ -22,28 +22,19 @@ function reach_birth(g, k, v_Hb, f)
     #
     # * info: indicator equals 1 if reaches birth, 0 otherwise
 
-    #if ~exist('f', 'var') # if f is not given it is taken as 1
-    if !@isdefined(f)
-        f = 1
-    elseif isempty(f)
-        f = 1
-    end
-
-    p = [g, k, v_Hb]
+    p = (; g, k, v_Hb)
     l_b, info = get_lb(p, f)
 
-    if l_b >= f || ~info # constraint required for reaching birth
+    if l_b >= f || !info # constraint required for reaching birth
         info = false
-        return (info)
-        return
+        return info
     end
 
     if k * v_Hb >= f / (g + f) * l_b^2 * (g + l_b) # constraint required for reaching birth
         info = false
-        return (info)
-        return
+        return info
     end
 
     info = true
-    return (info)
+    return info
 end
