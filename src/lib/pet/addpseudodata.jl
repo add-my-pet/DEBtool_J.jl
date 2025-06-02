@@ -31,11 +31,6 @@ function addpseudodata()
 # Will create the four structures data, units, label and weight with pseudodata information
 
 #global loss_function
-#= module addpseudodata
-using Parameters
-using ModelParameters
-using Unitful
-using Unitful: °C, K, d, g, cm, mol, J =#
 # set pseudodata
     
 psdData = (;
@@ -82,5 +77,6 @@ psdWeight = (;
 # export(psdWeight)
 # export(psdUnits)
 # end
-(psdData, psdLabel, psdWeight)
+#
+    return (psdData, psdLabel, psdWeight)
 end

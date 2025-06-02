@@ -27,24 +27,16 @@ function print_filterflag(flag)
     ## Remarks
     # The theory behind boundaries is discussed in <http://www.bio.vu.nl/thb/research/bib/LikaAugu2013.html *LikaAugu2013*>.
 
-
-    #switch flag
-
+    # TODO use enums or types not raw numbers
     if flag == 1
-        println("One or more parameters are negative \n")
-
+        @warn "One or more parameters are negative"
     elseif flag == 2
-        println("kappa, f or one of the fractions is bigger than 1 \n")
-
+        @warn "kappa, f or one of the fractions is bigger than 1"
     elseif flag == 3
-        println("growth efficiency is bigger than 1 \n")
-
+        @warn "growth efficiency is bigger than 1"
     elseif flag == 4
-        println("maturity levels are not in the correct order \n")
-
+        @warn "maturity levels are not in the correct order"
     elseif flag == 5
-        println("puberty or birth cannot be reached \n")
+        @warn "puberty or birth cannot be reached"
     end
-
-    #end
 end

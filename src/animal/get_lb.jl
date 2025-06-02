@@ -352,5 +352,6 @@ function get_lb(p)
     if info == false
         println("warning get_lb: no convergence of l_b \n")
     end
-    (lb, info)
+
+    return lb, info
 end

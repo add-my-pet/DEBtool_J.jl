@@ -1,7 +1,7 @@
 ## filter_std
 # filters for allowable parameters of standard DEB model without acceleration
 
-##
+# TODO use enums for flags not magic numbers
 function filter_std(p)
     # created 2014/01/22 by Bas Kooijman; modified 2015/03/17, 2015/07/29 by Goncalo Marques
     # modified 2015/08/03 by starrlight, 2016/10/25 by Goncalo Marques
@@ -37,7 +37,7 @@ function filter_std(p)
     filter = false
     flag = 0 # default setting of filter and flag
 
-    parvec = (
+    positive_pars = (
         p.z,
         p.kap_X,
         p.kap_P,
@@ -53,10 +53,12 @@ function filter_std(p)
         p.T_A,
     )
 
-    if count(x -> x <= zero(x), parvec) > 0 # all pars must be positive
+    if count(x -> x <= zero(x), positive_pars) > 0
         flag = 1
         return (filter, flag)
-    elseif p.p_T < zero(p.p_T)
+    end
+
+    if p.p_T < zero(p.p_T)
         flag = 1
         return (filter, flag)
     end
@@ -71,9 +73,9 @@ function filter_std(p)
         return (filter, flag)
     end
 
-    parvec = (p.kap, p.kap_R, p.kap_X, p.kap_P)
+    larger_than_one_pars = (p.kap, p.kap_R, p.kap_X, p.kap_P)
 
-    if count(x -> x >= oneunit(x), parvec) > 0 # all pars must be positive
+    if count(x -> x >= oneunit(x), larger_than_one_pars) > 0
         flag = 2
         return (filter, flag)
     end

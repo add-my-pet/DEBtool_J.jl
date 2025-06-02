@@ -36,8 +36,8 @@ function fieldnm_wtxt(st, txt)
 
     nmaux = fieldnames(typeof(st))
     nmaux2 = collect(nmaux)
-    fullnmaux = []
-    fullnm = []
+    fullnmaux = Symbol[]
+    fullnm = Symbol[]
 
     #   while length(nmaux) > 0
     #     if strcmp(nmaux(1), txt)
@@ -60,7 +60,7 @@ function fieldnm_wtxt(st, txt)
     while length(fullnmaux) > 0
         nmaux = fieldnames(typeof(getproperty(st, fullnmaux[1])))
         nmaux2 = collect(nmaux)
-        for i = 1:length(nmaux2)
+        for i = 1:length(nmaux)
             if nmaux2[i] == txt
                 push!(fullnm, join(fullnmaux[1], txt, "."))
             elseif isstruct(getproperty(st, joinpath(fullnmaux[1], nmaux2[i])))

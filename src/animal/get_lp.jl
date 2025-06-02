@@ -226,7 +226,7 @@ function get_lp(p, f)
             u0 = [v_Hb, lb]
             tspan = (0, 1e8)
             s_M = 1.0
-            prob = ODEProblem(dget_l_ISO_t, u0, tspan, [k, l_T, g, f, s_M, v_Hp])
+            prob = ODEProblem(dget_l_ISO_t, u0, tspan, (; k, l_T, g, f, s_M, v_Hp))
             #sol = solve(prob, Tsit5(), reltol=1e-9, abstol=1e-9, callback=cb)
             sol = solve(prob, DP5(); reltol=1e-9, abstol=1e-9, callback=cb)
             t = sol.t
