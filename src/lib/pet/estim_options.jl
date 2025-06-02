@@ -843,7 +843,7 @@ function estim_options(key::String, val)
     end
 end =#
 
-struct EstimOptions
+struct EstimOptions{C}
    method::String
    lossfunction::String
    filter::Bool
@@ -875,6 +875,7 @@ struct EstimOptions
    save_results::Bool
    sigma_share::Float64
    rng::MersenneTwister
+   calibration::C
 end
 
 function EstimOptions(;
@@ -949,7 +950,8 @@ function EstimOptions(;
     results_filename = "Default",
     save_results = false, # If results output are saved.
     sigma_share = 0.1,
-    rng = MersenneTwister(random_seeds[seed_index]) # initialize the number generator is with a seed, to be updated for each run of the calibration method.
+    rng = MersenneTwister(random_seeds[seed_index]), # initialize the number generator is with a seed, to be updated for each run of the calibration method.
+    calibration,
 )
 
     rd = ("Basic", "Best", "Set", "Complete")
@@ -993,5 +995,6 @@ function EstimOptions(;
         save_results,
         sigma_share,
         rng,
+        calibration,
     )
 end

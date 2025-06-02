@@ -24,14 +24,8 @@ function lossfunction_sb(data, meanData, prdData, meanPrdData, weights)
     #
     # * lf: loss function value
 
-    #sel = ~isnan(data);
-    #lf = weights(sel)' * ((data(sel) - prdData(sel)).^2 ./ (meanData(sel).^2 + meanPrdData(sel).^2));
+    i = findall(.!isnan.(data))
+    lf = sum(weights[i] .* ((data[i] .- prdData[i]) .^ 2 ./ (meanData[i] .^ 2 .+ meanPrdData[i] .^ 2)))
 
-
-    sel = findall(.!isnan.(data))
-    lf =
-        sum(weights[sel] .*
-        ((data[sel] .- prdData[sel]) .^ 2 ./ (meanData[sel] .^ 2 .+ meanPrdData[sel] .^ 2)))
-
-    return (lf)
+    return lf
 end

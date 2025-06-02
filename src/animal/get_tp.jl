@@ -39,21 +39,17 @@ function get_tp(p, f=1, tel_b=nothing, tau=nothing)
     # tau_p = get_tp([.5, .1, .1, .01, .2]) or tvel = get_tp([.5, .1, .1, .01, .2],[],[],0:0.014:) 
    
         #  unpack pars
-        g = p[1] # energy investment ratio
-        k = p[2] # k_J/ k_M, ratio of maturity and somatic maintenance rate coeff
-        l_T = p[3] # scaled heating length {p_T}/[p_M]Lm
-        v_Hb = p[4] # v_H^b = U_H^b g^2 kM^3/ (1 - kap) v^2; U_H^b = M_H^b/ {J_EAm} = E_H^b/ {p_Am}
-        v_Hp = p[5] # v_H^p = U_H^p g^2 kM^3/ (1 - kap) v^2; U_H^p = M_H^p/ {J_EAm} = E_H^p/ {p_Am}
+        (; g, k, l_T, v_Hb, v_Hp) = p
             
         # Set default value for f if not provided
         if !isa(f, Vector) || length(f) == 0
-            f = 1
+            f = 1.0
         end
         
        # If f has 2 columns and tau is not specified, issue a warning and return
         if size(f, 2) == 2
             if tau === nothing
-                println("Warning from get_tp: f has 2 columns, but tau is not specified")
+                @warn "Warning from get_tp: f has 2 columns, but tau is not specified"
                 return get_tpm(p, f, tel_b, tau)
             end
         end
@@ -74,7 +70,7 @@ function get_tp(p, f=1, tel_b=nothing, tau=nothing)
                 l_b = tel_b[3]
             end
         else
-            tau_b, l_b, info = get_tb(p[[1, 2, 4]], f)
+            tau_b, l_b, info = get_tb(p, f)
         end
 
 
@@ -95,8 +91,8 @@ function get_tp(p, f=1, tel_b=nothing, tau=nothing)
         
         # Ensure v_Hp is greater than v_Hb
         if v_Hp < v_Hb
-            println("Warning from get_tp: v_Hp < v_Hb")
-            tau_b, l_b = get_tb(p[[1, 2, 4]], f)
+            @warn "Warning from get_tp: v_Hp < v_Hb"
+            tau_b, l_b = get_tb(p, f)
             tau_p = nothing
             l_p = nothing
             return tau_p, tau_b, l_p, l_b, 0
@@ -115,7 +111,7 @@ function get_tp(p, f=1, tel_b=nothing, tau=nothing)
             tau_p = tau_b + log(l_d / (l_i - l_p)) / rho_B
             info = true
         elseif f * l_i^2 <= v_Hp * k
-            tau_b, l_b = get_tb(p[[1, 2, 4]], f)
+            tau_b, l_b = get_tb(p, f)
             tau_p = NaN
             l_p = NaN
             info = false

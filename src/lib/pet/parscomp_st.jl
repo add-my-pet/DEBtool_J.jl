@@ -214,7 +214,7 @@ function parscomp_st(p)
 
     # -------------------------------------------------------------------------
     # pack output:
-    return (cPar)
+    return cPar
     #=   return(p_Am=p_Am, w_X=w_X, w_V=w_V, w_E=w_E, w_P=w_P, M_V=M_V, y_V_E=y_V_E, y_E_V=y_E_V, 
                     k_M=k_M, k=k, E_m=E_m, m_Em=m_Em, g=g, L_m=L_m, L_T=L_T, l_T=l_T, ome=ome, w=w, s_H=s_H,
                     J_E_Am=J_E_Am, J_E_M=J_E_M, J_E_T=J_E_T, j_E_M=j_E_M, j_E_J=j_E_J, kap_G=kap_G, E_V=E_V, n_O=n_O, n_M=n_M,

@@ -1,7 +1,7 @@
 ## filter_std
 # filters for allowable parameters of standard DEB model without acceleration
 
-##
+# TODO use enums for flags not magic numbers
 function filter_std(p)
     # created 2014/01/22 by Bas Kooijman; modified 2015/03/17, 2015/07/29 by Goncalo Marques
     # modified 2015/08/03 by starrlight, 2016/10/25 by Goncalo Marques
@@ -37,50 +37,47 @@ function filter_std(p)
     filter = false
     flag = 0 # default setting of filter and flag
 
-    parvec = [
-        p.z
-        p.kap_X
-        p.kap_P
-        p.v
-        p.kap
-        p.p_M
-        p.E_G
-        p.k_J
-        p.E_Hb
-        p.E_Hp
-        p.kap_R
-        p.h_a
-        p.T_A
-    ]
+    positive_pars = (
+        p.z,
+        p.kap_X,
+        p.kap_P,
+        p.v,
+        p.kap,
+        p.p_M,
+        p.E_G,
+        p.k_J,
+        p.E_Hb,
+        p.E_Hp,
+        p.kap_R,
+        p.h_a,
+        p.T_A,
+    )
 
-    if sum(Unitful.ustrip.(parvec) .<= 0) > 0 # all pars must be positive
+    if count(x -> x <= zero(x), positive_pars) > 0
         flag = 1
         return (filter, flag)
-        return
-    elseif p.p_T < 0u"J/d/cm^2"
+    end
+
+    if p.p_T < zero(p.p_T)
         flag = 1
         return (filter, flag)
-        return
     end
 
     if p.E_Hb >= p.E_Hp # maturity at birth, puberty
         flag = 4
         return (filter, flag)
-        return
     end
 
     if p.f > 1
         flag = 2
         return (filter, flag)
-        return
     end
 
-    parvec = [p.kap; p.kap_R; p.kap_X; p.kap_P]
+    larger_than_one_pars = (p.kap, p.kap_R, p.kap_X, p.kap_P)
 
-    if sum(Unitful.ustrip.(parvec .>= 1)) > 0
+    if count(x -> x >= oneunit(x), larger_than_one_pars) > 0
         flag = 2
         return (filter, flag)
-        return
     end
 
     # compute and unpack cpar (compound parameters)
@@ -89,19 +86,16 @@ function filter_std(p)
     if c.kap_G >= 1 # growth efficiency
         flag = 3
         return (filter, flag)
-        return
     end
 
     if c.k * c.v_Hp >= p.f * (p.f - c.l_T)^2 # constraint required for reaching puberty
         flag = 5
         return (filter, flag)
-        return
     end
 
     if !reach_birth(c.g, c.k, c.v_Hb, p.f) # constraint required for reaching birth
         flag = 6
         return (filter, flag)
-        return
     end
 
     filter = true

@@ -43,7 +43,7 @@ function get_lb(p, eb, lb0)
     # See <../mydata_ue0.m *mydata_ue0*>
 
     #  unpack p
-    g, k, vHb = p   # g = [E_G] * v/ kap * {p_Am}, energy investment ratio
+    (; g, k, v_Hb) = p   # g = [E_G] * v/ kap * {p_Am}, energy investment ratio
     # k = k_J/ k_M, ratio of maturity and somatic maintenance rate coeff
     # v_H^b = U_H^b g^2 kM^3/ (1 - kap) v^2; U_H^b = M_H^b/ {J_EAm}
 
@@ -53,12 +53,12 @@ function get_lb(p, eb, lb0)
     end
 
     if k == 1
-        lb = vHb^(1 / 3) # exact solution for k = 1
+        lb = v_Hb^(1 / 3) # exact solution for k = 1
         info = true
         return
     end
     if isempty(lb0)
-        lb = vHb^(1 / 3) # exact solution for k = 1     
+        lb = v_Hb^(1 / 3) # exact solution for k = 1     
     else
         lb = lb0
     end
@@ -76,7 +76,7 @@ function get_lb(p, eb, lb0)
     x3 = x .^ (1 / 3)
 
     b = real(beta0(x, xb)) / (3 * g)
-    t0 = xb * g * vHb
+    t0 = xb * g * v_Hb
     i = 0
     norm = 1 # make sure that we start Newton Raphson procedure
     ni = 100 # max number of iterations
@@ -103,7 +103,6 @@ function get_lb(p, eb, lb0)
         norm = t^2
         i = i + 1
     end
-    (lb)
     if i == ni || lb < 0 || lb > 1 || isnan(norm) || isnan(lb) # no convergence
         # try to recover with a shooting method
         if isempty(lb0)
@@ -161,7 +160,7 @@ function get_lb(p, eb)
     # See <../mydata_ue0.m *mydata_ue0*>
 
     #  unpack p
-    g, k, vHb = p   # g = [E_G] * v/ kap * {p_Am}, energy investment ratio
+    (; g, k, v_Hb) = p   # g = [E_G] * v/ kap * {p_Am}, energy investment ratio
     # k = k_J/ k_M, ratio of maturity and somatic maintenance rate coeff
     # v_H^b = U_H^b g^2 kM^3/ (1 - kap) v^2; U_H^b = M_H^b/ {J_EAm}
 
@@ -171,12 +170,12 @@ function get_lb(p, eb)
     # end
 
     if k == 1
-        lb = vHb^(1 / 3) # exact solution for k = 1
+        lb = v_Hb^(1 / 3) # exact solution for k = 1
         info = true
         return
     end
     # if isempty(lb0)
-    lb = vHb^(1 / 3) # exact solution for k = 1     
+    lb = v_Hb^(1 / 3) # exact solution for k = 1     
     # else
     #   lb = lb0;
     # end
@@ -194,7 +193,7 @@ function get_lb(p, eb)
     x3 = x .^ (1 / 3)
 
     b = real(beta0(x, xb)) / (3 * g)
-    t0 = xb * g * vHb
+    t0 = xb * g * v_Hb
     i = 0
     norm = 1 # make sure that we start Newton Raphson procedure
     ni = 100 # max number of iterations
@@ -207,7 +206,7 @@ function get_lb(p, eb)
         r = (g .+ l)
         rv = r ./ v
         t = t0 / lb^3 / vb - dx * sum(rv)
-        dl = xb3 / lb^2 * l .^ 2 ./ x3
+        dl = xb3 ./ lb .^ 2 .* l .^ 2 ./ x3
         dlnl = dl ./ l
         dv = v .* exp.(-dx * cumsum(s .* dlnl))
         dvb = dv[trunc(Int, n)]
@@ -279,7 +278,7 @@ function get_lb(p)
     # See <../mydata_ue0.m *mydata_ue0*>
 
     #  unpack p
-    g, k, vHb = p   # g = [E_G] * v/ kap * {p_Am}, energy investment ratio
+    (; g, k, v_Hb) = p   # g = [E_G] * v/ kap * {p_Am}, energy investment ratio
     # k = k_J/ k_M, ratio of maturity and somatic maintenance rate coeff
     # v_H^b = U_H^b g^2 kM^3/ (1 - kap) v^2; U_H^b = M_H^b/ {J_EAm}
 
@@ -289,12 +288,12 @@ function get_lb(p)
     # end
 
     if k == 1
-        lb = vHb^(1 / 3) # exact solution for k = 1
+        lb = v_Hb^(1 / 3) # exact solution for k = 1
         info = true
         return
     end
     # if isempty(lb0)
-    lb = vHb^(1 / 3) # exact solution for k = 1     
+    lb = v_Hb^(1 / 3) # exact solution for k = 1     
     # else
     #   lb = lb0;
     # end
@@ -312,7 +311,7 @@ function get_lb(p)
     x3 = x .^ (1 / 3)
 
     b = real(beta0(x, xb)) / (3 * g)
-    t0 = xb * g * vHb
+    t0 = xb * g * v_Hb
     i = 0
     norm = 1 # make sure that we start Newton Raphson procedure
     ni = 100 # max number of iterations
@@ -339,7 +338,6 @@ function get_lb(p)
         norm = t^2
         i = i + 1
     end
-    (lb)
     if i == ni || lb < 0 || lb > 1 || isnan(norm) || isnan(lb) # no convergence
         # try to recover with a shooting method
         # if isempty(lb0)
@@ -354,5 +352,6 @@ function get_lb(p)
     if info == false
         println("warning get_lb: no convergence of l_b \n")
     end
-    (lb, info)
+
+    return lb, info
 end

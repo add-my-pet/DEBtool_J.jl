@@ -36,23 +36,23 @@ function get_tb(p, eb, lb)
     # get_tb([.1;.5;.03])
     # See also <../mydata_ue0.m *mydata_ue0*>
 
-    if !@isdefined(eb)
-        eb = 1 # maximum value as juvenile
-    end
+    # if !@isdefined(eb)
+        # eb = 1 # maximum value as juvenile
+    # end
 
     info = true
 
-    if !@isdefined(lb)
-        if length(p) < 3
-            println("not enough input parameters, see get_lb \n")
-            tau_b = []
-            return
-        end
-        lb, info = get_lb(p, eb)
-    end
-    if isempty(lb)
-        lb, info = get_lb(p, eb)
-    end
+    # if !@isdefined(lb)
+    #     if length(p) < 3
+    #         println("not enough input parameters, see get_lb \n")
+    #         tau_b = []
+    #         return
+    #     end
+    #     lb, info = get_lb(p, eb)
+    # end
+    # if isempty(lb)
+        # lb, info = get_lb(p, eb)
+    # end
     lb, info = get_lb(p, eb)
     # unpack p
     g = p[1]  # energy investment ratio
@@ -95,10 +95,6 @@ function get_tb(p, eb)
     ## Example of use
     # get_tb([.1;.5;.03])
     # See also <../mydata_ue0.m *mydata_ue0*>
-
-    if !@isdefined(eb)
-        eb = 1 # maximum value as juvenile
-    end
 
     info = true
 

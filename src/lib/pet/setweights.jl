@@ -30,20 +30,19 @@ function setweights(data)
     # Function to strip units from values
     weight = (;)
     nm = fieldnames(typeof(data)) # vector of cells with names of data sets
+    # TODO: better way to separate zero-, uni-, bi- and tri-variate data
     for i = 1:length(nm)
         nvar = size(getproperty(data, nm[i]), 2)
-        #if ~isfield(weight, nm[i]) 
         if nvar == 1 # zero-variate data
-            weight = merge(weight, (Symbol(nm[i]) => 1,))
+            weight = merge(weight, (nm[i] => 1,))
         elseif nvar == 2 # uni- or bi-variate data
             N = size(getproperty(data, nm[i]), 1)
-            weight = merge(weight, (Symbol(nm[i]) => ones(N, nvar - 1) / N / (nvar - 1),))
+            weight = merge(weight, (nm[i] => ones(N, nvar - 1) / N / (nvar - 1),))
         else # tri-variate data
             N = size(getproperty(data, nm[i]), 1)
             nvar = size(getproperty(data, nm[i]), 3)
-            weight = merge(weight, (Symbol(nm[i]) => ones(N, nvar, npage) / N / nvar / npage,))
+            weight = merge(weight, (nm[i] => ones(N, nvar, npage) / N / nvar / npage,))
         end
-        #end
     end
-    (weight)
+    return weight
 end

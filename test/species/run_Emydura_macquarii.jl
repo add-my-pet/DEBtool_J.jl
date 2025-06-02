@@ -15,6 +15,8 @@ include(joinpath(speciespath, "predict_" * species * ".jl"))
 end
 par_model = Model(par) # create a 'Model' out of the Pars struct
 data, auxData, metaData, txtData, weights = include(joinpath(speciespath, "mydata_" * species * ".jl")) # load the mydata file
+resultsnm = "results_" * species * ".jld2"
+calibration = calibration_options("results_filename", resultsnm)
 
 data_pet = (data, auxData, metaData, txtData, weights)
 # EstimOptions to replace the globals set by `estim_options` below
@@ -23,7 +25,8 @@ options = DEBtool_J.EstimOptions(;
     max_fun_evals = 5000,
     pars_init_method = 2, 
     results_output = 3, 
-    method = "nm"
+    method = "nm",
+    calibration,
 ) 
 
 #check_my_pet(pets); 
@@ -38,6 +41,7 @@ varname = "par"
 par_matlab = read(file, varname)
 close(file)
 
+# TODO clean this up 
 par_free = Dict(
     string(k) => v for (k, v) in sort(collect(pairs(parout.free)); by=first)
 )

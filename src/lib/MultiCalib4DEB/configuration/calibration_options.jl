@@ -118,9 +118,6 @@ function calibration_options(key::String, val::String)
     #global verbose, verbose_options, random_seeds, seed_index
     #global ranges, mat_file, results_printlnlay, results_filename, save_results, sigma_share
 
-    if !@isdefined(key)
-        key = "inexistent"
-    end
     if key in [
         "default",
         "search_method",

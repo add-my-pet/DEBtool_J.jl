@@ -1,15 +1,15 @@
-function dget_l_ISO_t(vHl, p, t)
-    # vH: scalar with scaled maturity
-    # l: scalar with scaled length
-    # dl: scalar with d/dvH l
-    # called from get_lp, get_lj, get_ls
-    k, lT, g, f, sM, vHp = p
-
-    vH = vHl[1]
-    l = vHl[2]
-    r = g * (f * sM - lT * sM - l) / l / (f + g) # specific growth rate
+# vH: scalar with scaled maturity
+# l: scalar with scaled length
+# dl: scalar with d/dvH l
+# called from get_lp, get_lj, get_ls
+function dget_l_ISO_t(v_Hl, p, t)
+    (; k, l_T, g, f, s_M, v_Hp) = p
+    vH, l = v_Hl
+    r = g * (f * s_M - l_T * s_M - l) / l / (f + g) # specific growth rate
     dl = l * r / 3                              # d/dt l
-    dvH = f * l^2 * (sM - l * r / g) - k * vH   # d/dt vH
+    dvH = f * l^2 * (s_M - l * r / g) - k * vH   # d/dt vH
 
     dvHl = [dvH, dl]
+
+    return dvHl
 end

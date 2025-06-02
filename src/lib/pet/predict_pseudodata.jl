@@ -26,13 +26,13 @@ function predict_pseudodata(par, data, prdData)
     ## Example of use
     # prdData = predict_pseudodata(par, data, prdData)
 
-    if haskey(data, Symbol("psd"))
+    if haskey(data, :psd)
         cPar = merge(parscomp_st(par), (; par)...)
         prdData = merge(prdData, (; data.psd))
-        common_symbols = string.(intersect(keys(prdData.psd), keys(cPar)))
+        common_symbols = intersect(keys(prdData.psd), keys(cPar))
         for symb in common_symbols
-            prdData = merge(prdData, (psd=merge(prdData.psd, (Symbol(symb)=>getproperty(cPar, Symbol(symb)),)),))
+            prdData = merge(prdData, (psd=merge(prdData.psd, (symb => getproperty(cPar, symb),)),))
         end
     end
-    return (prdData)
+    return prdData
 end

@@ -39,11 +39,7 @@ function get_lp(p, f, lb0)
     # get_lp([.5, .1, .1, .01, .2])
 
     # unpack pars
-    g = p[1] # -, energy investment ratio
-    k = p[2] # k_J/ k_M, ratio of maturity and somatic maintenance rate coeff
-    lT = p[3] # scaled heating length {p_T}/[p_M]
-    vHb = p[4] # v_H^b = U_H^b g^2 kM^3/ (1 - kap) v^2; U_H^b = M_H^b/ {J_EAm} = E_H^b/ {p_Am}
-    vHp = p[5] # v_H^p = U_H^p g^2 kM^3/ (1 - kap) v^2; U_H^p = M_H^p/ {J_EAm} = E_H^p/ {p_Am}
+    (; g, k, l_T, v_Hb, v_Hp) = par
 
     if !@isdefined(f)
         f = 1
@@ -52,18 +48,19 @@ function get_lp(p, f, lb0)
     end
     li = f - lT # -, scaled ultimate length
 
+    # TODO this all seems broken
     if !@isdefined(lb0)
         lb0 = []
-        lb, info = get_lb([g, k, vHb], f)
+        lb, info = get_lb((; g, k, vHb), f)
     elseif isempty(lb0)
-        lb, info = get_lb([g, k, vHb], f)
+        lb, info = get_lb((; g, k, vHb), f)
     elseif length(lb0) < 2
         info = true
         lb = lb0
     else # for a juvenile of length l and maturity vH
-        l = lb0(1)
-        vH = lb0(2) # juvenile now exposed to f
-        lb, info = get_lb([g, k, vHb], f)
+        l = lb0[1]
+        vH = lb0[2] # juvenile now exposed to f
+        lb, info = get_lb((; g, k, vHb), f)
     end
 
     # d/d tau vH = b2 l^2 + b3 l^3 - k vH
@@ -88,10 +85,10 @@ function get_lp(p, f, lb0)
             println("Warning in get_lp: maturity does not increase at birth \n")
         else # compute using integration in maturity
             cb = ContinuousCallback(event_puberty, terminate_affect!)
-            u0 = [vHb, lb]
+            u0 = [v_Hb, lb]
             tspan = (0, 1e8)
             s_M = 1.0
-            prob = ODEProblem(dget_l_ISO_t, u0, tspan, [k, lT, g, f, s_M, vHp])
+            prob = ODEProblem(dget_l_ISO_t, u0, tspan, [k, l_T, g, f, s_M, v_Hp])
             #sol = solve(prob, Tsit5(), reltol=1e-9, abstol=1e-9, callback=cb)
             sol = solve(prob, DP5(), reltol = 1e-9, abstol = 1e-9, callback = cb)
             t = sol.t
@@ -142,7 +139,7 @@ function get_lp(p, f, lb0)
     #   if lp > f - 1e-4
     #     println("Warning in get_lp: l_p very close to l_i\n')      
     #   end
-    (lp, lb, info)
+    return (lp, lb, info)
 end
 
 
@@ -181,30 +178,26 @@ function get_lp(p, f)
     # get_lp([.5, .1, .1, .01, .2])
 
     # unpack pars
-    g = p[1] # -, energy investment ratio
-    k = p[2] # k_J/ k_M, ratio of maturity and somatic maintenance rate coeff
-    lT = p[3] # scaled heating length {p_T}/[p_M]
-    vHb = p[4] # v_H^b = U_H^b g^2 kM^3/ (1 - kap) v^2; U_H^b = M_H^b/ {J_EAm} = E_H^b/ {p_Am}
-    vHp = p[5] # v_H^p = U_H^p g^2 kM^3/ (1 - kap) v^2; U_H^p = M_H^p/ {J_EAm} = E_H^p/ {p_Am}
+    (; g, k, l_T, v_Hb, v_Hp) = p
 
     if !@isdefined(f)
         f = 1
     elseif isempty(f)
         f = 1
     end
-    li = f - lT # -, scaled ultimate length
+    li = f - l_T # -, scaled ultimate length
 
     # if !@isdefined(lb0)
     #    lb0 = [];
-    lb, info = get_lb([g, k, vHb], f)
+    lb, info = get_lb((; g, k, v_Hb), f)
     # elseif isempty(lb0)
-    #     lb, info = get_lb([g, k, vHb], f);
+    #     lb, info = get_lb([g, k, v_Hb], f);
     # elseif length(lb0) < 2
     #     info = true;
     #     lb = lb0;
     # else # for a juvenile of length l and maturity vH
     #     l = lb0(1); vH = lb0(2); # juvenile now exposed to f
-    #     lb, info = get_lb([g, k, vHb], f);
+    #     lb, info = get_lb([g, k, v_Hb], f);
     # end
 
     # d/d tau vH = b2 l^2 + b3 l^3 - k vH
@@ -213,7 +206,7 @@ function get_lp(p, f)
     # vH(t) = - a0 - a1 exp(- rB t) - a2 exp(- 2 rB t) - a3 exp(- 3 rB t) +
     #         + (vHb + a0 + a1 + a2 + a3) exp(-kt)
     a0 = -(b2 + b3 * li) * li^2 / k # see get_lp1
-    if vHp > -a0      # vH can only reach -a0
+    if v_Hp > -a0      # vH can only reach -a0
         lp = [;]
         info = false
         println("Warning in get_lp: maturity at puberty cannot be reached \n")
@@ -221,28 +214,28 @@ function get_lp(p, f)
     end
 
     if k == 1
-        lp = vHp^(1 / 3)
+        lp = v_Hp^(1 / 3)
         #elseif length(lb0) < 2
     else
-        if f * lb^2 * (g + lb) < vHb * k * (g + f)
+        if f * lb^2 * (g + lb) < v_Hb * k * (g + f)
             lp = [;]
             info = false
             println("Warning in get_lp: maturity does not increase at birth \n")
         else # compute using integration in maturity
             cb = ContinuousCallback(event_puberty, terminate_affect!)
-            u0 = [vHb, lb]
+            u0 = [v_Hb, lb]
             tspan = (0, 1e8)
             s_M = 1.0
-            prob = ODEProblem(dget_l_ISO_t, u0, tspan, [k, lT, g, f, s_M, vHp])
+            prob = ODEProblem(dget_l_ISO_t, u0, tspan, (; k, l_T, g, f, s_M, v_Hp))
             #sol = solve(prob, Tsit5(), reltol=1e-9, abstol=1e-9, callback=cb)
-            sol = solve(prob, DP5(), reltol = 1e-9, abstol = 1e-9, callback = cb)
+            sol = solve(prob, DP5(); reltol=1e-9, abstol=1e-9, callback=cb)
             t = sol.t
-            vHl = sol.u
+            v_Hl = sol.u
             tp = t[end]
-            vHlp = vHl[end]
+            v_Hlp = v_Hl[end]
             #options = odeset('Events', @event_puberty); s_M = 1;
-            #[t, vHl, tp, vHlp] = ode45(@dget_l_ISO_t, [0; 1e8], [vHb; lb], options, k, lT, g, f, s_M, vHp);
-            lp = vHlp[2]
+            #[t, v_Hl, tp, vHlp] = ode45(@dget_l_ISO_t, [0; 1e8], [vHb; lb], options, k, l_T, g, f, s_M, vHp);
+            lp = v_Hlp[2]
         end
         # else # for a juvenile of length l and maturity vH
         #   if f * l^2 * (g + l) < vH * k * (g + f) 
@@ -282,13 +275,13 @@ function get_lp(p, f)
     #   if lp > f - 1e-4
     #     println("Warning in get_lp: l_p very close to l_i\n')      
     #   end
-    (lp, lb, info)
+    return (lp, lb, info)
 end
 
-function event_puberty(vHl, t, integrator)
+function event_puberty(v_Hl, t, integrator)
     # vHl: 2-vector with [vH; l]
-    vHp = integrator.p[6]
-    vHp - vHl[1] * (t < 5e5)
+    v_Hp = integrator.p[6]
+    v_Hp - v_Hl[1] * (t < 5e5)
 end
 
 terminate_affect!(integrator) = terminate!(integrator)
