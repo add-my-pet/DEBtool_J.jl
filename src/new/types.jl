@@ -39,6 +39,7 @@ abstract type AbstractTransition <: AbstractEvent end
 struct Birth <: AbstractTransition end
 struct Puberty <: AbstractTransition end
 struct Metamorphosis <: AbstractTransition end
+struct Maturity <: AbstractTransition end
 struct Ultimate <: AbstractTransition end
 struct Death <: AbstractTransition end
 
@@ -53,6 +54,8 @@ abstract type AbstractLifeStages end
     lifestages::LS
 end
 LifeStages(args::Pair...) = LifeStages(args)
+
+Base.values(ls::LifeStages) = ls.lifestages
 
 LifeStages(
     Embryo() => Birth(),
