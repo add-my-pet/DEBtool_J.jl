@@ -90,16 +90,6 @@ data = (;
 
 data = merge(data, (; tL))
 
-temp = (;
-    ab=Unitful.K(22Unitful.°C),
-    ab30=Unitful.K(30Unitful.°C),
-    tp=Unitful.K(22Unitful.°C),
-    tpm=Unitful.K(22Unitful.°C),
-    am=Unitful.K(22Unitful.°C),
-    ri=Unitful.K(22Unitful.°C),
-    tL=Unitful.K(22Unitful.°C),
-)
-
 bibkey = (
     ab="carettochelys",
     ab30="carettochelys",
@@ -212,9 +202,17 @@ comment = (;
 
 txtData = (; label, bibkey, comment)
 
-auxData = (;
-    temp=temp,
+temp = (;
+    ab=Unitful.K(22Unitful.°C),
+    ab30=Unitful.K(30Unitful.°C),
+    tp=Unitful.K(22Unitful.°C),
+    tpm=Unitful.K(22Unitful.°C),
+    am=Unitful.K(22Unitful.°C),
+    ri=Unitful.K(22Unitful.°C),
+    tL=Unitful.K(22Unitful.°C),
 )
+
+auxData = (; temp,)
 
 # ## References
 bibkey = "Wiki";

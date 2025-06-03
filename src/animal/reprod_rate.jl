@@ -168,15 +168,13 @@ function reprod_rate(L, f, p)
     #
     # unpack parameters; parameter sequence, cf get_pars_r
 
-    kap = p[1]
-    kapR = p[2]
-    g = p[3]
-    kJ = p[4]
-    kM = p[5]
-    LT = p[6]
-    v = p[7]
-    UHb = p[8]
-    UHp = p[9]
+    (; kap, kap_R, g, k_J, k_M, L_T, v, U_Hb, U_Hp) = p
+    UHb = U_Hb
+    UHp = U_Hp
+    kapR = kap_R 
+    kJ = k_J 
+    kM = k_M 
+    LT = L_T
 
     Lm = v / (kM * g) # maximum length
     k = kJ / kM       # -, maintenance ratio

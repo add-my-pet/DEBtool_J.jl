@@ -21,12 +21,12 @@ struct V0Morph <: AbstractMorph end
 struct V1Morph <: AbstractMorph end
 # struct VHalf <: AbstractMorph end
 
-abstract type AbstractLifestage end
+abstract type AbstractLifeStage end
 
-abstract type AbstractEmbryo <: AbstractLifestage end
-abstract type AbstractJuvenile <: AbstractLifestage end
-abstract type AbstractAdult <: AbstractLifestage end
-abstract type AbstractInstar{N} <: AbstractLifestage end
+abstract type AbstractEmbryo <: AbstractLifeStage end
+abstract type AbstractJuvenile <: AbstractLifeStage end
+abstract type AbstractAdult <: AbstractLifeStage end
+abstract type AbstractInstar{N} <: AbstractLifeStage end
 
 struct Embryo <: AbstractEmbryo end
 struct Juvenile <: AbstractJuvenile end
@@ -43,9 +43,17 @@ struct Maturity <: AbstractTransition end
 struct Ultimate <: AbstractTransition end
 struct Death <: AbstractTransition end
 
-@kwdef struct Dimorphic{F<:Union{AbstractTransition,AbstractLifestage},M<:Union{AbstractTransition,AbstractLifestage}}
-    female::F
-    male::M
+abstract type Sex end
+struct Male{T} <: Sex 
+    val::T
+end
+struct Female{T} <: Sex 
+    val::T
+end
+
+@kwdef struct Dimorphic{A,B}
+    a::A
+    b::B
 end
 
 abstract type AbstractLifeStages end
@@ -55,14 +63,30 @@ abstract type AbstractLifeStages end
 end
 LifeStages(args::Pair...) = LifeStages(args)
 
+Base.@assume_effects :foldable function Base.getindex(stages::LifeStages, stage::Int)
+    stages.lifestages[i]
+end
+Base.@assume_effects :foldable function Base.getindex(stages::LifeStages, stage::Union{AbstractLifeStage,AbstractTransition}) 
+    # Get the stage in stages matching `stage`
+    foldl(stages; init=nothing) do acc, x
+        if isnothing(acc)
+            _matches(x, stage) ? x : nothing
+        else
+            acc # found just return it
+        end
+    end 
+end
 Base.values(ls::LifeStages) = ls.lifestages
+
+@inline _matches(x::Dimorphic, stage) = _matches(x.a, stage)
+@inline _matches(x::Sex, stage) = _matches(x.val, stage)
+@inline _matches(x, stage::S) where S = x isa S
 
 LifeStages(
     Embryo() => Birth(),
-    Juvenile() => Dimorphic(; female=Puberty(), male=Puberty()),
+    Juvenile() => Dimorphic(Female(Puberty()), Male(Puberty())),
     Adult() => Ultimate(),
 )
-
 
 ## reprod_rate
 # gets reproduction rate as function of time

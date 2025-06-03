@@ -32,7 +32,8 @@ options = DEBtool_J.EstimOptions(;
 #check_my_pet(pets); 
 
 # currently takes 20 seconds to converge in 1660 steps, matlab takes 1 in 8 seconds in 1650 steps
-#@time estim_pars(options, pet, par_model, metapar, data_pet)
+# @time estim_pars(options, pet, par_model, metapar, data_pet)
+include(joinpath(speciespath, "predict_" * species * ".jl"))
 @time parout, nsteps, info, fval = estim_pars(predict, options, species, par_model, metapar, data_pet)
 
 # get results from Matlab

@@ -39,7 +39,7 @@ function get_lp(p, f, lb0)
     # get_lp([.5, .1, .1, .01, .2])
 
     # unpack pars
-    (; g, k, l_T, v_Hb, v_Hp) = par
+    (; g, k, l_T, v_Hb, v_Hp) = p
 
     if !@isdefined(f)
         f = 1

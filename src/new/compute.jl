@@ -1,5 +1,5 @@
 # was: get_tm_s(p, f, lb, lp)
-function compute(::Since{Birth}, ::At{Death}, p, lb)
+function compute_time(since::Since{Birth}, ::At{Ultimate}, p, lb)
     ## Description
     # Obtains scaled mean age at death assuming a short growth period relative to the life span
     # Divide the result by the somatic maintenance rate coefficient to arrive at the mean age at death.
@@ -55,31 +55,31 @@ function compute(::Since{Birth}, ::At{Death}, p, lb)
     tG3 = hG3 / hW3             # scaled Gompertz aging rate
 
     info_lp = 1
-    if length(p) >= 7
-        if !@isdefined(lp) && !@isdefined(lb)
-            lp, lb, info_lp = get_lp(p, f)
-        elseif !@isdefined(lp) || isempty(lp) # fix this
-            lp, lb, info_lp = get_lp(p, f, lb)
-        end
+    # if length(p) >= 7
+    #     if !@isdefined(lp) && !@isdefined(lb)
+    #         lp, lb, info_lp = get_lp(p, f)
+    #     elseif !@isdefined(lp) || isempty(lp) # fix this
+    #         lp, lb, info_lp = compute_time(since, At(Puberty()), p)
+    #     end
 
-        # get scaled age at birth, puberty: tb, tp
-        tb, lb, info_tb = get_tb(p, f, lb)
-        irB = 3 * (1 + f / g)
-        tp = tb + irB * log((li - lb) / (li - lp))
-        hGtb = hG * tb
-        Sb = exp((1 - exp(hGtb) + hGtb + hGtb^2 / 2) * 6 / tG3)
-        hGtp = hG * tp
-        Sp = exp((1 - exp(hGtp) + hGtp + hGtp^2 / 2) * 6 / tG3)
-        if info_lp == 1 && info_tb == 1
-            info = 1
-        else
-            info = false
-        end
-    else # length(p) == 4
+    #     # get scaled age at birth, puberty: tb, tp
+    #     tb, lb, info_tb = get_tb(p, f, lb)
+    #     irB = 3 * (1 + f / g)
+    #     tp = tb + irB * log((li - lb) / (li - lp))
+    #     hGtb = hG * tb
+    #     Sb = exp((1 - exp(hGtb) + hGtb + hGtb^2 / 2) * 6 / tG3)
+    #     hGtp = hG * tp
+    #     Sp = exp((1 - exp(hGtp) + hGtp + hGtp^2 / 2) * 6 / tG3)
+    #     if info_lp == 1 && info_tb == 1
+    #         info = 1
+    #     else
+    #         info = false
+    #     end
+    # else # length(p) == 4
         Sb = NaN
         Sp = NaN
         info = 1
-    end
+    # end
 
     if abs(sG) < 1e-10
         tm = gamma(4 / 3) / hW
@@ -101,7 +101,7 @@ function compute(::Since{Birth}, ::At{Death}, p, lb)
 end
 
 # was; get_tp(p, f=1, tel_b=nothing, τ=nothing)
-function compute(::Since{Birth}, ::At{Puberty}, p)#, tel_b=nothing, τ=nothing)
+function compute_time(::Since{Birth}, ::At{Puberty}, p)#, tel_b=nothing, τ=nothing)
     ## Syntax
     # varargout = <../get_tp.m *get_tp*>(p, f, tel_b, τ)
 
@@ -245,62 +245,107 @@ function compute(::Since{Birth}, ::At{Puberty}, p)#, tel_b=nothing, τ=nothing)
         end
 end
 
+# Reduce over all lifestages computing basic variables
+# The output state of each transition is used as input state for the next
 function compute(ls::LifeStages, pars)
-    reduce(values(ls); init=(nothing => (;),)) do acc, (lifestage, transition)
-        (acc..., transition => compute(transition, pars, last(last(acc))))
+    init = (nothing => (;),)
+    # Reduce over all transitions, where each uses the state of the previous
+    states = reduce(values(ls); init) do transition_states, (lifestage, transition)
+        _, prevstate = last(transition_states)
+        transition_state = transition => compute(transition, pars, prevstate)
+        (transition_states..., transition_state)
     end
+    # Remove the init state
+    return Base.tail(states)
 end
 
 # Handle Dimorphism: split the transition to male and female
 compute(t::Dimorphic, pars, state::NamedTuple) =
-    Dimorphic(compute(t.female, pars, state), compute(t.male, pars, state))
+    Dimorphic(compute(t.a, pars, state), compute(t.b, pars, state))
 compute(t::Dimorphic, pars, state::Dimorphic) =
-    Dimorphic(compute(t, pars, state.female), compute(t, pars, state.male))
+    Dimorphic(compute(t.a, pars, state.a), compute(t.b, pars, state.b))
 compute(t::AbstractTransition, pars, state::Dimorphic) =
-    Dimorphic(compute(t, pars, state.female), compute(t, pars, state.male))
+    Dimorphic(compute(t, pars, state.a), compute(t, pars, state.b))
 
-function compute(ls::Birth, pars, state::NamedTuple)
-    (; L_m, del_M, d_V, k_M, w, f) = pars
+function compute(t::Birth, pars, state::NamedTuple)
+    (; L_m, del_M, d_V, k_M, w, f, TC, TC_30) = pars
 
     # TODO: remove the duplication of birth/puberty computations
-    (; τ_b, l_b, info) = compute(Age(), At(Puberty()), pars)
+    (; τ_b, l_b, info) = compute_time(Age(), At(Puberty()), pars)
     l = l_b
     τ = τ_b
     L = L_m * l                        # cm, structural length at birth at f
     Lw = L / del_M
-    Ww = wet_weight(ls, L, d_V, f, w)
-    a = t / k_M
+    Ww = wet_weight(t, L, d_V, f, w)
+    a = τ / k_M
     # TODO generalise for multiple temperatures
     temps = (TC, TC_30)
     aT = map(temps) do T
         a / T
     end
-    (; l, L, Lw, Ww, aT)
+    (; l, L, Lw, Ww, τ, aT)
 end
-function compute(ls::Puberty, pars, state::NamedTuple)
+compute(sex::Female, pars, state::NamedTuple) = compute(sex.val, pars, state)
+function compute(t::Puberty, pars, state::NamedTuple)
     (; L_m, del_M, d_V, k_M, w, TC, f) = pars
-    pars_tp = (; g=g2, k, l_T, v_Hb, v_Hp)
 
     # TODO: remove the duplication of birth/puberty computations
-    (; τ_p, l_p, info) = compute(Age(), At(Puberty()), pars_tp)
+    (; τ_p, l_p, info) = compute_time(Age(), At(Puberty()), pars)
     l = l_p
     τ = τ_p
 
-    tT = (t - state.t) / k_M / TC  # d, time since birth at puberty
+    tT = (τ - state.τ) / k_M / TC  # d, time since birth at puberty
     L = L_m * l                    # cm, structural length at puberty
     Lw = L / del_M                 # cm, plastron length at puberty
-    Ww = wet_weight(ls, L, d_V, f, w)
+    Ww = wet_weight(t, L, d_V, f, w)
 
-    return (; l, L, Lw, Ww)
+    return (; l, L, Lw, Ww, τ, tT)
 end
-function compute(ls::Maturity, pars, state::NamedTuple)
-    (; f, l_T, L_m, del_M, d_V) = pars
+function compute(t::Ultimate, pars, state::NamedTuple)
+    (; f, l_T, L_m, del_M, d_V, w) = pars
     l = f - l_T                    # -, scaled ultimate length
     L = L_m * l                    # cm, ultimate structural length at f
     Lw = L / del_M                 # cm, ultimate plastron length
-    Ww = wet_weight(L, d_V, f, w)
+    Ww = wet_weight(t, L, d_V, f, w)
     return (; l, L, Lw, Ww)
 end
 
-wet_weight(ls::AbstractLifestage, L, d_V, f, w) = L^3 * d_V * (1 + f * w)   # g,  ultimate wet weight
+function compute(t::Male{Puberty}, pars, state::NamedTuple)
+    (; f, k, l_T, L_mm, del_M, d_V, g_m, w_m, v_Hb, v_Hpm, k_M, TC) = pars
+    pars_tpm = (; g=g_m, k, l_T, v_Hb, v_Hp=v_Hpm, f)
+    # Need a let block to not overwrite param names - remove later
+    τ_p, τ_b, l = let 
+        (; τ_p, τ_b, l_p, info) = compute_time(Age(), At(Puberty()), pars_tpm)
+        τ_p, τ_b, l_p
+    end
+    tT = (τ_p - τ_b) / k_M / TC      # d, time since birth at puberty
+    L = L_mm * l
+    Lw= L / del_M # cm, struc, plastron length at puberty
+    Ww = wet_weight(t, L, d_V, f, w_m)
+    return (; l, L, Lw, Ww, τ=τ_p, tT)
+end
+function compute(t::Male{Ultimate}, pars, state::NamedTuple)
+    (; f, l_T, L_mm, del_M, d_V, w_m) = pars
+    l = f - l_T                    # -, scaled ultimate length
+    L = f * L_mm
+    Lw = L / del_M # cm, ultimate struct, plastrom length
+    Ww = wet_weight(t, L, d_V, f, w_m)
+    return (; l, L, Lw, Ww)
+end
 
+wet_weight(::Union{Sex,AbstractTransition}, L, d_V, f, ω) =
+    L^3 * d_V * (oneunit(f) + f * ω) # transition wet weight
+
+function compute_lifespan(pars, l_b)
+    (; h_a, k_M, TC_am) = pars
+    # TODO this merge is awful fix and explain ha/h_a
+    pars_tm = merge(pars, (; ha=h_a / k_M^2))  # compose parameter vector at T_ref
+    (; t_m) = compute_time(Age(), At(Ultimate()), pars_tm, l_b) # -, scaled mean life span at T_ref
+    aT_m = t_m / k_M / TC_am               # d, mean life span at T
+    return aT_m
+end
+
+function compute_reproduction(pars, L_i)
+    RT_i = pars.TC_Ri * reprod_rate(L_i, pars.f, pars)[1][1]          # #/d, ultimate reproduction rate at T
+    return RT_i
+end
