@@ -43,7 +43,7 @@ function get_tpm(p, f=1, tel_b=nothing, tau=nothing)
     #l_T  = p(3); % scaled heating length {p_T}/[p_M]Lm
     #v_Hb = p(4); % v_H^b = U_H^b g^2 kM^3/ (1 - kap) v^2; U_H^b = E_H^b/ {p_Am}
     #v_Hp = p(5); % v_H^p = U_H^p g^2 kM^3/ (1 - kap) v^2; U_H^p = E_H^p/ {p_Am}
-    g, k, l_T, v_Hb, v_Hp = p
+    (; g, k, l_T, v_Hb, v_Hp) = p
 
     # If f is a scalar, set f_b to f; otherwise, extrapolate f at birth
     if isscalar(f)

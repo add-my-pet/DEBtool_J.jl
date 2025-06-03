@@ -19,6 +19,10 @@ export fieldnmst_st, lossfunction_sb, dget_l_ISO, dget_l_ISO_t, get_lb, get_lb2
 export get_lp, get_tb, get_tp, get_tpm, get_ue0, get_tm_s, initial_scaled_reserve, reprod_rate
 export get_lp1, fnget_lp
 
+include("new/types.jl")
+include("new/temperature.jl")
+include("new/compute.jl")
+
 include("lib/misc/beta0.jl")
 include("lib/misc/tempcorr.jl")
 include("lib/MultiCalib4DEB/configuration/calibration_options.jl")
