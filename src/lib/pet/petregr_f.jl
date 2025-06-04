@@ -2,10 +2,10 @@
 # Finds parameter values for a pet that minimizes the lossfunction using Nelder Mead's simplex method using a filter
 
 ##
-function petregr_f(predict, func, par, data, auxData, weights, filternm, options)
+function petregr_f(predict, model, par, data, auxData, weights, filternm, options)
 
     function call_func(par, data, auxData)
-        out=predict(par, data, auxData)
+        out=predict(model, par, data, auxData)
         prdData = out[1]
         info = out[2]
         # if ~info

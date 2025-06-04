@@ -68,6 +68,7 @@ unit_length = u"cm"
 
 # Convert the matrix tL1 into a named tuple with units assigned to each column
 tL = hcat(tL1[:, 1] * 365 * unit_age, tL1[:, 2] * unit_length)
+# tL = Unitful.K(22Unitful.°C) => tL
 
 data = (;
     ab=78.0u"d",
@@ -86,6 +87,25 @@ data = (;
     Wwi=4000.0u"g",
     Wwim=3673.0u"g",
     Ri=36.0 / 365.0u"d"
+)
+
+temp = (;
+    ab=Unitful.K(22Unitful.°C),
+    ab30=Unitful.K(30Unitful.°C),
+    tp=Unitful.K(22Unitful.°C),
+    tpm=Unitful.K(22Unitful.°C),
+    am=Unitful.K(22Unitful.°C),
+    Ri=Unitful.K(22Unitful.°C),
+    tL=Unitful.K(22Unitful.°C),
+)
+
+rates = (;
+    ab=Unitful.K(22Unitful.°C) => 78.0u"d",
+    ab30=Unitful.K(30Unitful.°C) => 48.0u"d",
+    tp=Unitful.K(22Unitful.°C) => 10.0 * 365.0u"d",
+    tpm=Unitful.K(22Unitful.°C) => 5.5 * 365.0u"d",
+    am=Unitful.K(22Unitful.°C) => 20.9 * 365.0u"d",
+    Ri=Unitful.K(22Unitful.°C) => 36.0 / 365.0u"d",
 )
 
 data = merge(data, (; tL))
@@ -201,16 +221,6 @@ comment = (;
 # end
 
 txtData = (; label, bibkey, comment)
-
-temp = (;
-    ab=Unitful.K(22Unitful.°C),
-    ab30=Unitful.K(30Unitful.°C),
-    tp=Unitful.K(22Unitful.°C),
-    tpm=Unitful.K(22Unitful.°C),
-    am=Unitful.K(22Unitful.°C),
-    ri=Unitful.K(22Unitful.°C),
-    tL=Unitful.K(22Unitful.°C),
-)
 
 auxData = (; temp,)
 

@@ -4,15 +4,19 @@
 # abstract type AbstractUniVariate <: DEBData end
 # abstract type AbstractZeroVariate <: DEBData end
 
-# abstract type Data end
-# abstract type AuxData end
-# abstract type MetaData end
+abstract type Data end
+abstract type AuxData end
+abstract type MetaData end
+abstract type Weights end
 # abstract type TxtData end
-# abstract type Weights end
 
 # struct EcoCode <: MetaData end
 # struct TemperatureData <: AuxData end
 # struct PseudoData <: AbstractPseudoData end
+
+struct Times{T} <: Data
+    val::T
+end
 
 abstract type AbstractMorph end
 
@@ -111,13 +115,14 @@ function reproduction(r::StandardReproduction, par, cpar)
     return reproduction_rate_at_T
 end
 
-@kwdef struct DEBModel{LS,CC}
+@kwdef struct DEBOrganism{LS,TR}
     lifestages::LS
-    chemicalcomposition::CC
+    temperatureresponse::TR
+    # chemicalcomposition::CC
 end
 
-lifestages(model::DEBModel) = model.lifestages
-chemicalcomposition(model::DEBModel) = model.chemicalcomposition
+lifestages(model::DEBOrganism) = model.lifestages
+chemicalcomposition(model::DEBOrganism) = model.chemicalcomposition
 
 abstract type FeedingMode end
 struct Feeding end

@@ -29,12 +29,22 @@ options = DEBtool_J.EstimOptions(;
     calibration,
 ) 
 
+# compute temperature correction factors
+model = DEBOrganism(
+    temperatureresponse = Arrhenius1parTemperatureResponse(),
+    lifestages = LifeStages(
+        Embryo() => Birth(),
+        Juvenile() => Dimorphic(Female(Puberty()), Male(Puberty())),
+        Adult() => Dimorphic(Female(Ultimate()), Male(Ultimate())),
+    )
+)
+
 #check_my_pet(pets); 
 
 # currently takes 20 seconds to converge in 1660 steps, matlab takes 1 in 8 seconds in 1650 steps
 # @time estim_pars(options, pet, par_model, metapar, data_pet)
 include(joinpath(speciespath, "predict_" * species * ".jl"))
-@time parout, nsteps, info, fval = estim_pars(predict, options, species, par_model, metapar, data_pet)
+@time parout, nsteps, info, fval = estim_pars(predict, model, options, species, par_model, metapar, data_pet)
 
 # get results from Matlab
 file = matopen(joinpath(speciespath, "data", species, "results_$species.mat"))

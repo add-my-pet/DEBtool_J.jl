@@ -1,45 +1,43 @@
-using DEBtool_J: Arrhenius1parTemperatureResponse, Male, Female, Dimorphic, Since, At, Age, 
-    Embryo, Birth, Juvenile, Adult, Puberty, Death, Ultimate, LifeStages,
-    compute, compute_time, compute_lifespan, compute_reproduction
+using DEBtool_J: DEBOrganism, Arrhenius1parTemperatureResponse, Male, Female, Dimorphic, Since, At, Age, Times,
+    Embryo, Birth, Juvenile, Adult, Puberty, Death, Ultimate, LifeStages, Times,
+    compute, compute_time, compute_lifespan, compute_reproduction, compute_length_at, compute_male
 
-function predict(par, data, auxData) # predict
+function predict(model, par, data, auxData) # predict
     cPar = parscomp_st(par)
-
     d_V = 1Unitful.u"g/cm^3"               # cm, physical length at birth at f
 
     (; T_ref, T_A, del_M, f, kap, kap_R, v, k_J, h_a, s_G, p_M, z_m, E_G) = par
-    (; k, l_T, v_Hb, v_Hp, L_m, w, k_M, w, L_T, U_Hb, U_Hp, w_E, w_V, y_E_V, v_Hpm) = cPar
     (; temp) = auxData
     (; Lb, Li, Lim, Lp, Lpm, Ri, Wwb, Wwi, Wwim, Wwp, Wwpm, ab, ab30, am, psd, tL, tp, tpm) = data
+    (; k, l_T, v_Hb, v_Hp, L_m, w, k_M, w, L_T, U_Hb, U_Hp, w_E, w_V, y_E_V, v_Hpm) = cPar
     (; E_V, J_E_M, M_Hb, U_Hb, V_Hp, eta_VG, j_E_J, k_M, m_Em, ome, s_H, v_Hb, w_E, w_X, y_P_E, y_X_E,
         E_m, J_E_T, L_T, M_Hp, U_Hp, eta_O, kap_G, n_M, p_Am, u_Hb, v_Hp, w_P, y_E_V, y_P_X, y_X_P,
         J_E_Am, J_X_Am, L_m, k, l_T, u_Hp, w, w_V, y_E_X, y_V_E) = cPar
     g2 = cPar.g
+    # map(temp) do t
+    #     tempcorr(tr, t)
+    # end
+    par = merge(par, cPar, (; d_V, f))
 
-    # compute temperature correction factors
-    tr = Arrhenius1parTemperatureResponse(T_ref, T_A)
-    TC = tempcorr(tr, temp.am)
-    TC_30 = tempcorr(tr, temp.ab30)
-    TC_Ri = tempcorr(tr, temp.ri)
-    TC_am = tempcorr(tr, temp.am)
+    tr = model.temperatureresponse
+    TC = tempcorr(tr, par, temp.am)
+    TC_30 = tempcorr(tr, par, temp.ab30)
+    TC_Ri = tempcorr(tr, par, temp.Ri)
 
     # males
-    p_Am_m = z_m * p_M / kap             # J/d.cm^2, {p_Am} spec assimilation flux
-    E_m_m = p_Am_m / v                   # J/cm^3, reserve capacity [E_m]
-    g_m = E_G / (kap * E_m_m)             # -, energy investment ratio
-    m_Em_m = y_E_V * E_m_m / E_G         # mol/mol, reserve capacity
-    w_m = m_Em_m * w_E / w_V             # -, contribution of reserve to weight
-    L_mm = v / k_M / g_m                  # cm, max struct length
+    # p_Am_m = z_m * p_M / kap             # J/d.cm^2, {p_Am} spec assimilation flux
+    # E_m_m = p_Am_m / v                   # J/cm^3, reserve capacity [E_m]
+    # g_m = E_G / (kap * E_m_m)             # -, energy investment ratio
+    # m_Em_m = y_E_V * E_m_m / E_G         # mol/mol, reserve capacity
+    # w_m = m_Em_m * w_E / w_V             # -, contribution of reserve to weight
+    # L_mm = v / k_M / g_m                  # cm, max struct length
+    # @assert (; w_m, g_m, L_mm) == compute_male(par)
 
-    par = merge(par, cPar, (; d_V, w_m, g_m, L_mm, TC, TC_30, TC_Ri, TC_am, f))
+    (; w_m, g_m, L_mm) = compute_male(par)
 
-    lifestages = LifeStages(
-        Embryo() => Birth(),
-        Juvenile() => Dimorphic(Female(Puberty()), Male(Puberty())),
-        Adult() => Dimorphic(Female(Ultimate()), Male(Ultimate())),
-    )
+    par = merge(par, (; w_m, g_m, L_mm, TC, TC_30, TC_Ri))
 
-    lifestage_state = compute(lifestages, par)
+    lifestage_state = compute(model.lifestages, par)
 
     # pars_tp = (; g=g2, k, l_T, v_Hb, v_Hp, f)
     # TODO: age and length are combined here, how do we signal/handle/reorganise this
@@ -133,25 +131,26 @@ function predict(par, data, auxData) # predict
     Ww_im = lifestage_state[3][2].b.Ww
 
     # life span
-    pars_tm = (; g=g2, l_T, ha=h_a / k_M^2, s_G, f)  # compose parameter vector at T_ref
-    (; t_m) = compute_time(Age(), At(Ultimate()), pars_tm, l_b) # -, scaled mean life span at T_ref
-    aT_m = t_m / k_M / TC_am               # d, mean life span at T
-    @assert aT_m == compute_lifespan(par, l_b)
+    # pars_tm = (; g=g2, l_T, ha=h_a / k_M^2, s_G, f)  # compose parameter vector at T_ref
+    # (; t_m) = compute_time(Age(), At(Ultimate()), pars_tm, l_b) # -, scaled mean life span at T_ref
+    # aT_m = t_m / k_M / TC_am               # d, mean life span at T
+    # @assert aT_m == compute_lifespan(par, l_b)
+    aT_m = compute_lifespan(par, l_b)
 
     # reproduction
-    pars_R = (; kap, kap_R, g=g2, k_J, k_M, L_T, v, U_Hb, U_Hp, f) # compose parameter vector at T
-    RT_i = TC_Ri * reprod_rate(L_i, f, pars_R)[1][1]          # #/d, ultimate reproduction rate at T
-
-    @assert RT_i == compute_reproduction(par, L_i)
+    # pars_R = (; kap, kap_R, g=g2, k_J, k_M, L_T, v, U_Hb, U_Hp, f) # compose parameter vector at T
+    # RT_i = TC_Ri * reprod_rate(L_i, f, pars_R)[1][1]          # #/d, ultimate reproduction rate at T
+    # @assert RT_i == compute_reproduction(par, L_i)
+    RT_i = compute_reproduction(par, L_i)
 
     # uni-variate data
 
-    # time-length
-    rT_B = TC * k_M / 3 / (oneunit(f) + f / g2)
-    ELw = Lw_i .- (Lw_i - Lw_b) * exp.(-rT_B * data.tL[:, 1])
+    # rT_B = TC * k_M / 3 / (oneunit(f) + f / g2)
+    # ELw = Lw_i .- (Lw_i - Lw_b) * exp.(-rT_B * data.tL[:, 1])
+    # @assert ELw == compute_length_at(Times(data.tL[:, 1]), par, Lw_i, Lw_b)
+    ELw = compute_length_at(Times(data.tL[:, 1]), par, Lw_i, Lw_b)
 
     # pack to output
-    #prdData.tL = ELw;
     prdData = (;
         ab=aT_b,
         ab30=a30_b,
@@ -171,6 +170,9 @@ function predict(par, data, auxData) # predict
         Ri=RT_i,
         tL=ELw,
     )
+    # TODO get this from solves
+    info = true
+
     return (; prdData, info)
 end
 

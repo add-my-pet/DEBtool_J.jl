@@ -337,15 +337,34 @@ wet_weight(::Union{Sex,AbstractTransition}, L, d_V, f, ω) =
     L^3 * d_V * (oneunit(f) + f * ω) # transition wet weight
 
 function compute_lifespan(pars, l_b)
-    (; h_a, k_M, TC_am) = pars
+    (; h_a, k_M, TC) = pars
     # TODO this merge is awful fix and explain ha/h_a
     pars_tm = merge(pars, (; ha=h_a / k_M^2))  # compose parameter vector at T_ref
     (; t_m) = compute_time(Age(), At(Ultimate()), pars_tm, l_b) # -, scaled mean life span at T_ref
-    aT_m = t_m / k_M / TC_am               # d, mean life span at T
-    return aT_m
+    am = t_m / k_M
+    return aT_m = am / TC
 end
 
 function compute_reproduction(pars, L_i)
     RT_i = pars.TC_Ri * reprod_rate(L_i, pars.f, pars)[1][1]          # #/d, ultimate reproduction rate at T
     return RT_i
+end
+
+function compute_length_at(t::Times, pars, Lw_i, Lw_b)
+    (; TC, k_M, f, g) = pars
+    data = t.val
+    rT_B = TC * k_M / 3 / (oneunit(f) + f / g)
+    ELw = Lw_i .- (Lw_i - Lw_b) * exp.(-rT_B * data)
+    return ELw
+end
+
+function compute_male(par)
+    (; kap, z_m, p_M, w_E, w_V, v, E_G, k_M, kap, y_E_V) = par
+    p_Am_m = z_m * p_M / kap             # J/d.cm^2, {p_Am} spec assimilation flux
+    E_m_m = p_Am_m / v                   # J/cm^3, reserve capacity [E_m]
+    g_m = E_G / (kap * E_m_m)             # -, energy investment ratio
+    m_Em_m = y_E_V * E_m_m / E_G         # mol/mol, reserve capacity
+    w_m = m_Em_m * w_E / w_V             # -, contribution of reserve to weight
+    L_mm = v / k_M / g_m                  # cm, max struct length
+    return (; w_m, g_m, L_mm)
 end
