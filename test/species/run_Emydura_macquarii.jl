@@ -27,7 +27,7 @@ model = DEBOrganism(
 )
 
 # EstimOptions to replace the globals set by `estim_options` below
-options = DEBtool_J.EstimOptions(;
+options = EstimOptions(;
     max_step_number = 5000,
     max_fun_evals = 5000,
     pars_init_method = 2, 
@@ -35,10 +35,10 @@ options = DEBtool_J.EstimOptions(;
     method = "nm",
     calibration,
 ) 
-@time parout, nsteps, info, fval = estim_pars(model, options, species, par_model, metapar, data_pet)
+@time parout, nsteps, info, fval = estim_pars(model, options, par_model, metapar, data_pet)
 
-using ProfileView
-@profview parout, nsteps, info, fval = estim_pars(model, options, species, par_model, metapar, data_pet)
+# using ProfileView
+# @profview parout, nsteps, info, fval = estim_pars(model, options, species, par_model, metapar, data_pet)
 
 # get results from Matlab
 file = matopen(joinpath(speciespath, "data", species, "results_$species.mat"))
