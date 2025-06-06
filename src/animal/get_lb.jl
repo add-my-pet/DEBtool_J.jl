@@ -189,6 +189,8 @@ function get_lb(p, eb)
     xb = g / (g + eb)
     xb3 = xb^(1 / 3)
     x = LinRange(1e-6, xb, trunc(Int, n))
+    # TODO: get the type from context
+    buffer = Vector{Float64}(undef, length(x))
     dx = xb / n
     x3 = x .^ (1 / 3)
 
@@ -214,7 +216,8 @@ function get_lb(p, eb)
         dlnvb = dlnv[trunc(Int, n)]
         dr = dl
         dlnr = dr ./ r
-        dt = -t0 / lb^3 / vb * (3 / lb + dlnvb) - dx * sum((dlnr - dlnv) .* rv)
+        buffer .= (dlnr .- dlnv) .* rv
+        dt = -t0 / lb^3 / vb * (3 / lb + dlnvb) - dx * sum(buffer)
         # [i lb t dt] # print progress
         lb = lb - t / dt # Newton Raphson step
         norm = t^2

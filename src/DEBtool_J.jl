@@ -12,6 +12,13 @@ using Roots
 using ModelParameters.Flatten
 using StaticArrays
 
+export DEBOrganism
+export Arrhenius1parTemperatureResponse, Arrhenius3parTemperatureResponse, Arrhenius5parTemperatureResponse
+export LifeStages, Dimorphic
+export Birth, Puberty, Ultimate
+export Embryo, Juvenile, Adult
+export Female, Male
+
 export beta0, tempcorr, calibration_options, addpseudodata, estim_options, estim_pars
 export fieldnm_wtxt, filter_std, mydata_pets, parscomp_st, petregr_f
 export predict, predict_pseudodata, print_filterflag, reach_birth, struct2vector
@@ -21,7 +28,10 @@ export get_lp1, fnget_lp
 
 include("new/types.jl")
 include("new/temperature.jl")
+include("new/init.jl")
 include("new/compute.jl")
+include("new/predict.jl")
+include("new/solvers.jl")
 
 include("lib/misc/beta0.jl")
 include("lib/misc/tempcorr.jl")

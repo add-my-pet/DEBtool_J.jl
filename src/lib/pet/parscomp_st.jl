@@ -65,26 +65,26 @@ function parscomp_st(p)
     cPar = (; p_Am)
 
     #         X       V       E       P
-    n_O =
-        [
+    n_O = @SMatrix[
             p.n_CX p.n_CV p.n_CE p.n_CP  # C/C, equals 1 by definition
             p.n_HX p.n_HV p.n_HE p.n_HP  # H/C  these values show that we consider dry-mass
             p.n_OX p.n_OV p.n_OE p.n_OP  # O/C
             p.n_NX p.n_NV p.n_NE p.n_NP
-        ]Unitful.mol / Unitful.mol # N/C
+        ]u"mol" / u"mol" # N/C
+
     #          C       H       O       N
     n_M =
-        [
+        @SMatrix[
             p.n_CC p.n_CH p.n_CO p.n_CN  # CO2
             p.n_HC p.n_HH p.n_HO p.n_HN  # H2O  
             p.n_OC p.n_OH p.n_OO p.n_ON  # O2
             p.n_NC p.n_NH p.n_NO p.n_NN
-        ]Unitful.mol / Unitful.mol # NH3
+        ]u"mol" / u"mol" # NH3
     cPar = merge(cPar, (; n_O, n_M))
 
     # -------------------------------------------------------------------------
     # Molecular weights:
-    w_O = n_O' * [12, 1, 16, 14]Unitful.g / Unitful.mol # g/mol, mol-weights for (unhydrated)  org. compounds
+    w_O = n_O' * [12, 1, 16, 14]u"g" / u"mol" # g/mol, mol-weights for (unhydrated)  org. compounds
     w_X = w_O[1]
     w_V = w_O[2]
     w_E = w_O[3]
@@ -177,16 +177,6 @@ function parscomp_st(p)
     mat_V = replace.(matLev, "E_" => "V_")
     mat_v = replace.(matLev, "E_" => "v_")
 
-   # do something like this to avoid globals?:
-#    par_names = par_model[:fieldname] # get the field names
-#    par_vals = par_model[:val] # get the values
-#    par_units = par_model[:units] # get the units
-#    par = NamedTuple{par_names}(
-#        Tuple([
-#            u === nothing ? typeof(v)(v) : v * u for (v, u) in zip(par_vals, par_units)
-#        ]),
-#    ) # adjoin units to parameter values
-
     for i = 1:length(matInd)
         stri = matInd[i]
 
@@ -212,14 +202,5 @@ function parscomp_st(p)
         #cPar.(['u_H', stri]) = cPar.(['U_H', stri]) * g^2 * k_M^3/ p.v^2; % -, scaled maturity density at level i 
     end
 
-    # -------------------------------------------------------------------------
-    # pack output:
     return cPar
-    #=   return(p_Am=p_Am, w_X=w_X, w_V=w_V, w_E=w_E, w_P=w_P, M_V=M_V, y_V_E=y_V_E, y_E_V=y_E_V, 
-                    k_M=k_M, k=k, E_m=E_m, m_Em=m_Em, g=g, L_m=L_m, L_T=L_T, l_T=l_T, ome=ome, w=w, s_H=s_H,
-                    J_E_Am=J_E_Am, J_E_M=J_E_M, J_E_T=J_E_T, j_E_M=j_E_M, j_E_J=j_E_J, kap_G=kap_G, E_V=E_V, n_O=n_O, n_M=n_M,
-                    M_Hb = M_Hb, U_Hb = U_Hb, V_Hb = V_Hb, v_Hb = v_Hb, u_Hb = u_Hb, M_Hp = M_Hp, U_Hp = U_Hp, V_Hp = V_Hp, v_Hp = v_Hp, u_Hp = u_Hp,
-                    y_P_X = y_P_X, y_X_P = y_X_P, y_E_X = y_E_X, y_X_E = y_X_E, p_Xm = p_Xm, J_X_Am = J_X_Am, 
-                    y_P_E = y_P_E, eta_XA = eta_XA, eta_PA = eta_PA, eta_VG = eta_VG, eta_O = eta_O, K = K) =#
-    # -------------------------------------------------------------------------
 end

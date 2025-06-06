@@ -36,8 +36,8 @@ function initial_scaled_reserve(f, p, Lb0)
     # if kJ = kM: VHb = g * Lb^3/ v;
 
     nf = length(f)
-    U0 = zeros(nf, 1)Unitful.d * Unitful.cm^2
-    Lb = zeros(nf, 1)Unitful.cm
+    U0 = zeros(nf, 1)u"d" * u"cm"^2
+    Lb = zeros(nf, 1)u"cm"
     info = zeros(nf, 1)
     q = (; g, k=kJ / kM, v_Hb=VHb * g^2 * kM^3 / v^2)
     #if exist('Lb0','var') == 1
@@ -53,7 +53,7 @@ function initial_scaled_reserve(f, p, Lb0)
         U0[i] = uE0 * v^2 / g^2 / kM^3
     end
 
-    return (U0, Lb, info)
+    return (; U0, Lb, info)
 end
 
 function initial_scaled_reserve(f, p)
@@ -106,5 +106,5 @@ function initial_scaled_reserve(f, p)
         U0[i] = uE0 * v^2 / g^2 / kM^3
     end
 
-    return (U0, Lb, info)
+    return (; U0, Lb, info)
 end

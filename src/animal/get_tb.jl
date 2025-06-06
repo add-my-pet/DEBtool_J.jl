@@ -121,6 +121,7 @@ end
 # subfunction
 
 function dget_tb(x, ab, xb)
+    error()
     # called by get_tb
     f = x .^ (-2 / 3) ./ (1 - x) ./ (ab - real(beta0(x, xb)))
 end
