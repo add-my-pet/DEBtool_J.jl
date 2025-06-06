@@ -17,7 +17,7 @@ resultsnm = "results_" * species * ".jld2"
 calibration = calibration_options("results_filename", resultsnm)
 
 # compute temperature correction factors
-organism = DEBOrganism(
+model = DEBOrganism(
     temperatureresponse = Arrhenius1parTemperatureResponse(),
     lifestages = LifeStages(
         Embryo() => Birth(),
@@ -35,10 +35,10 @@ options = DEBtool_J.EstimOptions(;
     method = "nm",
     calibration,
 ) 
-@time parout, nsteps, info, fval = estim_pars(organism, options, par_model, metapar, data_pet)
+@time parout, nsteps, info, fval = estim_pars(model, options, species, par_model, metapar, data_pet)
 
 using ProfileView
-@profview parout, nsteps, info, fval = estim_pars(model, options, par_model, metapar, data_pet)
+@profview parout, nsteps, info, fval = estim_pars(model, options, species, par_model, metapar, data_pet)
 
 # get results from Matlab
 file = matopen(joinpath(speciespath, "data", species, "results_$species.mat"))
@@ -46,14 +46,17 @@ varname = "par"
 par_matlab = read(file, varname)
 close(file)
 
-par_model[:val]
-par_jul = NamedTuple{par_model[:fieldname]}(par_model[:val]) 
-par_mat = Dict(Symbol(k) => par_matlab[string(k)] for k in keys(par_jul))
+# TODO clean this up 
+par_free = Dict(string(k) => v for (k, v) in pairs(parout.free))
+par_jul = (; filter(p -> p[1] != :free, pairs(parout))...)
+par_jul_stripped = NamedTuple{keys(par_jul)}(ustrip.(values(par_jul)))
+par_julia = Dict(string(k) => v for (k, v) in pairs(par_jul_stripped))
+par_julia_free = Dict(k => v for (k, v) in par_julia if get(par_free, k, 0) == 1)
+par_matlab_free = Dict(k => v for (k, v) in par_matlab if get(par_free, k, 0) == 1)
 
 @testset "Parameter consistency" begin
     println()
-    for k in 
-        intersect(keys(par_mat), keys(par_jul))
+    for k in intersect(keys(par_matlab_free), keys(par_julia_free))
         v1 = par_matlab_free[k]
         v2 = par_julia_free[k]
         is_equal = isapprox(v1, v2; atol=1e-4, rtol=1e-4)  # Tweak tolerance as needed

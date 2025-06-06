@@ -1,336 +1,171 @@
 # was: get_tm_s(p, f, lb, lp)
-function compute_time(since::Since{Birth}, ::At{Ultimate}, p, lb)
-    ## Description
-    # Obtains scaled mean age at death assuming a short growth period relative to the life span
-    # Divide the result by the somatic maintenance rate coefficient to arrive at the mean age at death.
-    # The variant get_tm_foetus does the same in case of foetal development.
-    # If the input parameter vector has only 4 elements (for [g, lT, ha/ kM2, sG]),
-    #   it skips the calulation of the survival probability at birth and puberty.
-    #
-    # Input
-    #
-    # * p: 4 or 7-vector with parameters: [g lT ha sG] or [g k lT vHb vHp ha SG]
-    # * f: optional scalar with scaled reserve density at birth (default eb = 1)
-    # * lb: optional scalar with scaled length at birth (default: lb is obtained from get_lb)
-    #
-    # Output
-    #
-    # * tm: scalar with scaled mean life span
-    # * Sb: scalar with survival probability at birth (if length p = 7)
-    # * Sp: scalar with survival prabability at puberty (if length p = 7)
-    # * info: indicator equals 1 if successful, 0 otherwise
-
-    ## Remarks
-    # Obsolete function; please use get_tm_mod.
-    # Theory is given in comments on DEB3 Section 6.1.1.
-    # See <get_tm.html *get_tm*> for the general case of long growth period relative to life span
-
-    ## Example of use
-    # get_tm_s([.5, .1, .1, .01, .2, .1, .01])
-
-    # if length(p) >= 7
-    #     #  unpack pars
-    #     (; g, l_T, ha, s_G, f) = p
-    #     #k   = p(2); # k_J/ k_M, ratio of maturity and somatic maintenance rate coeff
-    #     #vHb = p(4); # v_H^b = U_H^b g^2 kM^3/ (1 - kap) v^2; U_B^b = M_H^b/ {J_EAm}
-    #     #vHp = p(5); # v_H^p = U_H^p g^2 kM^3/ (1 - kap) v^2; U_B^p = M_H^p/ {J_EAm}
-    # elseif length(p) == 4
-    #     #  unpack pars
-    #     (; g, l_T, ha, s_G, f) = p
-    # end
+#
+## Description
+# Obtains scaled mean age at death assuming a short growth period relative to the life span
+# Divide the result by the somatic maintenance rate coefficient to arrive at the mean age at death.
+# The variant get_tm_foetus does the same in case of foetal development.
+# If the input parameter vector has only 4 elements (for [g, lT, ha/ kM2, sG]),
+#   it skips the calulation of the survival probability at birth and puberty.
+#
+# Input
+#
+# * p: 4 or 7-vector with parameters: [g lT ha sG] or [g k lT vHb vHp ha SG]
+# * f: optional scalar with scaled reserve density at birth (default eb = 1)
+# * lb: optional scalar with scaled length at birth (default: lb is obtained from get_lb)
+#
+# Output
+#
+# * tm: scalar with scaled mean life span
+# * info: indicator equals 1 if successful, 0 otherwise
+## Remarks
+# Obsolete function; please use get_tm_mod.
+# Theory is given in comments on DEB3 Section 6.1.1.
+# See <get_tm.html *get_tm*> for the general case of long growth period relative to life span
+function compute_time(since::Since{<:Birth}, ::At{<:Ultimate}, p, lb)
     (; g, l_T, ha, s_G, f) = p
-    lT = l_T
-    sG = s_G
 
-    if abs(sG) < 1e-10
-        sG = 1e-10
+    # TODO: explain - for numerical stability?
+    if abs(s_G) < 1e-10
+        s_G = 1e-10
     end
 
-    li = f - lT
+    li = f - l_T
     hW3 = ha * f * g / 6 / li
     hW = hW3^(1 / 3) # scaled Weibull aging rate
-    hG = sG * f * g * li^2
-    hG3 = hG^3     # scaled Gompertz aging rate
+    hG = s_G * f * g * li^2
+    hG3 = hG^3       # scaled Gompertz aging rate
     tG = hG / hW
-    tG3 = hG3 / hW3             # scaled Gompertz aging rate
+    tG3 = hG3 / hW3  # scaled Gompertz aging rate
 
     info_lp = 1
-    # if length(p) >= 7
-    #     if !@isdefined(lp) && !@isdefined(lb)
-    #         lp, lb, info_lp = get_lp(p, f)
-    #     elseif !@isdefined(lp) || isempty(lp) # fix this
-    #         lp, lb, info_lp = compute_time(since, At(Puberty()), p)
-    #     end
 
-    #     # get scaled age at birth, puberty: tb, tp
-    #     tb, lb, info_tb = get_tb(p, f, lb)
-    #     irB = 3 * (1 + f / g)
-    #     tp = tb + irB * log((li - lb) / (li - lp))
-    #     hGtb = hG * tb
-    #     Sb = exp((1 - exp(hGtb) + hGtb + hGtb^2 / 2) * 6 / tG3)
-    #     hGtp = hG * tp
-    #     Sp = exp((1 - exp(hGtp) + hGtp + hGtp^2 / 2) * 6 / tG3)
-    #     if info_lp == 1 && info_tb == 1
-    #         info = 1
-    #     else
-    #         info = false
-    #     end
-    # else # length(p) == 4
-        Sb = NaN
-        Sp = NaN
-        info = 1
-    # end
-
-    if abs(sG) < 1e-10
+    # TODO: explain these branches, and test them
+    if abs(s_G) < 1e-10
+        error("This abs(s_G) < 1e-10 branch has never been used")
         tm = gamma(4 / 3) / hW
         tm_tail = 0
     elseif hG > 0
         tm = 10 / hG # upper boundary for main integration of S(t)
         tm_tail = expint(exp(tm * hG) * 6 / tG3) / hG
-        tm = quadgk(x -> fnget_tm_s(x * hW, tG), 0, tm * hW)[1][1] + tm_tail
-        #tm = quad(@fnget_tm_s, 0, tm * hW, [], [], tG)/ hW + tm_tail;
+        tm = _integrate_quad(hW, tG, tm, tm_tail)
     else # hG < 0
+        error("This hG < 0 branch has never been used")
         tm = -1e4 / hG # upper boundary for main integration of S(t)
         hw = hW * sqrt(-3 / tG) # scaled hW
-        tm_tail = sqrt(pi) * erfc(tm * hw) / 2 / hw
-        tm = quadgk(x -> fnget_tm_s(x * hW, tG), 0, tm * hW)[1][1] + tm_tail
-        #tm = quad(@fnget_tm_s, 0, tm * hW, [], [], tG)/ hW + tm_tail;
+        tm_tail = sqrt(pi) * erfc(tm * hw) / 2 / hw 
+        tm = _integrate_quad(hW, tG, tm, tm_tail)
     end
 
-    return (; t_m=tm, Sb, Sp, info)
+    return (; t_m=tm)
 end
 
-# was; get_tp(p, f=1, tel_b=nothing, τ=nothing)
-function compute_time(::Since{Birth}, ::At{Puberty}, p)#, tel_b=nothing, τ=nothing)
-    ## Syntax
-    # varargout = <../get_tp.m *get_tp*>(p, f, tel_b, τ)
-
-    ## Description
-    # Obtains scaled ages, lengths at puberty, birth for the std model at constant food, temperature;
-    # Assumes that scaled reserve density e always equals f; if third input is specified and its second
-    # element is not equal to second input (if specified), <get_tpm *get_tpm*> is run.
-    #
-    # Input
-    #
-    # * p: 5-vector with parameters: g, k, l_T, v_H^b, v_H^p
-    # * f: optional scalar with functional response (default f = 1) or (n,2)-array with scaled time since birth and functional response
-    # * tel_b: optional scalar with scaled length at birth
-    #
-    #      or 3-vector with scaled age at birth, reserve density and length at 0
-    # * τ: optional n-vector with scaled times since birth
-    #
-    # Output
-    #
-    # * tvel: optional (n,4)-array with scaled time-since-birth, maturity, reserve density and length
-    # * τ_p: scaled age at puberty \τ_p = a_p k_M
-    # * τ_b: scaled age at birth \τ_b = a_b k_M
-    # * lp: scaled length at puberty
-    # * lb: scaled length at birth
-    # * info: indicator equals 1 if successful, 0 otherwise
-
-    ## Remarks
-    # Function <get_tp_foetus.html *get_tp_foetus*> does the same for foetal development; the result depends on embryonal development.
-    # A previous version of get_tp had as optional 3rd input a 2-vector with scaled length, l, and scaled maturity, vH, for a juvenile that is now exposed to f, but previously at another f.
-    # Function <get_tpm *get_tpm*> took over this use.
-    # Optional inputs might be empty
-
-    ## Example of use
-    # τ_p = get_tp([.5, .1, .1, .01, .2]) or tvel = get_tp([.5, .1, .1, .01, .2],[],[],0:0.014:)
-
-        #  unpack pars
-        (; g, k, l_T, v_Hb, v_Hp, f) = p
-        tel_b = τ = nothing
-
-       # If f has 2 columns and τ is not specified, issue a warning and return
-        if size(f, 2) == 2
-            if τ === nothing
-                @warn "Warning from get_tp: f has 2 columns, but τ is not specified"
-                return get_tpm(p, f, tel_b, τ)
-            end
-        end
-
-        # If tel_b is provided and not empty, and the second element of tel_b is not equal to f
-        # and τ is specified, call get_tpm and return the result
-        if tel_b !== nothing
-            if length(tel_b) == 1
-                τ_b = get_tb(p[[1, 2, 4]], f)
-                l_b = tel_b
-            elseif tel_b[2] != f && τ != nothing
-                return get_tpm(p, f, tel_b, τ)
-            elseif tel_b[2] != f
-                return get_tpm(p, f, tel_b)
-            else
-                τ_b = tel_b[1]
-                #e_b   = tel_b[2];
-                l_b = tel_b[3]
-            end
-        else
-            τ_b, l_b, info = get_tb(p, f)
-        end
-
-        # if tel_b !== nothing && length(tel_b) == 1
-        #     τ_b, l_b, _ = get_tb(p[[1, 2, 4]], f)
-        #     τ_p, l_p, _ = get_tp(p, f, tel_b, τ)
-        #     return τ_p, τ_b, l_p, l_b, 1
-        # elseif tel_b !== nothing && tel_b[2] != f && τ !== nothing
-        #     return get_tpm(p, f, tel_b, τ)
-        # elseif tel_b !== nothing && tel_b[2] != f
-        #     return get_tpm(p, f, tel_b)
-        # elseif tel_b !== nothing
-        #     τ_b = tel_b[1]
-        #     l_b = tel_b[3]
-        # else
-        #     τ_b, l_b, _ = get_tb(p[[1, 2, 4]], f)
-        # end
-
-        # Ensure v_Hp is greater than v_Hb
-        if v_Hp < v_Hb
-            @warn "Warning from get_tp: v_Hp < v_Hb"
-            τ_b, l_b = get_tb(p, f)
-            τ_p = nothing
-            l_p = nothing
-            return (; τ_p, τ_b, l_p, l_b, info=0)
-        end
-
-        # Calculate necessary parameters
-        rho_B = 1 / (3 * (1 + f / g))
-        l_i = f - l_T
-        l_d = l_i - l_b
-
-        # Determine if reproduction is possible and calculate l_p and τ_p accordingly
-        if k == 1 && f * l_i^2 > v_Hp * k
-            l_b = v_Hb^(1/3)
-            τ_b = get_tb(p[[1, 2, 4]], f, l_b)
-            l_p = v_Hp^(1/3)
-            τ_p = τ_b + log(l_d / (l_i - l_p)) / rho_B
-            info = true
-        elseif f * l_i^2 <= v_Hp * k
-            τ_b, l_b = get_tb(p, f)
-            τ_p = NaN
-            l_p = NaN
-            info = false
-        else
-            l_p, _, info = get_lp1(p, f, l_b)
-            τ_p = τ_b + log(l_d / (l_i - l_p)) / rho_B
-        end
-
-        # If τ is specified, compute additional values for maturity
-        if τ !== nothing
-            b3 = 1 / (1 + g / f)
-            b2 = f - b3 * l_i
-            a0 = - (b2 + b3 * l_i) * l_i^2 / k
-            a1 = - l_i * l_d * (2 * b2 + 3 * b3 * l_i) / (rho_B - k)
-            a2 = l_d^2 * (b2 + 3 * b3 * l_i) / (2 * rho_B - k)
-            a3 = - b3 * l_d^3 / (3 * rho_B - k)
-            ak = v_Hb + a0 + a1 + a2 + a3
-
-            τ = reshape(τ, :, 1)  # Make sure τ is a column vector
-            ert = exp(-rho_B * τ)
-            ekt = exp(-k * τ)
-            l = l_i - l_d * exp(-rho_B * τ)
-            v_H = min(v_Hp, -a0 - a1 * ert - a2 * ert.^2 - a3 * ert.^3 + ak * ekt)
-            tvel = hcat(τ, v_H, f .* ones(size(τ)), l)
-        end
-
-        # Check if τ_p is real and positive
-        if !isreal(τ_p) || τ_p < 0
-            info = false
-        end
-
-        # Return results
-        if τ !== nothing
-            return (; tvel, τ_p, τ_b, l_p, l_b, info)
-        else
-            return (; τ_p, τ_b, l_p, l_b, info)
-        end
+function _integrate_quad(hW, tG, tm, tm_tail)
+    # TODO explain these numbers
+    range = 1 ./ (4:500)
+    # These buffers are performance critical
+    # integrate_tm_s is the most deeply nested function call
+    buffer1 = Vector{Float64}(undef, length(range))
+    buffer2 = Vector{Float64}(undef, length(range))
+    quadgk(x -> integrate_tm_s!(buffer1, buffer2, range, x * hW, tG), 0, tm * hW)[1][1] + tm_tail
 end
 
+# was fnget_tm_s
+# modified 2010/02/25
+# called by get_tm_s for life span at short growth periods
+# integrate ageing surv prob over scaled age
+# t: age * hW 
+# Returns: ageing survival prob
+function integrate_tm_s!(buffer1, buffer2, range, t, tG)
+    hGt = tG * t # age * hG
+    if tG > 0
+        buffer1 .= hGt .* range
+        cumprod!(buffer2, buffer1)
+        # Compute the scaled dataset
+        exp(-(1 + sum(buffer2)) * t ^ 3)
+    else # tG < 0
+        error("Branch not yet tested!") 
+        exp.((((1 .+ hGt .+ hGt .^ 2 / 2) - exp.(hGt)) * 6 / tG^3)')
+    end
+end
+
+# These methods dig down into the LifeStages object,
+# and calculate the state variables at each transition - e.g. birth or puberty.
+# They may also calculate males and females separately where specified.
+#
 # Reduce over all lifestages computing basic variables
 # The output state of each transition is used as input state for the next
-function compute(ls::LifeStages, pars)
-    init = (nothing => (;),)
+function compute_transition_state(ls::LifeStages, pars)
+    init = (Init((;)),)
     # Reduce over all transitions, where each uses the state of the previous
-    states = reduce(values(ls); init) do transition_states, (lifestage, transition)
-        _, prevstate = last(transition_states)
-        transition_state = transition => compute(transition, pars, prevstate)
+    states = foldl(values(ls); init) do transition_states, (lifestage, transition)
+        prevstate = last(transition_states)
+        transition_state = compute_transition_state(transition, pars, prevstate)
         (transition_states..., transition_state)
     end
     # Remove the init state
-    return Base.tail(states)
+    return LifeStages(Base.tail(states))
+end
+# Handle Dimorphism: split the transition to male and female
+compute_transition_state(t::Dimorphic, pars, state) =
+    Dimorphic(compute_transition_state(t.a, pars, state), compute_transition_state(t.b, pars, state))
+compute_transition_state(t::Dimorphic, pars, state::Dimorphic) =
+    Dimorphic(compute_transition_state(t.a, pars, state.a), compute_transition_state(t.b, pars, state.b))
+compute_transition_state(t::AbstractTransition, pars, state::Dimorphic) =
+    Dimorphic(compute_transition_state(t, pars, state.a), compute_transition_state(t, pars, state.b))
+compute_transition_state(sex::Female, pars, state) = 
+    Female(compute_transition_state(sex.val, pars, state))
+function compute_transition_state(t::Male, pars, state)
+    pars_male = merge(pars, pars.male)
+    return Male(compute_transition_state(t.val, pars_male, state))
 end
 
-# Handle Dimorphism: split the transition to male and female
-compute(t::Dimorphic, pars, state::NamedTuple) =
-    Dimorphic(compute(t.a, pars, state), compute(t.b, pars, state))
-compute(t::Dimorphic, pars, state::Dimorphic) =
-    Dimorphic(compute(t.a, pars, state.a), compute(t.b, pars, state.b))
-compute(t::AbstractTransition, pars, state::Dimorphic) =
-    Dimorphic(compute(t, pars, state.a), compute(t, pars, state.b))
-
-function compute(t::Birth, pars, state::NamedTuple)
+# This is the actual transition state code!
+function compute_transition_state(transition::Birth, pars, state)
     (; L_m, del_M, d_V, k_M, w, f, TC, TC_30) = pars
 
-    # TODO: remove the duplication of birth/puberty computations
-    (; τ_b, l_b, info) = compute_time(Age(), At(Puberty()), pars)
-    l = l_b
-    τ = τ_b
+    τ, l, info = compute_time(At(transition), pars, f)
     L = L_m * l                        # cm, structural length at birth at f
     Lw = L / del_M
-    Ww = wet_weight(t, L, d_V, f, w)
+    Ww = wet_weight(transition, L, d_V, f, w)
     a = τ / k_M
     # TODO generalise for multiple temperatures
     temps = (TC, TC_30)
     aT = map(temps) do T
         a / T
     end
-    (; l, L, Lw, Ww, τ, aT)
+    Birth((; l, L, Lw, Ww, τ, aT))
 end
-compute(sex::Female, pars, state::NamedTuple) = compute(sex.val, pars, state)
-function compute(t::Puberty, pars, state::NamedTuple)
-    (; L_m, del_M, d_V, k_M, w, TC, f) = pars
+function compute_transition_state(trans::Puberty, pars, state)
+    (; L_m, del_M, d_V, k_M, w, TC, l_T, g, f) = pars
 
-    # TODO: remove the duplication of birth/puberty computations
-    (; τ_p, l_p, info) = compute_time(Age(), At(Puberty()), pars)
-    l = l_p
-    τ = τ_p
+    # Calculate necessary parameters
+    rho_B = 1 / (3 * (1 + f / g))
+    l_i = f - l_T
+    l_d = l_i - state.val.l
 
-    tT = (τ - state.τ) / k_M / TC  # d, time since birth at puberty
+    l, info = compute_length(At(trans), pars, state.val.l)
+    τ = state.val.τ + log(l_d / (l_i - l)) / rho_B
+
+    # Check if τ_p is real and positive
+    if !isreal(τ) || τ < zero(τ)
+        info = false
+    end
+
+    tT = (τ - state.val.τ) / k_M / TC  # d, time since birth at puberty
     L = L_m * l                    # cm, structural length at puberty
     Lw = L / del_M                 # cm, plastron length at puberty
-    Ww = wet_weight(t, L, d_V, f, w)
+    Ww = wet_weight(trans, L, d_V, f, w)
 
-    return (; l, L, Lw, Ww, τ, tT)
+    return Puberty((; l, L, Lw, Ww, τ, tT))
 end
-function compute(t::Ultimate, pars, state::NamedTuple)
+function compute_transition_state(t::Ultimate, pars, state)
     (; f, l_T, L_m, del_M, d_V, w) = pars
     l = f - l_T                    # -, scaled ultimate length
     L = L_m * l                    # cm, ultimate structural length at f
+    # TODO make these calculations optional based on data?. 
     Lw = L / del_M                 # cm, ultimate plastron length
     Ww = wet_weight(t, L, d_V, f, w)
-    return (; l, L, Lw, Ww)
-end
-
-function compute(t::Male{Puberty}, pars, state::NamedTuple)
-    (; f, k, l_T, L_mm, del_M, d_V, g_m, w_m, v_Hb, v_Hpm, k_M, TC) = pars
-    pars_tpm = (; g=g_m, k, l_T, v_Hb, v_Hp=v_Hpm, f)
-    # Need a let block to not overwrite param names - remove later
-    τ_p, τ_b, l = let 
-        (; τ_p, τ_b, l_p, info) = compute_time(Age(), At(Puberty()), pars_tpm)
-        τ_p, τ_b, l_p
-    end
-    tT = (τ_p - τ_b) / k_M / TC      # d, time since birth at puberty
-    L = L_mm * l
-    Lw= L / del_M # cm, struc, plastron length at puberty
-    Ww = wet_weight(t, L, d_V, f, w_m)
-    return (; l, L, Lw, Ww, τ=τ_p, tT)
-end
-function compute(t::Male{Ultimate}, pars, state::NamedTuple)
-    (; f, l_T, L_mm, del_M, d_V, w_m) = pars
-    l = f - l_T                    # -, scaled ultimate length
-    L = f * L_mm
-    Lw = L / del_M # cm, ultimate struct, plastrom length
-    Ww = wet_weight(t, L, d_V, f, w_m)
-    return (; l, L, Lw, Ww)
+    return Ultimate((; l, L, Lw, Ww))
 end
 
 wet_weight(::Union{Sex,AbstractTransition}, L, d_V, f, ω) =
@@ -345,26 +180,308 @@ function compute_lifespan(pars, l_b)
     return aT_m = am / TC
 end
 
-function compute_reproduction(pars, L_i)
-    RT_i = pars.TC_Ri * reprod_rate(L_i, pars.f, pars)[1][1]          # #/d, ultimate reproduction rate at T
+function compute_reproduction(pars::NamedTuple, L_i, lifestages_state)
+    (; R) = compute_reproduction_rate(pars, L_i, lifestages_state)
+    RT_i = pars.TC_Ri * R[1] # ultimate reproduction rate at T
     return RT_i
 end
 
-function compute_length_at(t::Times, pars, Lw_i, Lw_b)
-    (; TC, k_M, f, g) = pars
-    data = t.val
-    rT_B = TC * k_M / 3 / (oneunit(f) + f / g)
-    ELw = Lw_i .- (Lw_i - Lw_b) * exp.(-rT_B * data)
-    return ELw
+# was reprod_rate
+## Description
+# Calculates the reproduction rate in number of eggs per time
+# for an individual of length L and scaled reserve density f
+#
+# Input
+#
+# * L: n-vector with length
+# * f: scalar with functional response
+# * p: 9-vector with parameters: kap, kapR, g, kJ, kM, LT, v, UHb, UHp
+#
+#     or optional 2-vector with length, L, and scaled functional response f0
+#     for a juvenile that is now exposed to f, but previously at another f
+#  
+# Output
+#
+# * R: n-vector with reproduction rates
+# * UE0: scalar with scaled initial reserve
+# * Lb: scalar with (volumetric) length at birth
+# * Lp: scalar with (volumetric) length at puberty
+# * info: indicator with 1 for success, 0 otherwise
+
+## Remarks
+# See also <reprod_rate_foetus.html *reprod_rate_foetus*>, 
+#   <reprod_rate_j.html *reprod_rate_j*>, <reprod_rate_s.html *reprod_rate_s*>.
+# For cumulative reproduction, see <cum_reprod.html *cum_reprod*>,
+#  <cum_reprod_j.html *cum_reprod_j*>, <cum_reprod_s.html *cum_reprod_s*>
+
+## Example of use
+# See <mydata_reprod_rate.m *mydata_reprod_rate*>
+
+#  Explanation of variables:
+#  R = kapR * pR/ E0
+#  pR = (1 - kap) pC - kJ * EHp
+#  [pC] = [Em] (v/ L + kM (1 + LT/L)) f g/ (f + g); pC = [pC] L^3
+#  [Em] = {pAm}/ v
+# 
+#  remove energies; now in lengths, time only
+# 
+#  U0 = E0/{pAm}; UHp = EHp/{pAm}; SC = pC/{pAm}; SR = pR/{pAm}
+#  R = kapR SR/ U0
+#  SR = (1 - kap) SC - kJ * UHp
+#  SC = f (g/ L + (1 + LT/L)/ Lm)/ (f + g); Lm = v/ (kM g)
+#
+# unpack parameters; parameter sequence, cf get_pars_r
+function compute_reproduction_rate(p::NamedTuple, L, lifestages_state)
+    (; kap, kap_R, g, f, k_J, k_M, L_T, v, U_Hb, U_Hp, v_Hb, v_Hp) = p
+
+    L_m = v / (k_M * g) # maximum length
+    k = k_J / k_M       # -, maintenance ratio
+    l_T = L_T / L_m
+
+    lb = lifestages_state[Birth()].l
+    lp = lifestages_state[Female(Puberty())].l
+    Lb = lb * L_m
+    Lp = lp * L_m # structural length at birth, puberty
+
+    (; UE0, Lb, info) = init_scaled_reserve(p, lb)
+    SC = f * L .^ 3 .* (g ./ L + (1 + L_T ./ L) / L_m) / (f + g)
+    SR = (1 - kap) * SC - k_J * U_Hp
+    R = (L >= Lp) .* kap_R .* SR ./ UE0 # set reprod rate of juveniles to zero
+
+    return (; R, UE0, Lb, Lp, info)
 end
 
-function compute_male(par)
-    (; kap, z_m, p_M, w_E, w_V, v, E_G, k_M, kap, y_E_V) = par
-    p_Am_m = z_m * p_M / kap             # J/d.cm^2, {p_Am} spec assimilation flux
-    E_m_m = p_Am_m / v                   # J/cm^3, reserve capacity [E_m]
-    g_m = E_G / (kap * E_m_m)             # -, energy investment ratio
-    m_Em_m = y_E_V * E_m_m / E_G         # mol/mol, reserve capacity
-    w_m = m_Em_m * w_E / w_V             # -, contribution of reserve to weight
-    L_mm = v / k_M / g_m                  # cm, max struct length
-    return (; w_m, g_m, L_mm)
+# Subfunctions
+
+function dget_tL(UH, tL, f, g, v, kap, kJ, Lm, LT)
+    # called by cum_reprod
+    L = tL[2]
+    r = v * (f / L - (1 + LT / L) / Lm) / (f + g) # 1/d, spec growth rate
+    dL = L * r / 3 # cm/d, d/dt L
+    dUH = (1 - kap) * L^3 * f * (1 / L - r / v) - kJ * UH # cm^2, d/dt UH
+    dtL = [1; dL] / dUH # 1/cm, d/dUH L
 end
+
+function compute_univariate(::Weights, at::Times, pars, Lw_i, Lw_b)
+end
+function compute_univariate(::Weights, at::Lengths, pars, Lw_i, Lw_b)
+end
+function compute_univariate(::Weights, at::Lengths, pars, Lw_i, Lw_b)
+end
+# function compute_univariate(::ReprodRates, at::Temperatures, pars, Lw_i, Lw_b)
+# end
+function compute_univariate(::Lengths, at::Times, pars, Lw_i, Lw_b)
+    (; TC, k_M, f, g) = pars
+    rT_B = TC * k_M / 3 / (oneunit(f) + f / g)
+    return Lw_i .- (Lw_i - Lw_b) * exp.(-rT_B * at.val)
+end
+
+# TODO: generalise dimorphism to other differences, like multiple male morphs
+function compute_male_params(model::DEBOrganism, par)
+    _any_male(model.lifestages) || return (;)
+
+    (; kap, z_m, p_M, w_E, w_V, v, E_G, k_M, kap, y_E_V, v_Hpm) = par
+    p_Am_m = z_m * p_M / kap           # J/d.cm^2, {p_Am} spec assimilation flux
+    E_m_m = p_Am_m / v                 # J/cm^3, reserve capacity [E_m]
+    g = E_G / (kap * E_m_m)            # -, energy investment ratio
+    m_Em_m = y_E_V * E_m_m / E_G       # mol/mol, reserve capacity
+    w = m_Em_m * w_E / w_V             # -, contribution of reserve to weight
+    L_m = v / k_M / g                  # cm, max struct length
+    return (; w, g, L_m, v_Hp=v_Hpm)
+end
+
+_any_male(stages::LifeStages) = any(map(_any_male, values(stages)))
+_any_male(p::Pair) = _any_male(p[1]) || _any_male(p[2])
+_any_male(d::Dimorphic) = _any_male(d.a) || _any_male(d.b)
+_any_male(x::Male) = true
+_any_male(x) = false
+
+
+# was fnget_lp
+function _fn_length_at_puberty(lp, a0, a1, a2, a3, lj, li, k, rB, vHj, vHp)
+    tjrB = (li - lp) / (li - lj) # exp(- tau_p r_B) for tau = scaled time since metam
+    tjk = tjrB^(k / rB)          # exp(- tau_p k)
+    # f = 0 if vH(tau_p) = vHp for varying lp
+    f = vHp + a0 + a1 * tjrB + a2 * tjrB^2 + a3 * tjrB^3 - (vHj + a0 + a1 + a2 + a3) * tjk
+    return f
+end
+
+## Description
+# Obtains scaled age at birth, given the scaled reserve density at birth. 
+# Divide the result by the somatic maintenance rate coefficient to arrive at age at birth. 
+#
+# Input
+#
+# * p: 1 or 3-vector with parameters g, k_J/ k_M, v_H^b
+#
+#     Last 2 values are optional in invoke call to get_lb
+#
+# * eb: optional scalar with scaled reserve density at birth (default eb = 1)
+#  
+# Output
+#
+# * tau_b: scaled age at birth \tau_b = a_b k_M
+# * lb: scalar with scaled length at birth: L_b/ L_m
+# * info: indicator equals 1 if successful, 0 otherwise
+
+## Remarks
+# See also <get_tb1.html *get_tb1*> for backward integration over maturity and
+# <get_tb_foetus.html *get_tb_foetus*> for foetal development
+function compute_time(at::At{<:Birth}, pars::NamedTuple, eb::Number)
+    info = true
+    l, info = compute_length(at, pars, eb)
+    (; g) = pars  # energy investment ratio
+
+    xb = g / (eb + g) # f = e_b 
+    ab = 3 * g * xb^(1 / 3) / l # \alpha_b
+    τ = 3 * quadgk(x -> _d_time_at_birth(x, ab, xb), 1e-15, xb; atol=1e-6)[1]
+    return (; τ, l, info)
+end
+
+# subfunction
+
+# dget_tb
+function _d_time_at_birth(x::Number, ab::Number, xb::Number)
+    # called by get_tb
+    f = x ^ (-2 / 3) / (1 - x) / (ab - real(_beta0(x, xb)))
+end
+
+## Description
+# Obtains scaled length at birth, given the scaled reserve density at birth. 
+#
+# Input
+#
+# * p: 3-vector with parameters: g, k, v_H^b (see below)
+# * eb: optional scalar with scaled reserve density at birth (default eb = 1)
+#  
+# Output
+#
+# * lb: scalar with scaled length at birth 
+# * info: indicator equals 1 if successful, 0 otherwise
+
+## Remarks
+# The theory behind get_lb, get_tb and get_ue0 is discussed in 
+#    <http://www.bio.vu.nl/thb/research/bib/Kooy2009b.html Kooy2009b>.
+# Solves y(x_b) = y_b  for lb with explicit solution for y(x)
+#   y(x) = x e_H/(1-kap) = x g u_H/ l^3
+#   and y_b = x_b g u_H^b/ ((1-kap)l_b^3)
+#   d/dx y = r(x) - y s(x);
+#   with solution y(x) = v(x) \int r(x)/ v(x) dx
+#   and v(x) = exp(- \int s(x) dx).
+# A Newton Raphson scheme is used with Euler integration, starting from an optional initial value. 
+# Replacement of Euler integration by ode23: <get_lb1.html *get_lb1*>,
+#  but that function is much lower.
+# Shooting method: <get_lb2.html *get_lb2*>.
+# Bisection method (via fzero): <get_lb3.html *get_lb3*>.
+# In case of no convergence, <get_lb2.html *get_lb2*> is run automatically as backup.
+# Consider the application of <get_lb_foetus.html *get_lb_foetus*> for an alternative initial value.
+function compute_length(::At{<:Birth}, p::NamedTuple, eb::Number)
+    (; g, k, v_Hb) = p   # g = [E_G] * v/ kap * {p_Am}, energy investment ratio
+    # k = k_J/ k_M, ratio of maturity and somatic maintenance rate coeff
+    # v_H^b = U_H^b g^2 kM^3/ (1 - kap) v^2; U_H^b = M_H^b/ {J_EAm}
+
+    info = true
+
+    if k == oneunit(k)
+        lb = v_Hb^(1 / 3) # exact solution for k = 1
+        info = true
+        return lb, info
+    end
+    # if isempty(lb0)
+    lb = v_Hb^(1 / 3) # exact solution for k = 1     
+
+    n = 1000 + round(1000 * max(0, k - 1))
+    xb = g / (g + eb)
+    xb3 = xb^(1 / 3)
+    x = LinRange(1e-6, xb, trunc(Int, n))
+    # TODO: get the type from context
+    buffer = Vector{Float64}(undef, length(x))
+    dx = xb / n
+    x3 = x .^ (1 / 3)
+
+    # This is the main performance cost
+    b = real.(_beta0!(buffer, x, xb)) ./ (3 * g)
+    t0 = xb * g * v_Hb
+    i = 0
+    norm = 1 # make sure that we start Newton Raphson procedure
+    ni = 100 # max number of iterations
+
+    while i < ni && norm > 1e-8
+        l = x3 ./ (xb3 / lb .- b)
+        s = (k .- x) ./ (1 .- x) .* l / g ./ x
+        v = exp.(-dx * cumsum(s))
+        vb = v[trunc(Int, n)]
+        r = (g .+ l)
+        rv = r ./ v
+        t = t0 / lb^3 / vb - dx * sum(rv)
+        dl = xb3 ./ lb .^ 2 .* l .^ 2 ./ x3
+        dlnl = dl ./ l
+        dv = v .* exp.(-dx * cumsum(s .* dlnl))
+        dvb = dv[trunc(Int, n)]
+        dlnv = dv ./ v
+        dlnvb = dlnv[trunc(Int, n)]
+        dr = dl
+        dlnr = dr ./ r
+        buffer .= (dlnr .- dlnv) .* rv
+        dt = -t0 / lb^3 / vb * (3 / lb + dlnvb) - dx * sum(buffer)
+        # [i lb t dt] # print progress
+        lb = lb - t / dt # Newton Raphson step
+        norm = t^2
+        i = i + 1
+    end
+
+    if i == ni || lb < zero(lb) || lb > oneunit(lb) || isnan(norm) || isnan(lb) # no convergence
+        # try to recover with a shooting method
+        error("This branch has not been tested")
+        lb, info = get_lb2(p, eb)
+    end
+
+    info == false && @warn "no convergence of l_b"
+
+    return lb, info
+end
+
+# was get_lp1
+function compute_length(::At{<:Puberty}, p::NamedTuple, l0::Number)
+    (; g, k, l_T, v_Hb, v_Hp, f) = p
+    sM = haskey(p, :sM) ? p.sM : 1.0
+    v_H0 = v_Hb
+
+    lb = l0
+
+    rB = g / 3 / (f + g) # scaled von Bertalanffy growth rate
+    li = sM * (f - l_T)  # scaled ultimate length
+    ld = li - lb         # scaled length
+
+    b3 = 1 / (1 + g / f) 
+    b2 = f * sM - b3 * li
+
+    a0 = - (b2 + b3 * li) * li^2 / k
+    a1 = - li * ld * (2 * b2 + 3 * b3 * li) / (rB - k)
+    a2 = ld^2 * (b2 + 3 * b3 * li) / (2 * rB - k)
+    a3 = - b3 * ld^3 / (3 * rB - k)
+
+    if v_Hp > -a0
+        lp = NaN
+        info = false
+        @warn "maturity at puberty cannot be reached"
+    elseif v_H0 > v_Hp
+        lp = 1
+        info = false
+        @warn "initial maturity exceeds puberty threshold"
+    elseif k == oneunit(k)
+        info = true
+        lp = v_Hp^(1/3)
+    else
+        info = true
+        #lp, info_lp = fzero(fnget_lp, [lb, li], [], a0, a1, a2, a3, lb, li, k, rB, v_H0, v_Hp)
+        try
+            lp = fzero(lp -> _fn_length_at_puberty(lp, a0, a1, a2, a3, lb, li, k, rB, v_H0, v_Hp), lb, li)
+        catch
+            info = false
+        end
+    end
+
+    return lp, info
+end
+

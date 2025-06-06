@@ -12,6 +12,7 @@ using Roots
 using ModelParameters.Flatten
 using StaticArrays
 
+export EstimOptions
 export DEBOrganism
 export Arrhenius1parTemperatureResponse, Arrhenius3parTemperatureResponse, Arrhenius5parTemperatureResponse
 export LifeStages, Dimorphic

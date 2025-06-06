@@ -14,9 +14,23 @@ abstract type Weights end
 # struct TemperatureData <: AuxData end
 # struct PseudoData <: AbstractPseudoData end
 
+struct Lengths{T} <: Data
+    val::T
+end
+Lengths() = Lengths(nothing)
+
 struct Times{T} <: Data
     val::T
 end
+Times() = Times(nothing)
+struct Food{T} <: Data
+    val::T
+end
+Food() = Food(nothing)
+
+basetypeof(::Type{T}) where T = T.name.wrapper
+basetypeof(::T) where T = basetypeof(T)
+rebuild(::T, x) where T = basetypeof(T)(x)
 
 abstract type AbstractMorph end
 
@@ -27,31 +41,58 @@ struct V1Morph <: AbstractMorph end
 
 abstract type AbstractLifeStage end
 
+(::Type{T})() where T<:AbstractLifeStage = T(nothing)
+
 abstract type AbstractEmbryo <: AbstractLifeStage end
 abstract type AbstractJuvenile <: AbstractLifeStage end
 abstract type AbstractAdult <: AbstractLifeStage end
 abstract type AbstractInstar{N} <: AbstractLifeStage end
 
-struct Embryo <: AbstractEmbryo end
-struct Juvenile <: AbstractJuvenile end
-struct Adult <: AbstractAdult end
-struct Instar{N} <: AbstractInstar{N} end
+struct Embryo{T} <: AbstractEmbryo 
+    val::T
+end
+struct Juvenile{T} <: AbstractJuvenile
+    val::T
+end
+struct Adult{T} <: AbstractAdult
+    val::T
+end
+struct Instar{N,T} <: AbstractInstar{N} 
+    val::T
+end
 
 abstract type AbstractEvent end
 abstract type AbstractTransition <: AbstractEvent end
 
-struct Birth <: AbstractTransition end
-struct Puberty <: AbstractTransition end
-struct Metamorphosis <: AbstractTransition end
-struct Maturity <: AbstractTransition end
-struct Ultimate <: AbstractTransition end
-struct Death <: AbstractTransition end
+(::Type{T})() where T<:AbstractTransition = T(nothing)
 
-abstract type Sex end
-struct Male{T} <: Sex 
+struct Init{T} <: AbstractTransition 
     val::T
 end
-struct Female{T} <: Sex 
+struct Birth{T} <: AbstractTransition
+    val::T
+end
+struct Puberty{T} <: AbstractTransition
+    val::T
+end
+struct Metamorphosis{T} <: AbstractTransition
+    val::T
+end
+struct Maturity{T} <: AbstractTransition
+    val::T
+end
+struct Ultimate{T} <: AbstractTransition
+    val::T
+end
+struct Death{T} <: AbstractTransition
+    val::T
+end
+
+abstract type Sex{T} end
+struct Male{T} <: Sex{T}
+    val::T
+end
+struct Female{T} <: Sex{T}
     val::T
 end
 
@@ -67,35 +108,41 @@ abstract type AbstractLifeStages end
 end
 LifeStages(args::Pair...) = LifeStages(args)
 
+Base.values(ls::LifeStages) = ls.lifestages
+
 Base.@assume_effects :foldable function Base.getindex(stages::LifeStages, stage::Int)
     stages.lifestages[i]
 end
-Base.@assume_effects :foldable function Base.getindex(stages::LifeStages, stage::Union{AbstractLifeStage,AbstractTransition}) 
+Base.@assume_effects :foldable function Base.getindex(stages::LifeStages, stage::Union{AbstractLifeStage,AbstractTransition,Sex,Dimorphic}) 
     # Get the stage in stages matching `stage`
-    foldl(stages; init=nothing) do acc, x
+    foldl(values(stages); init=nothing) do acc, x
         if isnothing(acc)
-            _matches(x, stage) ? x : nothing
+            _match(x, stage)
         else
             acc # found just return it
         end
     end 
 end
-Base.values(ls::LifeStages) = ls.lifestages
 
-@inline _matches(x::Dimorphic, stage) = _matches(x.a, stage)
-@inline _matches(x::Sex, stage) = _matches(x.val, stage)
-@inline _matches(x, stage::S) where S = x isa S
-
-LifeStages(
-    Embryo() => Birth(),
-    Juvenile() => Dimorphic(Female(Puberty()), Male(Puberty())),
-    Adult() => Ultimate(),
-)
-
-## reprod_rate
-# gets reproduction rate as function of time
-
-##
+@inline function _match(x::Dimorphic, stage::Sex) 
+    m = _match(x.a, stage)
+    if isnothing(m)
+        _match(x.b, stage)
+    else
+        m
+    end
+end
+@inline function _match(x::Pair, stage) 
+    m = _match(x[1], stage)
+    if isnothing(m)
+        _match(x[2], stage)
+    else
+        m
+    end
+end
+@inline _match(x::Sex, stage::Sex) =
+    x isa basetypeof(stage) ? _match(x.val, stage.val) : nothing
+@inline _match(x, stage) = x isa basetypeof(stage) ? x.val : nothing
 
 """
     AbstractReproduction
