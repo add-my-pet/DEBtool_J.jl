@@ -1,11 +1,20 @@
-function estimate(model, options, par_model, mydata_pet)
+function estimate(model, options, par::P, mydata_pet) where P
     (; data, auxData, metaData, weights) = mydata_pet
 
-    par_free = NamedTuple{par_model[:fieldname]}(par_model[:free]) # get the vector of free parameters
+    function objective(parvec, data, auxData)
+        par1 = stripparams(ModelParameters.update(par, parvec)::P)
+        prdData, info = predict(model, par1, data, auxData)
+        prdData1 = predict_pseudodata(par1, data, prdData)
+        return prdData1, info
+    end
+    function filter(parvec)
+        par1 = stripparams(ModelParameters.update(par, parvec))
+        filter_std(par1)
+    end
 
     filternm = "filter_nat" # this filter always gives a pass
 
-    par, info, nsteps, fval = petregr_f(model, par_model, par_free, data, auxData, weights, filternm, options)   # estimate parameters using overwrite
+    par, info, nsteps, fval = petregr_f(objective, filter, model, par, data, auxData, weights, filternm, options)   # estimate parameters using overwrite
     return par, nsteps, info, fval
 end
 

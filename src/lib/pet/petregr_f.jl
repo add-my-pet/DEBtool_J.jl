@@ -2,24 +2,7 @@
 # Finds parameter values for a pet that minimizes the lossfunction using Nelder Mead's simplex method using a filter
 
 ##
-function petregr_f(model, par, free, data, auxData, weights, filternm, options)
-    parnm = keys(free)
-    np = length(parnm)
-    index = (1:np)[SVector(values(free)) .== 1]
-    allvec = collect(par[:val])::Vector{Float64}
-
-    function call_func(parvec, data, auxData)
-        allvec[index] .= parvec
-        par1 = stripparams(ModelParameters.update(par, allvec))
-        prdData, info = predict(model, par1, data, auxData)
-        prdData1 = predict_pseudodata(par1, data, prdData)
-        return prdData1, info
-    end
-    function filter_std1(parvec)
-        allvec[index] .= parvec
-        par1 = stripparams(ModelParameters.update(par, allvec))
-        filter_std(par1)
-    end
+function petregr_f(call_func, filter_std1, model, par, data, auxData, weights, filternm, options)
     # created 2001/09/07 by Bas Kooijman; 
     # modified 2015/01/29 by Goncalo Marques, 
     #   2015/03/21 by Bas Kooijman, 
@@ -95,9 +78,8 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
         st=merge(data, (keys(modmatrices)[i] => modmatrices[i],))  
     end
 
-    nm=([string(k) for k in keys(data)[1:(length(data)-1)]]..., ["psd." * string(s) for s in keys(data.psd)]...) # assumes psd is the last item in data
     #nst=length(nm)
-
+    nm=([string(k) for k in keys(data)[1:(length(data)-1)]]..., ["psd." * string(s) for s in keys(data.psd)]...) # assumes psd is the last item in data
 
     # Y: vector with all dependent data, NaNs omitted
     # W: vector with all weights, but those that correspond NaNs in data omitted
@@ -105,9 +87,10 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
     Y = YmeanY[1]
     meanY = YmeanY[2]
     W = struct2vector(weights, nm, st)[1]
+    buffer = Vector{Float64}(undef, length(W))
 
-    n_par = sum(free)
-    qvec = collect(par[:val])[index]::Vector{Float64}
+    n_par = length(par[:val])
+    qvec = collect(par[:val])::Vector{Float64}
 
     # set options if necessary
 
@@ -158,7 +141,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
     #P = [value(x) for x in values(PmeanP[1])]
     #meanP = [value(x) for x in values(PmeanP[2])]
     fv = zeros(Float64, 1, n_par + 1)
-    fv[:, 1] .= lossfunction_sb(Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
+    fv[:, 1] .= lossfunction_sb!(buffer, Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
     #fv(:,1) = feval(fileLossfunc, Y, meanY, P, meanP, W);
 
     # Following improvement suggested by L.Pfeffer at Stanford
@@ -200,7 +183,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
         v[:, j+1] = y_test
         P, meanP = struct2vector(f, nm, st)
         #fv(:,j+1) = feval(fileLossfunc, Y, meanY, P, meanP, W);
-        fv[:, j+1] .= lossfunction_sb(Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
+        fv[:, j+1] .= lossfunction_sb!(buffer, Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
     end
 
     # sort so v(1,:) has the lowest function value 
@@ -253,7 +236,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
                 #[P, meanP] = struct2vector(f, nm, st);
                 P, meanP = struct2vector(f, nm, st)
                 #fxr = feval(fileLossfunc, Y, meanY, P, meanP, W);
-                fxr = lossfunction_sb(Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
+                fxr = lossfunction_sb!(buffer, Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
             end
         end
         func_evals = func_evals + 1
@@ -276,7 +259,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
                     #[P, meanP] = struct2vector(f, nm, st);
                     #fxe = feval(fileLossfunc, Y, meanY, P, meanP, W);
                     P, meanP = struct2vector(f, nm, st)
-                    fxe = lossfunction_sb(Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
+                    fxe = lossfunction_sb!(buffer, Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
                 end
             end
             func_evals = func_evals + 1
@@ -314,7 +297,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
                             #[P, meanP] = struct2vector(f, nm, st);
                             #fxc = feval(fileLossfunc, Y, meanY, P, meanP, W);
                             P, meanP = struct2vector(f, nm, st)
-                            fxc = lossfunction_sb(Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
+                            fxc = lossfunction_sb!(buffer, Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
                         end
                     end
                     func_evals = func_evals + 1
@@ -346,7 +329,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
                             #[P, meanP] = struct2vector(f, nm, st);
                             #fxcc = feval(fileLossfunc, Y, meanY, P, meanP, W);
                             P, meanP = struct2vector(f, nm, st)
-                            fxcc = lossfunction_sb(Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
+                            fxcc = lossfunction_sb!(buffer, Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
                         end
                     end
                     func_evals = func_evals + 1
@@ -391,7 +374,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
                         #fv(:,j) = feval(fileLossfunc, Y, meanY, P, meanP, W);
                         P, meanP = struct2vector(f, nm, st)
                         #fv(:,j+1) = feval(fileLossfunc, Y, meanY, P, meanP, W);
-                        fv[:, j] .= lossfunction_sb(Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
+                        fv[:, j] .= lossfunction_sb!(buffer, Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
                     end
                     func_evals = func_evals + n_par
                 end
@@ -436,7 +419,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
         end
         info = true
     end
-    q = stripparams(ModelParameters.update(par, allvec))
+    q = ModelParameters.update(par, qvec)
     (q, info, itercount, fval)
 end
 function struct2vector(structin, fieldNames, structRef)

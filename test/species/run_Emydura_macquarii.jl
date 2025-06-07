@@ -37,8 +37,8 @@ options = EstimOptions(;
 ) 
 @time parout, nsteps, info, fval = estimate(model, options, par, data)
 
-# using ProfileView
-# @profview parout, nsteps, info, fval = estim_pars(model, options, species, par_model, data_pet)
+using ProfileView
+@profview parout, nsteps, info, fval = estimate(model, options, par, data)
 
 @testset "Parameter consistency" begin
     # get results from Matlab
@@ -46,19 +46,11 @@ options = EstimOptions(;
     varname = "par"
     par_matlab = read(file, varname)
     close(file)
-    par_names = par[:fieldname] # get the field names
-    free = NamedTuple{par_names}(par[:free]) # get the vector of free parameters
-    parnm = keys(free)
-    np = length(parnm)
-    index = (1:np)[collect(values(free)) .== 1]
 
-    # TODO clean this up 
-    par_jul = Dict(string(k) => v for (k, v) in collect(pairs(parout))[index])
-    par_jul_stripped = NamedTuple{Tuple(Symbol.(keys(par_jul)))}(ustrip.(values(par_jul)))
-    par_julia = Dict(string(k) => v for (k, v) in pairs(par_jul_stripped))
+    par_julia = NamedTuple{parout[:fieldname]}(parout[:val])
     println()
-    for k in intersect(keys(par_matlab), keys(par_julia))
-        v1 = par_matlab[k]
+    for k in keys(par_julia)
+        v1 = par_matlab[string(k)]
         v2 = par_julia[k]
         is_equal = isapprox(v1, v2; atol=1e-4, rtol=1e-4)  # Tweak tolerance as needed
         print(rpad(k, 10), ": ", v1, " vs ", v2, " → ") 
