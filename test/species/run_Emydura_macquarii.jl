@@ -46,19 +46,21 @@ varname = "par"
 par_matlab = read(file, varname)
 close(file)
 
-# TODO clean this up 
-par_free = Dict(string(k) => v for (k, v) in pairs(parout.free))
-par_jul = (; filter(p -> p[1] != :free, pairs(parout))...)
-par_jul_stripped = NamedTuple{keys(par_jul)}(ustrip.(values(par_jul)))
-par_julia = Dict(string(k) => v for (k, v) in pairs(par_jul_stripped))
-par_julia_free = Dict(k => v for (k, v) in par_julia if get(par_free, k, 0) == 1)
-par_matlab_free = Dict(k => v for (k, v) in par_matlab if get(par_free, k, 0) == 1)
-
 @testset "Parameter consistency" begin
+    par_names = par[:fieldname] # get the field names
+    free = NamedTuple{par_names}(par[:free]) # get the vector of free parameters
+    parnm = keys(free)
+    np = length(parnm)
+    index = (1:np)[collect(values(free)) .== 1]
+
+    # TODO clean this up 
+    par_jul = Dict(string(k) => v for (k, v) in collect(pairs(parout))[index])
+    par_jul_stripped = NamedTuple{Tuple(Symbol.(keys(par_jul)))}(ustrip.(values(par_jul)))
+    par_julia = Dict(string(k) => v for (k, v) in pairs(par_jul_stripped))
     println()
-    for k in intersect(keys(par_matlab_free), keys(par_julia_free))
-        v1 = par_matlab_free[k]
-        v2 = par_julia_free[k]
+    for k in intersect(keys(par_matlab), keys(par_julia))
+        v1 = par_matlab[k]
+        v2 = par_julia[k]
         is_equal = isapprox(v1, v2; atol=1e-4, rtol=1e-4)  # Tweak tolerance as needed
         print(rpad(k, 10), ": ", v1, " vs ", v2, " → ") 
         is_equal ? printstyled("✔"; color=:green) : printstyled("✘"; color=:red)

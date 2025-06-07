@@ -3,14 +3,21 @@
 
 ##
 function petregr_f(model, par, free, data, auxData, weights, filternm, options)
+    parnm = keys(free)
+    np = length(parnm)
+    index = (1:np)[SVector(values(free)) .== 1]
+    allvec = collect(par[:val])
+
     function call_func(parvec, data, auxData)
-        par1 = stripparams(ModelParameters.update(par, parvec))
+        allvec[index] .= parvec
+        par1 = stripparams(ModelParameters.update(par, allvec))
         prdData, info = predict(model, par1, data, auxData)
         prdData1 = predict_pseudodata(par1, data, prdData)
         return prdData1, info
     end
     function filter_std1(parvec)
-        par1 = stripparams(ModelParameters.update(par, parvec))
+        allvec[index] .= parvec
+        par1 = stripparams(ModelParameters.update(par, allvec))
         filter_std(par1)
     end
     # created 2001/09/07 by Bas Kooijman; 
@@ -99,11 +106,8 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
     meanY = YmeanY[2]
     W = struct2vector(weights, nm, st)[1]
 
-    parnm = keys(free)
-    np = length(parnm)
     n_par = sum(free)
-    index = (1:np)[SVector(values(free)) .== 1]
-    qvec = collect(par[:val])
+    qvec = collect(par[:val])[index]
 
     # set options if necessary
 
@@ -140,7 +144,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
     #call_fileLossfunc = Meta.parse("$fileLossfunc(Y, meanY, P, meanP, W)")
     #call_filternm = Meta.parse("$filternm(q)")
     # Set up a simplex near the initial guess.
-    xin = qvec[index]    # Place input guess in the simplex
+    xin = copy(qvec)    # Place input guess in the simplex
     #v[:,1] = xin;
     unit_xin = map(unit, xin)
     v = zeros(Float64, length(xin), Int(n_par) + 1) .* unit_xin
@@ -171,7 +175,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
             else
                 y_test[j] = zero_term_delta / step_reducer
             end
-            qvec[index] = y_test
+            qvec .= y_test
             #f_test = feval(filternm, q);
             f_test, flag = filter_std1(qvec) #eval(call_filternm)
 
@@ -233,7 +237,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
         #xbar = sum(v(:,one2n), 2)/ n_par;
         xbar = (sum(Unitful.ustrip(v[:, one2n]), dims = 2) / n_par) .* unit_xin
         xr = (1 + rho) * xbar - rho * v[:, np1]
-        qvec[index] = xr
+        qvec .= xr
         #q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
         #f_test = feval(filternm, q);
         f_test, flag = filter_std1(qvec) #eval(call_filternm)
@@ -256,7 +260,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
         if fxr < fv[1, 1]#[1]
             # Calculate the expansion point
             xe = (1 + rho * chi) .* xbar - rho * chi .* v[:, np1]
-            qvec[index] = xe
+            qvec .= xe
             #q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
             f_test, flag = filter_std1(qvec) #eval(call_filternm)
             #f_test = feval(filternm, q);
@@ -295,7 +299,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
                     # Perform an outside contraction
                     xc = [1 + psi * rho] .* xbar - psi * rho .* v[:, np1]
                     #qvec(index) = xc; q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
-                    qvec[index] = xc
+                    qvec .= xc
                     #f_test = feval(filternm, q);
                     f_test, flag = filter_std1(qvec) #eval(call_filternm)
                     if !f_test
@@ -327,8 +331,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
                     # Perform an inside contraction
                     xcc = (1 - psi) .* xbar + psi .* v[:, np1]
                     #qvec(index) = xcc; q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
-                    qvec[index] = xcc
-                    q = NamedTuple{parnm}(Tuple(qvec))
+                    qvec .= xcc
                     #f_test = feval(filternm, q);
                     f_test, flag = filter_std1(qvec) #eval(call_filternm)
                     if !f_test
@@ -364,7 +367,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
                             v_test = v[:, 1] + sigma / step_reducer * (v[:, j] - v[:, 1])
                             #qvec(index) = v_test; q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
                             #f_test = feval(filternm, q);
-                            qvec[index] = v_test
+                            qvec .= v_test
                             f_test, flag = filter_std1(qvec) #eval(call_filternm)
                             if !f_test
                                 println(
@@ -411,10 +414,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
 
 
     #qvec(index) = v(:,1); q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
-    qvec[index] = v[:, 1]
-    q = NamedTuple{parnm}(qvec)
-    #q.free = free; # add substructure free to q,
-    q = merge(q, (; free))
+    qvec .= v[:, 1]
 
     fval = minimum(fv)
     if func_evals >= options.max_fun_evals
@@ -435,6 +435,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
         end
         info = true
     end
+    q = stripparams(ModelParameters.update(par, allvec))
     (q, info, itercount, fval)
 end
 function struct2vector(structin, fieldNames, structRef)
