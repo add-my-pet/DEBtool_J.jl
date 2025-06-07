@@ -1,3 +1,21 @@
+function estimate(model, options, par_model, mydata_pet)
+    (; data, auxData, metaData, weights) = mydata_pet
+
+    par_names = par_model[:fieldname] # get the field names
+    par_vals = par_model[:val] # get the values
+    par_units = par_model[:units] # get the units
+    par = NamedTuple{par_names}(
+        Tuple([
+            u === nothing ? typeof(v)(v) : v * u for (v, u) in zip(par_vals, par_units)
+        ]),
+    ) # adjoin units to parameter values
+    par_free = NamedTuple{par_names}(par_model[:free]) # get the vector of free parameters
+
+    filternm = "filter_nat" # this filter always gives a pass
+
+    par, info, nsteps, fval = petregr_f(model, par, par_free, data, auxData, weights, filternm, options)   # estimate parameters using overwrite
+    return par, nsteps, info, fval
+end
 
 function predict(model::DEBOrganism, par, data, auxData) # predict
     cPar = parscomp_st(par)
@@ -69,47 +87,4 @@ function predict(model::DEBOrganism, par, data, auxData) # predict
     )
     info = true # TODO get this from solves
     return (; prdData, info)
-end
-
-function estim_pars(model, options, par_model, metaPar, mydata_pet)
-    (; data, auxData, metaData, weights) = mydata_pet
-
-    par_names = par_model[:fieldname] # get the field names
-    par_vals = par_model[:val] # get the values
-    par_units = par_model[:units] # get the units
-    par = NamedTuple{par_names}(
-        Tuple([
-            u === nothing ? typeof(v)(v) : v * u for (v, u) in zip(par_vals, par_units)
-        ]),
-    ) # adjoin units to parameter values
-    par_free = NamedTuple{par_names}(par_model[:free]) # get the vector of free parameters
-    par = (par..., free = par_free) # append free parameters to the par struct
-
-    # if isdefined(metaPar, :covRules)
-    #     covRules = metaPar.covRules
-    # else
-    #     covRules = "no"
-    # end
-
-    # if options.filter
-    #     pass = true
-    #             filternm = "filter_" * metaPar.model
-    #             passSpec, flag = filter_std(par) # avoid globals here by having one filter that dispatches by model type, and pass parPets.(petnm) where petnm is a symbol
-    #         if ~passSpec
-    #             println("The seed parameter set for " * pet * " is not realistic. \n")
-    #             print_filterflag(flag)
-    #         end
-    #         pass = pass && passSpec
-    #     if ~pass
-    #         error("The seed parameter set is not realistic")
-    #     end
-    # else
-    # end
-    
-    filternm = "filter_nat" # this filter always gives a pass
-    pass = 1
-
-    par, info, nsteps, fval = petregr_f(model, par, data, auxData, weights, filternm, options)   # estimate parameters using overwrite
-
-    return (par, nsteps, info, fval)
 end

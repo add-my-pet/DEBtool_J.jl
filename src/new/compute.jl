@@ -262,12 +262,11 @@ function dget_tL(UH, tL, f, g, v, kap, kJ, Lm, LT)
     dtL = [1; dL] / dUH # 1/cm, d/dUH L
 end
 
-function compute_univariate(::Weights, at::Times, pars, Lw_i, Lw_b)
-end
-function compute_univariate(::Weights, at::Lengths, pars, Lw_i, Lw_b)
-end
-function compute_univariate(::Weights, at::Lengths, pars, Lw_i, Lw_b)
-end
+# TOD
+# function compute_univariate(::Weights, at::Times, pars, Lw_i, Lw_b)
+# end
+# function compute_univariate(::Weights, at::Lengths, pars, Lw_i, Lw_b)
+# end
 # function compute_univariate(::ReprodRates, at::Temperatures, pars, Lw_i, Lw_b)
 # end
 function compute_univariate(::Lengths, at::Times, pars, Lw_i, Lw_b)

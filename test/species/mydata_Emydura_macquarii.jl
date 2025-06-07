@@ -89,6 +89,8 @@ data = (;
     Ri=36.0 / 365.0u"d"
 )
 
+data = merge(data, (; tL))
+
 temp = (;
     ab=Unitful.K(22Unitful.°C),
     ab30=Unitful.K(30Unitful.°C),

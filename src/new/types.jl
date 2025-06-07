@@ -54,10 +54,13 @@ end
 struct Juvenile{T} <: AbstractJuvenile
     val::T
 end
+struct Instar{N,T} <: AbstractInstar{N} 
+    val::T
+end
 struct Adult{T} <: AbstractAdult
     val::T
 end
-struct Instar{N,T} <: AbstractInstar{N} 
+struct AdultNoFeeding{T} <: AbstractAdult
     val::T
 end
 
@@ -163,9 +166,11 @@ function reproduction(r::StandardReproduction, par, cpar)
 end
 
 @kwdef struct DEBOrganism{LS,TR}
+    # structures::M
+    # reserves::E
+    # chemicalcomposition::CC
     lifestages::LS
     temperatureresponse::TR
-    # chemicalcomposition::CC
 end
 
 lifestages(model::DEBOrganism) = model.lifestages

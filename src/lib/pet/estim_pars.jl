@@ -3,7 +3,7 @@
 
 ##
 #function estim_pars(pets, pars_init_method, method, filter, covRules)
-function estim_pars(predict, model, options, pet, par_model, metaPar, mydata_pet)
+function estim_pars(model, options, par_model, mydata_pet)
 
     # created 2015/02/10 by Goncalo Marques
     # modified 2015/02/10 by Bas Kooijman, 
@@ -59,11 +59,11 @@ function estim_pars(predict, model, options, pet, par_model, metaPar, mydata_pet
     par_free = NamedTuple{par_names}(par_model[:free]) # get the vector of free parameters
     par = (par..., free = par_free) # append free parameters to the par struct
 
-    if isdefined(metaPar, :covRules)
-        covRules = metaPar.covRules
-    else
-        covRules = "no"
-    end
+    # if isdefined(metaPar, :covRules)
+    #     covRules = metaPar.covRules
+    # else
+    #     covRules = "no"
+    # end
 
     # if options.filter
     #     pass = true
@@ -87,7 +87,7 @@ function estim_pars(predict, model, options, pet, par_model, metaPar, mydata_pet
     #  case "nm"
     if options.method == "nm"
         par, info, nsteps, fval =
-            petregr_f(predict, model, par, data, auxData, weights, filternm, options)   # estimate parameters using overwrite
+            petregr_f(model, par, data, auxData, weights, filternm, options)   # estimate parameters using overwrite
     end
 
     if options.method in [:nm, :no]

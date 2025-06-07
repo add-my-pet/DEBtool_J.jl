@@ -11,8 +11,8 @@ species = "Emydura_macquarii"
 (; par, metapar) = let # Let block so we only import the last variable into scope
     include(joinpath(speciespath, "pars_init_" * species * ".jl"))
 end
-par_model = Model(par) # create a 'Model' out of the Pars struct
-data_pet = include(joinpath(speciespath, "mydata_" * species * ".jl")) # load the mydata file
+par = StaticModel(par) # create a 'Model' out of the Pars struct
+data = include(joinpath(speciespath, "mydata_" * species * ".jl")) # load the mydata file
 resultsnm = "results_" * species * ".jld2"
 calibration = calibration_options("results_filename", resultsnm)
 
@@ -35,10 +35,11 @@ options = EstimOptions(;
     method = "nm",
     calibration,
 ) 
-@time parout, nsteps, info, fval = estim_pars(model, options, par_model, metapar, data_pet)
+@time parout, nsteps, info, fval = estimate(model, options, par, data)
+@time parout, nsteps, info, fval = estim_pars(model, options, par, data)
 
 # using ProfileView
-# @profview parout, nsteps, info, fval = estim_pars(model, options, species, par_model, metapar, data_pet)
+# @profview parout, nsteps, info, fval = estim_pars(model, options, species, par_model, data_pet)
 
 # get results from Matlab
 file = matopen(joinpath(speciespath, "data", species, "results_$species.mat"))

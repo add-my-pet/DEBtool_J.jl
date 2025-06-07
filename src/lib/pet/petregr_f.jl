@@ -2,7 +2,7 @@
 # Finds parameter values for a pet that minimizes the lossfunction using Nelder Mead's simplex method using a filter
 
 ##
-function petregr_f(model, par, data, auxData, weights, filternm, options)
+function petregr_f(model, par, free, data, auxData, weights, filternm, options)
 
     function call_func(par, data, auxData)
         out=predict(model, par, data, auxData)
@@ -100,23 +100,19 @@ function petregr_f(model, par, data, auxData, weights, filternm, options)
     meanY = YmeanY[2]
     W = struct2vector(weights, nm, st)[1]
 
-    parnm = fieldnames(typeof(par.free))
+    parnm = keys(free)
     np = Int(length(parnm))
     #n_par = sum(cell2mat(struct2cell(par.free)));
     n_par = 0
     for field in parnm
-        n_par += Int(getproperty(par.free, field))
+        n_par += Int(getproperty(free, field))
     end
 
     if n_par == 0
         return # no parameters to iterate
     end
     index = 1:np
-    index = index[vec([
-        getfield(par.free, field) for field in fieldnames(typeof(par.free))
-    ]).==1]
-
-    free = merge(par.free, ) # free is here removed, and after iteration added again
+    index = index[collect(free) .== 1]
     #q = rmfield(par, "free"); # copy input parameter matrix into output TO DO
     q = merge(par, )
     #qvec = cell2mat(struct2cell(q));
