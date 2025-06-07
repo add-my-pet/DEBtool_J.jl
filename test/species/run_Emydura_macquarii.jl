@@ -40,13 +40,12 @@ options = EstimOptions(;
 # using ProfileView
 # @profview parout, nsteps, info, fval = estim_pars(model, options, species, par_model, data_pet)
 
-# get results from Matlab
-file = matopen(joinpath(speciespath, "data", species, "results_$species.mat"))
-varname = "par"
-par_matlab = read(file, varname)
-close(file)
-
 @testset "Parameter consistency" begin
+    # get results from Matlab
+    file = matopen(joinpath(speciespath, "data", species, "results_$species.mat"))
+    varname = "par"
+    par_matlab = read(file, varname)
+    close(file)
     par_names = par[:fieldname] # get the field names
     free = NamedTuple{par_names}(par[:free]) # get the vector of free parameters
     parnm = keys(free)

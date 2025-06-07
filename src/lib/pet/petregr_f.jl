@@ -6,7 +6,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
     parnm = keys(free)
     np = length(parnm)
     index = (1:np)[SVector(values(free)) .== 1]
-    allvec = collect(par[:val])
+    allvec = collect(par[:val])::Vector{Float64}
 
     function call_func(parvec, data, auxData)
         allvec[index] .= parvec
@@ -107,7 +107,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
     W = struct2vector(weights, nm, st)[1]
 
     n_par = sum(free)
-    qvec = collect(par[:val])[index]
+    qvec = collect(par[:val])[index]::Vector{Float64}
 
     # set options if necessary
 
@@ -157,18 +157,19 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
     meanP = PmeanP[2]
     #P = [value(x) for x in values(PmeanP[1])]
     #meanP = [value(x) for x in values(PmeanP[2])]
-    fv = zeros(Float64, 1, Int(n_par) + 1)
+    fv = zeros(Float64, 1, n_par + 1)
     fv[:, 1] .= lossfunction_sb(Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
     #fv(:,1) = feval(fileLossfunc, Y, meanY, P, meanP, W);
 
     # Following improvement suggested by L.Pfeffer at Stanford
     usual_delta = options.simplex_size         # 5 percent deltas is the default for non-zero terms
     zero_term_delta = options.simplex_size / 20 # Even smaller delta for zero elements of q
-    for j = 1:Int(n_par)
-        y = deepcopy(xin)#merge(xin, )
+    y = copy(xin)#merge(xin, )
+    y_test = similar(xin)
+    for j = 1:n_par
         f_test = false
         step_reducer = 1 # step_reducer will serve to reduce usual_delta if the parameter set does not pass the filter
-        y_test = deepcopy(y)#merge(y, )
+        y_test .= y
         while !f_test
             if y[j] != 0
                 y_test[j] = (1 + usual_delta / step_reducer) * y[j]
