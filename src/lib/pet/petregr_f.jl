@@ -3,16 +3,15 @@
 
 ##
 function petregr_f(model, par, free, data, auxData, weights, filternm, options)
-
-    function call_func(par, data, auxData)
-        out=predict(model, par, data, auxData)
-        prdData = out[1]
-        info = out[2]
-        # if ~info
-        #     return
-        # end
-        prdData=predict_pseudodata(par, data, prdData)
-        (prdData, info)
+    function call_func(parvec, data, auxData)
+        par1 = stripparams(ModelParameters.update(par, parvec))
+        prdData, info = predict(model, par1, data, auxData)
+        prdData1 = predict_pseudodata(par1, data, prdData)
+        return prdData1, info
+    end
+    function filter_std1(parvec)
+        par1 = stripparams(ModelParameters.update(par, parvec))
+        filter_std(par1)
     end
     # created 2001/09/07 by Bas Kooijman; 
     # modified 2015/01/29 by Goncalo Marques, 
@@ -101,31 +100,11 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
     W = struct2vector(weights, nm, st)[1]
 
     parnm = keys(free)
-    np = Int(length(parnm))
-    #n_par = sum(cell2mat(struct2cell(par.free)));
-    n_par = 0
-    for field in parnm
-        n_par += Int(getproperty(free, field))
-    end
+    np = length(parnm)
+    n_par = sum(free)
+    index = (1:np)[SVector(values(free)) .== 1]
+    qvec = collect(par[:val])
 
-    if n_par == 0
-        return # no parameters to iterate
-    end
-    index = 1:np
-    index = index[collect(free) .== 1]
-    #q = rmfield(par, "free"); # copy input parameter matrix into output TO DO
-    q = merge(par, )
-    #qvec = cell2mat(struct2cell(q));
-    qvec = []
-    #i = 0
-    for field in fieldnames(typeof(par))
-        #i = i + 1
-        #field = fieldnames(typeof(par))[i]
-        if field != :free
-            aux = getproperty(par, field)
-            append!(qvec, aux...)
-        end
-    end
     # set options if necessary
 
     # if !@isdefined(options.max_step_number) || isempty(options.max_step_number)
@@ -165,10 +144,10 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
     #v[:,1] = xin;
     unit_xin = map(unit, xin)
     v = zeros(Float64, length(xin), Int(n_par) + 1) .* unit_xin
-    v[:, 1] = xin
+    v[:, 1] .= xin
     v_test = zeros(size(v, 1))
     #prdData = (;$petnm = outPseudoData)
-    f = call_func(q, data, auxData)[1]#eval(call_func)[1]
+    f = call_func(qvec, data, auxData)[1]
     PmeanP = struct2vector(f, nm, st)
     P = PmeanP[1]
     meanP = PmeanP[2]
@@ -193,10 +172,8 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
                 y_test[j] = zero_term_delta / step_reducer
             end
             qvec[index] = y_test
-            #q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
-            q = NamedTuple{parnm}(Tuple(qvec))
             #f_test = feval(filternm, q);
-            f_test, flag = filter_std(q) #eval(call_filternm)
+            f_test, flag = filter_std1(qvec) #eval(call_filternm)
 
             if !f_test
                 println(
@@ -205,7 +182,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
                 step_reducer = 2 * step_reducer
             else
                 #[f, f_test] = feval(func, q, data, auxData);
-                f, f_test = call_func(q, data, auxData)#eval(call_func)
+                f, f_test = call_func(qvec, data, auxData)#eval(call_func)
 
                 if !f_test
                     println(
@@ -258,14 +235,13 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
         xr = (1 + rho) * xbar - rho * v[:, np1]
         qvec[index] = xr
         #q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
-        q = NamedTuple{parnm}(Tuple(qvec))
         #f_test = feval(filternm, q);
-        f_test, flag = filter_std(q) #eval(call_filternm)
+        f_test, flag = filter_std1(qvec) #eval(call_filternm)
         if !f_test
             fxr = fv[:, np1] + 1
         else
             #f, f_test = feval(func, q, data, auxData);
-            f, f_test = call_func(q, data, auxData)#eval(call_func)[1]
+            f, f_test = call_func(qvec, data, auxData)#eval(call_func)[1]
             if !f_test
                 fxr = fv[:, np1] + 1
             else
@@ -281,15 +257,14 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
             # Calculate the expansion point
             xe = (1 + rho * chi) .* xbar - rho * chi .* v[:, np1]
             qvec[index] = xe
-            q = NamedTuple{parnm}(Tuple(qvec))
             #q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
-            f_test, flag = filter_std(q) #eval(call_filternm)
+            f_test, flag = filter_std1(qvec) #eval(call_filternm)
             #f_test = feval(filternm, q);
             if !f_test
                 fxe = fxr + 1
             else
                 #[f, f_test] = feval(func, q, data, auxData);
-                f, f_test = call_func(q, data, auxData)#eval(call_func)[1]
+                f, f_test = call_func(qvec, data, auxData)#eval(call_func)[1]
                 if !f_test
                     fxe = fv[:, np1] + 1
                 else
@@ -321,14 +296,13 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
                     xc = [1 + psi * rho] .* xbar - psi * rho .* v[:, np1]
                     #qvec(index) = xc; q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
                     qvec[index] = xc
-                    q = NamedTuple{parnm}(Tuple(qvec))
                     #f_test = feval(filternm, q);
-                    f_test, flag = filter_std(q) #eval(call_filternm)
+                    f_test, flag = filter_std1(qvec) #eval(call_filternm)
                     if !f_test
                         fxc = fxr + 1
                     else
                         #[f, f_test] = feval(func, q, data, auxData);
-                        f, f_test = call_func(q, data, auxData)#eval(call_func)[1]
+                        f, f_test = call_func(qvec, data, auxData)#eval(call_func)[1]
                         if !f_test
                             fxc = fv[1, np1] + 1
                         else
@@ -356,12 +330,12 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
                     qvec[index] = xcc
                     q = NamedTuple{parnm}(Tuple(qvec))
                     #f_test = feval(filternm, q);
-                    f_test, flag = filter_std(q) #eval(call_filternm)
+                    f_test, flag = filter_std1(qvec) #eval(call_filternm)
                     if !f_test
                         fxcc = fv[:, np1] + 1
                     else
                         #[f, f_test] = feval(func, q, data, auxData);
-                        f, f_test = call_func(q, data, auxData)#eval(call_func)[1]
+                        f, f_test = call_func(qvec, data, auxData)#eval(call_func)[1]
                         if !f_test
                             fxcc = fv[1, np1] + 1
                         else
@@ -391,8 +365,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
                             #qvec(index) = v_test; q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
                             #f_test = feval(filternm, q);
                             qvec[index] = v_test
-                            q = NamedTuple{parnm}(Tuple(qvec))
-                            f_test, flag = filter_std(q) #eval(call_filternm)
+                            f_test, flag = filter_std1(qvec) #eval(call_filternm)
                             if !f_test
                                 println(
                                     "The parameter set for the simplex shrinking is not realistic. \n",
@@ -400,7 +373,7 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
                                 step_reducer = 2 * step_reducer
                             else
                                 #[f, f_test] = feval(func, q, data, auxData);
-                                f, f_test = call_func(q, data, auxData)#eval(call_func)[1]
+                                f, f_test = call_func(qvec, data, auxData)#eval(call_func)[1]
                                 if !f_test
                                     println(
                                         "The parameter set for the simplex shrinking is not realistic. \n",
@@ -439,9 +412,9 @@ function petregr_f(model, par, free, data, auxData, weights, filternm, options)
 
     #qvec(index) = v(:,1); q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
     qvec[index] = v[:, 1]
-    q = NamedTuple{parnm}(Tuple(qvec))
+    q = NamedTuple{parnm}(qvec)
     #q.free = free; # add substructure free to q,
-    q = merge(q, (free = free,))
+    q = merge(q, (; free))
 
     fval = minimum(fv)
     if func_evals >= options.max_fun_evals

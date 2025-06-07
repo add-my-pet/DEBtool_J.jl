@@ -13,7 +13,7 @@ function estimate(model, options, par_model, mydata_pet)
 
     filternm = "filter_nat" # this filter always gives a pass
 
-    par, info, nsteps, fval = petregr_f(model, par, par_free, data, auxData, weights, filternm, options)   # estimate parameters using overwrite
+    par, info, nsteps, fval = petregr_f(model, par_model, par_free, data, auxData, weights, filternm, options)   # estimate parameters using overwrite
     return par, nsteps, info, fval
 end
 
