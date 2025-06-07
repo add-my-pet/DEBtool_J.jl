@@ -1,15 +1,7 @@
 function estimate(model, options, par_model, mydata_pet)
     (; data, auxData, metaData, weights) = mydata_pet
 
-    par_names = par_model[:fieldname] # get the field names
-    par_vals = par_model[:val] # get the values
-    par_units = par_model[:units] # get the units
-    par = NamedTuple{par_names}(
-        Tuple([
-            u === nothing ? typeof(v)(v) : v * u for (v, u) in zip(par_vals, par_units)
-        ]),
-    ) # adjoin units to parameter values
-    par_free = NamedTuple{par_names}(par_model[:free]) # get the vector of free parameters
+    par_free = NamedTuple{par_model[:fieldname]}(par_model[:free]) # get the vector of free parameters
 
     filternm = "filter_nat" # this filter always gives a pass
 
