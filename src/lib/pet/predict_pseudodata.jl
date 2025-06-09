@@ -28,8 +28,12 @@ function predict_pseudodata(par, data, prdData)
 
     if haskey(data, :psd)
         cPar = merge(parscomp_st(par), par)
-        common_symbols = Tuple(intersect(keys(data.psd), keys(cPar)))
-        prdData = merge(prdData, (; psd=merge(data.psd, cPar[common_symbols])))
+        common_keys = _common_keys(data.psd, cPar)
+        prdData = merge(prdData, (; psd=merge(data.psd, cPar[common_keys])))
     end
     return prdData
+end
+
+@generated function _common_keys(::NamedTuple{K1}, ::NamedTuple{K2}) where {K1,K2}
+    Expr(:tuple, map(QuoteNode, intersect(K1, K2))...)
 end

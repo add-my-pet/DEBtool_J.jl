@@ -59,14 +59,14 @@ function compute_time(since::Since{<:Birth}, ::At{<:Ultimate}, p, lb)
     return (; t_m=tm)
 end
 
+# TODO: could this range be shorter, or an accuracy parameter?
+const QUAD_RANGE = 1 ./ (4:500)
+
 function _integrate_quad(hW, tG, tm, tm_tail)
     # TODO explain these numbers
-    range = 1 ./ (4:500)
     # These buffers are performance critical
     # integrate_tm_s is the most deeply nested function call
-    buffer1 = Vector{Float64}(undef, length(range))
-    buffer2 = Vector{Float64}(undef, length(range))
-    quadgk(x -> integrate_tm_s!(buffer1, buffer2, range, x * hW, tG), 0, tm * hW)[1][1] + tm_tail
+    quadgk(x -> integrate_tm_s(QUAD_RANGE, x * hW, tG), 0, tm * hW)[1][1] + tm_tail
 end
 
 # was fnget_tm_s
@@ -75,16 +75,19 @@ end
 # integrate ageing surv prob over scaled age
 # t: age * hW 
 # Returns: ageing survival prob
-function integrate_tm_s!(buffer1, buffer2, range, t, tG)
+function integrate_tm_s(range, t, tG)
     hGt = tG * t # age * hG
     if tG > 0
-        buffer1 .= hGt .* range
-        cumprod!(buffer2, buffer1)
         # Compute the scaled dataset
-        exp(-(1 + sum(buffer2)) * t ^ 3)
+        s = c = first(range) * hGt
+        for x in @view range[2:end]
+            c *= hGt * x
+            s += c 
+        end
+        exp(-(oneunit(s) + s) * t^3)
     else # tG < 0
         error("Branch not yet tested!") 
-        exp.((((1 .+ hGt .+ hGt .^ 2 / 2) - exp.(hGt)) * 6 / tG^3)')
+        exp(((oneunit(hGt) + hGt + hGt^2 / 2) - exp(hGt)) * 6 / tG^3)
     end
 end
 
@@ -395,6 +398,17 @@ function compute_length(::At{<:Birth}, p::NamedTuple, eb::Number)
     x = LinRange(1e-6, xb, trunc(Int, n))
     # TODO: get the type from context
     buffer = Vector{Float64}(undef, length(x))
+    buffer1 = Vector{Float64}(undef, length(x))
+    buffer2 = Vector{Float64}(undef, length(x))
+    l = Vector{typeof(g)}(undef, length(x))
+    r = Vector{typeof(g)}(undef, length(x))
+    s = Vector{Float64}(undef, length(x))
+    dlnv = Vector{Float64}(undef, length(x))
+    dlnl = Vector{Float64}(undef, length(x))
+    dv = Vector{Float64}(undef, length(x))
+    dl = Vector{Float64}(undef, length(x))
+    scum = Vector{Float64}(undef, length(x))
+    v = Vector{Float64}(undef, length(x))
     dx = xb / n
     x3 = x .^ (1 / 3)
 
@@ -406,23 +420,22 @@ function compute_length(::At{<:Birth}, p::NamedTuple, eb::Number)
     ni = 100 # max number of iterations
 
     while i < ni && norm > 1e-8
-        l = x3 ./ (xb3 / lb .- b)
-        s = (k .- x) ./ (1 .- x) .* l / g ./ x
-        v = exp.(-dx * cumsum(s))
+        l .= x3 ./ (xb3 ./ lb .- b)
+        s .= (k .- x) ./ (1 .- x) .* l ./ g ./ x
+        v .= exp.(-dx .* cumsum!(scum, s))
         vb = v[trunc(Int, n)]
-        r = (g .+ l)
+        r .= (g .+ l)
         rv = r ./ v
         t = t0 / lb^3 / vb - dx * sum(rv)
         dl = xb3 ./ lb .^ 2 .* l .^ 2 ./ x3
-        dlnl = dl ./ l
-        dv = v .* exp.(-dx * cumsum(s .* dlnl))
+        dlnl .= dl ./ l
+        dv .= v .* exp.(-dx .* cumsum!(buffer1, buffer .= s .* dlnl))
         dvb = dv[trunc(Int, n)]
-        dlnv = dv ./ v
+        dlnv .= dv ./ v
         dlnvb = dlnv[trunc(Int, n)]
         dr = dl
-        dlnr = dr ./ r
-        buffer .= (dlnr .- dlnv) .* rv
-        dt = -t0 / lb^3 / vb * (3 / lb + dlnvb) - dx * sum(buffer)
+        buffer2 .= (dr ./ r .- dlnv) .* rv
+        dt = -t0 / lb^3 / vb * (3 / lb + dlnvb) - dx * sum(buffer2)
         # [i lb t dt] # print progress
         lb = lb - t / dt # Newton Raphson step
         norm = t^2
@@ -463,15 +476,19 @@ function compute_length(::At{<:Puberty}, p::NamedTuple, l0::Number)
     if v_Hp > -a0
         lp = NaN
         info = false
+        error()
         @warn "maturity at puberty cannot be reached"
     elseif v_H0 > v_Hp
         lp = 1
         info = false
+        error()
         @warn "initial maturity exceeds puberty threshold"
     elseif k == oneunit(k)
         info = true
         lp = v_Hp^(1/3)
-    else
+        error()
+    end
+    # else
         info = true
         #lp, info_lp = fzero(fnget_lp, [lb, li], [], a0, a1, a2, a3, lb, li, k, rB, v_H0, v_Hp)
         try
@@ -479,8 +496,8 @@ function compute_length(::At{<:Puberty}, p::NamedTuple, l0::Number)
         catch
             info = false
         end
-    end
+    # end
 
-    return lp, info
+    return lp, info::Bool
 end
 

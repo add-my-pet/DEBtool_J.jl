@@ -35,7 +35,7 @@ options = EstimOptions(;
     method = "nm",
     calibration,
 ) 
-@time parout, nsteps, info, fval = estimate(model, options, par, data)
+@time parout, nsteps, info, fval = estimate(model, options, par, data);
 
 using ProfileView
 @profview parout, nsteps, info, fval = estimate(model, options, par, data)

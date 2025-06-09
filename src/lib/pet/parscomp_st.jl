@@ -56,10 +56,10 @@ function parscomp_st(p)
     # * K: c-mol X/l, half-saturation coefficient
     # * M_H*, U_H*, V_H*, v_H*, u_H*: scaled maturities computed from all unscaled ones: E_H*
     # * s_H: -, maturity ratio E_Hb/ E_Hp
-    if !hasproperty(p, :p_Am)
-        p_Am = p.z * p.p_M / p.kap * 1u"cm"   # J/d.cm^2, {p_Am} spec assimilation flux; the expression for p_Am is multiplied also by L_m^ref = 1 cm, for units to match. 
-    else
+    if hasproperty(p, :p_Am)
         p_Am = p.p_Am
+    else
+        p_Am = p.z * p.p_M / p.kap * 1u"cm"   # J/d.cm^2, {p_Am} spec assimilation flux; the expression for p_Am is multiplied also by L_m^ref = 1 cm, for units to match. 
     end
 
     cPar = (; p_Am)
@@ -84,7 +84,7 @@ function parscomp_st(p)
 
     # -------------------------------------------------------------------------
     # Molecular weights:
-    w_O = n_O' * [12, 1, 16, 14]u"g" / u"mol" # g/mol, mol-weights for (unhydrated)  org. compounds
+    w_O = n_O' * @SVector[12, 1, 16, 14]u"g" / u"mol" # g/mol, mol-weights for (unhydrated)  org. compounds
     w_X = w_O[1]
     w_V = w_O[2]
     w_E = w_O[3]
@@ -109,8 +109,7 @@ function parscomp_st(p)
     J_E_Am = p_Am / p.mu_E          # mol/d.cm^2, {J_EAm}, max surface-spec assimilation flux
 
     cPar = merge(
-        cPar,
-        (; M_V, y_V_E, y_E_V, k_M, k, E_m, m_Em, g = g2, L_m, L_T, l_T, ome, w, J_E_Am),
+        cPar, (; M_V, y_V_E, y_E_V, k_M, k, E_m, m_Em, g = g2, L_m, L_T, l_T, ome, w, J_E_Am),
     )
 
     if hasproperty(p, :E_Hp)
@@ -140,11 +139,12 @@ function parscomp_st(p)
         eta_XA = y_X_E / p.mu_E          # mol/J, food-assim energy coupler
         eta_PA = y_P_E / p.mu_E          # mol/J, faeces-assim energy coupler
         eta_VG = y_V_E / p.mu_E          # mol/J, struct-growth energy coupler
-        eta_O = [
-            -eta_XA 0 0         # mol/J, mass-energy coupler
-            0 0 eta_VG    # used in: J_O = eta_O * p
+        z = zero(eta_XA)
+        eta_O = @SMatrix[
+            -eta_XA z z         # mol/J, mass-energy coupler
+            z z eta_VG    # used in: J_O = eta_O * p
             1/p.mu_E -1/p.mu_E -1/p.mu_E
-            eta_PA 0 0
+            eta_PA z z
         ]
         cPar = merge(cPar, (; y_P_E, eta_XA, eta_PA, eta_VG, eta_O))
     end
@@ -167,9 +167,8 @@ function parscomp_st(p)
         cPar = merge(cPar, (; v_Rj))
     end
 
-    # add the Scaled maturity maturity levels:
-    parNames = string.(fieldnames(typeof(p)))
-    matLev = parNames[findall(x -> x == "E_H", first.(parNames, 3))]
+    parnames = string.(collect(keys(p)))
+    matLev = parnames[findall(x -> x == "E_H", first.(parnames, 3))]
     matInd = replace.(matLev, "E_H" => "")
     mat_H = replace.(matLev, "E_" => "M_")
     mat_U = replace.(matLev, "E_" => "U_")
@@ -177,23 +176,35 @@ function parscomp_st(p)
     mat_V = replace.(matLev, "E_" => "V_")
     mat_v = replace.(matLev, "E_" => "v_")
 
-    for i = 1:length(matInd)
+    return _add_pars(p, cPar, p_Am, g2, k_M)
+end
+
+# This is ugly
+@generated function _add_pars(p::NamedTuple{P}, cPar, p_Am, g2, k_M) where P
+    # add the Scaled maturity levels:
+    parnames = string.(collect(P))
+    matLev = parnames[findall(x -> x == "E_H", first.(parnames, 3))]
+    matInd = replace.(matLev, "E_H" => "")
+    mat_H = replace.(matLev, "E_" => "M_")
+    mat_U = replace.(matLev, "E_" => "U_")
+    mat_u = replace.(matLev, "E_" => "u_")
+    mat_V = replace.(matLev, "E_" => "V_")
+    mat_v = replace.(matLev, "E_" => "v_")
+
+    blocks = map(1:length(matInd)) do i
         stri = matInd[i]
-
-        M_Hx = getproperty(p, Symbol("E_H" * stri)) / p.mu_E
-        cPar = merge(cPar, NamedTuple{(Symbol(mat_H[i]),)}((M_Hx,)))
-
-        U_Hx = getproperty(p, Symbol("E_H" * stri)) / p_Am
-        cPar = merge(cPar, NamedTuple{(Symbol(mat_U[i]),)}((U_Hx,)))
-
-        V_Hx = getproperty(cPar, Symbol("U_H" * stri)) / (1 - p.kap)
-        cPar = merge(cPar, NamedTuple{(Symbol(mat_V[i]),)}((V_Hx,)))
-
-        v_Hx = getproperty(cPar, Symbol("V_H" * stri)) * g2^2 * k_M^3 / p.v^2
-        cPar = merge(cPar, NamedTuple{(Symbol(mat_v[i]),)}((v_Hx,)))
-
-        u_Hx = getproperty(cPar, Symbol("U_H" * stri)) * g2^2 * k_M^3 / p.v^2
-        cPar = merge(cPar, NamedTuple{(Symbol(mat_u[i]),)}((u_Hx,)))
+        quote
+            M_Hx = getproperty(p, $(QuoteNode(Symbol("E_H" * stri)))) / p.mu_E
+            cPar = merge(cPar, NamedTuple{($(QuoteNode(Symbol(mat_H[i]))),)}((M_Hx,)))
+            U_Hx = getproperty(p, $(QuoteNode(Symbol("E_H" * stri)))) / p_Am
+            cPar = merge(cPar, NamedTuple{($(QuoteNode(Symbol(mat_U[i]))),)}((U_Hx,)))
+            V_Hx = getproperty(cPar, $(QuoteNode(Symbol("U_H" * stri)))) / (1 - p.kap)
+            cPar = merge(cPar, NamedTuple{($(QuoteNode(Symbol(mat_V[i]))),)}((V_Hx,)))
+            v_Hx = getproperty(cPar, $(QuoteNode(Symbol("V_H" * stri)))) * g2^2 * k_M^3 / p.v^2
+            cPar = merge(cPar, NamedTuple{($(QuoteNode(Symbol(mat_v[i]))),)}((v_Hx,)))
+            u_Hx = getproperty(cPar, $(QuoteNode(Symbol("U_H" * stri)))) * g2^2 * k_M^3 / p.v^2
+            cPar = merge(cPar, NamedTuple{($(QuoteNode(Symbol(mat_u[i]))),)}((u_Hx,)))
+        end
 
         #cPar.(['M_H', stri]) = p.(['E_H', stri])/ p.mu_E;                 % mmol, maturity at level i
         #cPar.(['U_H', stri]) = p.(['E_H', stri])/ p_Am;                   % cm^2 d, scaled maturity at level i
@@ -201,6 +212,9 @@ function parscomp_st(p)
         #cPar.(['v_H', stri]) = cPar.(['V_H', stri]) * g^2 * k_M^3/ p.v^2; % -, scaled maturity density at level i
         #cPar.(['u_H', stri]) = cPar.(['U_H', stri]) * g^2 * k_M^3/ p.v^2; % -, scaled maturity density at level i 
     end
-
-    return cPar
+    blocks = Expr(:block, blocks...)
+    return quote
+        $blocks
+        return cPar
+    end
 end
