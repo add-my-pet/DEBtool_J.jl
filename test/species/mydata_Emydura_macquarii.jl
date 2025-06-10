@@ -1,3 +1,5 @@
+using StaticArrays
+
 metaData = (;
     phylum="Chordata",
     class="Reptilia",
@@ -35,40 +37,93 @@ ecoCode = (;
     reprod=["O"],
 )
 
-tL1 = [
-    0.981 6.876
-    0.981 7.090
-    1.956 8.369
-    1.956 8.689
-    1.957 9.115
-    1.957 9.435
-    1.957 9.808
-    1.958 10.075
-    1.958 10.235
-    1.983 10.661
-    2.833 11.141
-    2.908 11.354
-    2.931 9.701
-    2.932 10.768
-    2.984 12.420
-    3.008 11.674
-    3.833 13.220
-    3.834 13.326
-    3.834 13.646
-    3.857 12.100
-    3.883 12.420
-    3.883 12.633
-    3.883 12.953
-    3.934 14.072
-]
+# tL1 = [
+#     0.981 6.876
+#     0.981 7.090
+#     1.956 8.369
+#     1.956 8.689
+#     1.957 9.115
+#     1.957 9.435
+#     1.957 9.808
+#     1.958 10.075
+#     1.958 10.235
+#     1.983 10.661
+#     2.833 11.141
+#     2.908 11.354
+#     2.931 9.701
+#     2.932 10.768
+#     2.984 12.420
+#     3.008 11.674
+#     3.833 13.220
+#     3.834 13.326
+#     3.834 13.646
+#     3.857 12.100
+#     3.883 12.420
+#     3.883 12.633
+#     3.883 12.953
+#     3.934 14.072
+# ]
 
 # Define units
 unit_age = u"d"
 unit_length = u"cm"
 
 # Convert the matrix tL1 into a named tuple with units assigned to each column
-tL = hcat(tL1[:, 1] * 365 * unit_age, tL1[:, 2] * unit_length)
+# tL = SMatrix(hcat(tL1[:, 1] .* 365 .* unit_age, tL1[:, 2] .* unit_length))
 # tL = Unitful.K(22Unitful.°C) => tL
+tL = @SVector[
+    6.876
+    7.090
+    8.369
+    8.689
+    9.115
+    9.435
+    9.808
+    10.075
+    10.235
+    10.661
+    11.141
+    11.354
+    9.701
+    10.768
+    12.420
+    11.674
+    13.220
+    13.326
+    13.646
+    12.100
+    12.420
+    12.633
+    12.953
+    14.072
+] * unit_length
+
+tLt = @SVector[
+    0.981
+    0.981
+    1.956
+    1.956
+    1.957
+    1.957
+    1.957
+    1.958
+    1.958
+    1.983
+    2.833
+    2.908
+    2.931
+    2.932
+    2.984
+    3.008
+    3.833
+    3.834
+    3.834
+    3.857
+    3.883
+    3.883
+    3.883
+    3.934
+] * 365 * unit_age
 
 data = (;
     ab=78.0u"d",
@@ -88,8 +143,6 @@ data = (;
     Wwim=3673.0u"g",
     Ri=36.0 / 365.0u"d"
 )
-
-data = merge(data, (; tL))
 
 temp = (;
     ab=Unitful.K(22Unitful.°C),
@@ -135,10 +188,10 @@ bibkey = (
 
 ## set weights for all real data
 weights=DEBtool_J.setweights(data);
-weights=merge(weights, (tL=2*weights.tL,))
+weights=merge(weights, (; tL=2 .* weights.tL))
 ## set pseudodata and respective weights
-(psd, psdLabel, psdweights)=addpseudodata()
-psd=merge(psd, (k=0.3,))
+(psd, psdLabel, psdweights) = addpseudodata()
+psd = merge(psd, (k=0.3,))
 
 label = (;
     ab="age at birth",
@@ -161,11 +214,11 @@ label = (;
     psd=psdLabel,
 )
 
-data=merge(data, (; psd))
-psdweights=merge(psdweights, (k_J=0,))
-psdweights=merge(psdweights, (k=0.1,))
-psd=psdweights
-weights=merge(weights, (; psd))
+data = merge(data, (; psd))
+psdweights = merge(psdweights, (k_J=0,))
+psdweights = merge(psdweights, (k=0.1,))
+psd = psdweights
+weights = merge(weights, (; psd))
 
 # label.psd.k = "maintenance ratio";
 
@@ -209,7 +262,7 @@ comment = (;
     Wwi="",
     Wwim="based on (Lim/Li)^3*Wwi",
     Ri="#/d",
-    tL=["time since birth", "carapace length"],
+    tL="carapace length",
 )
 
 # pack auxData and txtData for output
@@ -223,8 +276,7 @@ comment = (;
 # end
 
 txtData = (; label, bibkey, comment)
-
-auxData = (; temp,)
+auxData = (; temp, tLt)
 
 # ## References
 bibkey = "Wiki";
@@ -260,13 +312,13 @@ bib = [
 #Spen2002 = ["''@" * type * "{" * bibkey * ", " * bib * "}'';"];
 Spen2002 = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
 # metaData.biblist.(bibkey) = ["""@", type, "{", bibkey, ", " bib, "}"";"];
-# #
+
 bibkey = "AnAge";
 type = "Misc";
 bib = "howpublished = {\\url{http://genomics.senescence.info/species/entry.php?species=Emydura_macquarii}}";
 AnAge = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
 #metaData.biblist.(bibkey) = ["""@", type, "{", bibkey, ", " bib, "}"";"];
-# #
+
 bibkey = "carettochelys";
 type = "Misc";
 bib = "howpublished = {\\url{http://www.carettochelys.com/emydura/emydura_mac_mac_3.htm}}";

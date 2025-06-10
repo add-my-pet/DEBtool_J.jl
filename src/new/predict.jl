@@ -2,26 +2,9 @@ function estimate(model, options, par::P, mydata_pet) where P
     (; data, auxData, metaData, weights) = mydata_pet
 
     nm=([string(k) for k in keys(data)[1:(length(data)-1)]]..., ["psd." * string(s) for s in keys(data.psd)]...) # assumes psd is the last item in data
-    # assumes psd is the last item in data
-    nmsize = ones(length(data)-1)
-    for i in 1:length(data)-1
-        if(!isempty(size(data[i])))
-            nmsize[i]=size(data[i], 2)   
-        end
-    end
-    matrix_indices = findall(==(2), nmsize)
-    modmatrices=(;)
-    for i in 1:length(matrix_indices)
-        matrix_extract = data[matrix_indices[i]]
-        matrix_extract = matrix_extract[:,size(matrix_extract, 2)]
-        modmatrices=merge(modmatrices, (keys(data)[matrix_indices[i]] => matrix_extract,))
-    end
-    st=merge(data)
-    for i in 1:length(modmatrices)
-        st=merge(data, (keys(modmatrices)[i] => modmatrices[i],))  
-    end
     # Y: vector with all dependent data, NaNs omitted
     # W: vector with all weights, but those that correspond NaNs in data omitted
+    st = data
     Y, meanY = struct2vector(st, nm, st)
     W = struct2vector(weights, nm, st)[1]
     return estimate_inner(model, options, par, mydata_pet, st, Y, meanY, W, nm)
@@ -96,7 +79,7 @@ function predict(model::DEBOrganism, par, data, auxData) # predict
     RT_i = compute_reproduction(par, L_i, lifestage_state)
 
     # uni-variate data
-    ELw = compute_univariate(Lengths(), Times(data.tL[:, 1]), par, Lw_i, Lw_b)
+    ELw = compute_univariate(Lengths(), Times(auxData.tLt), par, Lw_i, Lw_b)
 
     # pack to output
     prdData = (;

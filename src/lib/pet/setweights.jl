@@ -32,16 +32,20 @@ function setweights(data)
     nm = fieldnames(typeof(data)) # vector of cells with names of data sets
     # TODO: better way to separate zero-, uni-, bi- and tri-variate data
     for i = 1:length(nm)
-        nvar = size(getproperty(data, nm[i]), 2)
-        if nvar == 1 # zero-variate data
-            weight = merge(weight, (nm[i] => 1,))
-        elseif nvar == 2 # uni- or bi-variate data
-            N = size(getproperty(data, nm[i]), 1)
-            weight = merge(weight, (nm[i] => ones(N, nvar - 1) / N / (nvar - 1),))
-        else # tri-variate data
-            N = size(getproperty(data, nm[i]), 1)
-            nvar = size(getproperty(data, nm[i]), 3)
-            weight = merge(weight, (nm[i] => ones(N, nvar, npage) / N / nvar / npage,))
+        d = getproperty(data, nm[i])
+        nvar = size(d, 2)
+        if d isa AbstractArray
+            if nvar == 1 # uni- or bi-variate data
+                N = size(d, 1)
+                weight = merge(weight, (nm[i] => SVector{N}(ones(N)) / N / nvar,))
+            else # tri-variate data
+                error()
+                # N = size(getproperty(data, nm[i]), 1)
+                # nvar = size(getproperty(data, nm[i]), 3)
+                # weight = merge(weight, (nm[i] => ones(N, nvar, npage) / N / nvar / npage,))
+            end
+        else
+            weight = merge(weight, (nm[i] => 1.0,))
         end
     end
     return weight
