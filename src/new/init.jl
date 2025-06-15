@@ -34,3 +34,12 @@ function init_scaled_reserve(p::NamedTuple, l_b::Number)
 
     return (; UE0, Lb, info)
 end
+
+function get_ue0(p::NamedTuple, eb, lb)
+    (; g) = p  # energy investment ratio
+    info = true
+
+    xb = g / (eb + g)
+    uE0 = (3 * g / (3 * g * xb^(1 / 3) / lb - real(beta0(zero(xb), xb))))^3
+    (; uE0, lb, info)
+end

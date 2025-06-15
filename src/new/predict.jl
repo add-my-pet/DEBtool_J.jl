@@ -1,40 +1,39 @@
 function estimate(model, options, par::P, mydata_pet) where P
     (; data, auxData, metaData, weights) = mydata_pet
 
-    nm=([string(k) for k in keys(data)[1:(length(data)-1)]]..., ["psd." * string(s) for s in keys(data.psd)]...) # assumes psd is the last item in data
     # Y: vector with all dependent data, NaNs omitted
     # W: vector with all weights, but those that correspond NaNs in data omitted
-    st = data
-    Y, meanY = struct2vector(st, nm, st)
-    W = struct2vector(weights, nm, st)[1]
-    return estimate_inner(model, options, par, mydata_pet, st, Y, meanY, W, nm)
+    y, meany = struct2vector(data, data)
+    W = struct2vector(weights, data)[1]
+    return estimate_inner(model, options, par, mydata_pet, y, meany, W)
 end
 
-function estimate_inner(model, options, par::P, mydata_pet, st, Y, meanY, W, nm) where P
+function estimate_inner(model, options, par::P, mydata_pet, y, meany, W) where P
     (; data, auxData, metaData, weights) = mydata_pet
 
-    function objective(parvec, data, auxData)
+    function objective(parvec)
         par1 = stripparams(ModelParameters.update(par, parvec)::P)
         prdData, info = predict(model, par1, data, auxData)
-        prdData1 = predict_pseudodata(par1, data, prdData)
+        prdData1 = predict_pseudodata(model, par1, data, prdData)
         return prdData1, info
     end
     function filter(parvec)
-        par1 = stripparams(ModelParameters.update(par, parvec))
-        filter_std(par1)
+        par1 = ModelParameters.stripparams(ModelParameters.update(par, parvec))
+        filter_params(model, par1)
     end
-    function loss(P, meanP)
-        lossfunction_sb(Y, meanY, P, meanP, W)
+    function loss(f)
+        p, meanp = struct2vector(f, data)
+        lossfunction_sb(y, meany, p, meanp, W)
     end
 
-    filternm = "filter_nat" # this filter always gives a pass
-
-    par, info, nsteps, fval = petregr_f(objective, filter, loss, model, par, st, data, auxData, weights, filternm, options, nm)   # estimate parameters using overwrite
+    qvec = collect(par[:val])::Vector{Float64}
+    qvec, info, nsteps, fval = optimize!(objective, filter, loss, qvec; options)
+    par = ModelParameters.update(par, qvec)
     return par, nsteps, info, fval
 end
 
 function predict(model::DEBOrganism, par, data, auxData) # predict
-    cPar = parscomp_st(par)
+    cPar = compound_parameters(model, par)
     d_V = 1Unitful.u"g/cm^3"               # cm, physical length at birth at f
 
     par = merge(par, cPar, (; d_V))

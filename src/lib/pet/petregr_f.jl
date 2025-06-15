@@ -105,7 +105,7 @@ function petregr_f(call_func, filter_std1, loss, model, par, st, data, auxData, 
     v_test = zeros(size(v, 1))
     #prdData = (;$petnm = outPseudoData)
     f = call_func(qvec, data, auxData)[1]
-    P, meanP = struct2vector(f, nm, st)
+    P, meanP = struct2vector(f, st)
     #P = [value(x) for x in values(PmeanP[1])]
     #meanP = [value(x) for x in values(PmeanP[2])]
     fv = zeros(Float64, 1, n_par + 1)
@@ -149,7 +149,7 @@ function petregr_f(call_func, filter_std1, loss, model, par, st, data, auxData, 
             end
         end
         v[:, j+1] = y_test
-        P, meanP = struct2vector(f, nm, st)
+        P, meanP = struct2vector(f, st)
         #fv(:,j+1) = feval(fileLossfunc, Y, meanY, P, meanP, W);
         fv[:, j+1] .= loss(P, meanP) #eval(call_fileLossfunc)
     end
@@ -202,7 +202,7 @@ function petregr_f(call_func, filter_std1, loss, model, par, st, data, auxData, 
                 fxr = fv[:, np1] + 1
             else
                 #[P, meanP] = struct2vector(f, nm, st);
-                P, meanP = struct2vector(f, nm, st)
+                P, meanP = struct2vector(f, st)
                 #fxr = feval(fileLossfunc, Y, meanY, P, meanP, W);
                 fxr = loss(P, meanP) #eval(call_fileLossfunc)
             end
@@ -226,7 +226,7 @@ function petregr_f(call_func, filter_std1, loss, model, par, st, data, auxData, 
                 else
                     #[P, meanP] = struct2vector(f, nm, st);
                     #fxe = feval(fileLossfunc, Y, meanY, P, meanP, W);
-                    P, meanP = struct2vector(f, nm, st)
+                    P, meanP = struct2vector(f, st)
                     fxe = loss(P, meanP)
                 end
             end
@@ -264,7 +264,7 @@ function petregr_f(call_func, filter_std1, loss, model, par, st, data, auxData, 
                         else
                             #[P, meanP] = struct2vector(f, nm, st);
                             #fxc = feval(fileLossfunc, Y, meanY, P, meanP, W);
-                            P, meanP = struct2vector(f, nm, st)
+                            P, meanP = struct2vector(f, st)
                             fxc = loss(P, meanP)
                         end
                     end
@@ -296,7 +296,7 @@ function petregr_f(call_func, filter_std1, loss, model, par, st, data, auxData, 
                         else
                             #[P, meanP] = struct2vector(f, nm, st);
                             #fxcc = feval(fileLossfunc, Y, meanY, P, meanP, W);
-                            P, meanP = struct2vector(f, nm, st)
+                            P, meanP = struct2vector(f, st)
                             fxcc = loss(P, meanP)
                         end
                     end
@@ -338,7 +338,7 @@ function petregr_f(call_func, filter_std1, loss, model, par, st, data, auxData, 
                             end
                         end
                         v[:, j] = v_test
-                        P, meanP = struct2vector(f, nm, st)
+                        P, meanP = struct2vector(f, st)
                         fv[:, j] .= loss(P, meanP)
                     end
                     func_evals = func_evals + n_par
@@ -352,7 +352,7 @@ function petregr_f(call_func, filter_std1, loss, model, par, st, data, auxData, 
         # if itercount == 70
         #     itercount = 70
         # end
-        if options.report && mod(itercount, 10) == 0
+        if options.report && mod(itercount, 100) == 0
             println(
                 "step " * string(itercount) * " ssq ",
                 string(minimum(fv)) * "-",
@@ -389,20 +389,19 @@ function petregr_f(call_func, filter_std1, loss, model, par, st, data, auxData, 
 end
 function struct2vector(structin::NamedTuple, structref)
     combined = _combine(structin, structref)
-    _mean(combined, structref)
     meanstruct = _mean(combined, structref)
-    vec = Flatten.flatten(combined, Real) |> SVector
-    meanvec = Flatten.flatten(meanstruct, Real) |> SVector
+    vec = Flatten.flatten(combined, Number)
+    meanvec = Flatten.flatten(meanstruct, Number)
 
     return vec, meanvec
 end
 function struct2vector(structin, fieldNames, structRef)
-    function get_nested_field(obj, fields::Vector{Symbol})
-        for field in fields
-            obj = getfield(obj, field)
-        end
-        return obj
-    end
+    # function get_nested_field(obj, fields::Vector{Symbol})
+    #     for field in fields
+    #         obj = getfield(obj, field)
+    #     end
+    #     return obj
+    # end
     # structRef has the same structure as struct, but some values can be NaN's; the values themselves are not used
     # struct2vector is called for data (which might have NaN's), but also for predictions, which do not have NaN's
     # vec = ()
@@ -429,44 +428,50 @@ function struct2vector(structin, fieldNames, structRef)
     # end
     # structRef has the same structure as struct, but some values can be NaN's; the values themselves are not used
     # struct2vector is called for data (which might have NaN's), but also for predictions, which do not have NaN's
-    vec = ()  # Initialize empty vector
-    meanVec = ()  # Initialize empty mean vector
-    for i = 1:size(fieldNames, 1)
-        if occursin(".", fieldNames[i])
-            fieldsInCells = split(fieldNames[i], ".")
-            fieldName = Symbol.(fieldsInCells)
-            aux = get_nested_field(structin, fieldName)  # Get field value from struct
-            auxRef = get_nested_field(structRef, fieldName)  # Get field value from struct
-        else
-            fieldName = Symbol(fieldNames[i])  # Use the entire field name
-            aux = getproperty(structin, Symbol(fieldNames[i]))  # Get field value from struct
-            auxRef = getproperty(structRef, Symbol(fieldNames[i]))  # Get field value from struct
-        end
-        #aux = getproperty(structin, Symbol(fieldsInCells))  # Get field value from struct
-        #auxRef = getproperty(structRef, Symbol(fieldsInCells))  # Get corresponding field value from structRef
-        #auxRef = get_nested_field(structRef, fieldName) 
-        if length(aux) == 1
-            #aux = [aux]  # Convert scalar to 1-element array
-            #aux = aux[findall(.!isnan.(auxRef))]  # Remove values that have NaN's in structRef
-            vec = (vec..., (aux))  # Append aux to vec
-            #meanVec = (vec..., (aux[1]))
-        else
-            #aux = vec(aux)[:]  # Convert to 1D array
-            aux = aux[findall(.!isnan.(auxRef))]  # Remove values that have NaN's in structRef
-            vec = (vec..., (aux[:]...))  # Append aux to vec
-           # meanVec = (vec..., (fill(mean(aux), length(aux))))
-        end
-        if length(auxRef) == 1
-            #auxRef = [auxRef]  # Convert scalar to 1-element array
-           # vec = (vec..., (aux[1]))  # Append aux to vec
-            meanVec = (meanVec..., (aux))
-        else
-            #auxRef = vec(auxRef)[:]  # Convert to 1D array
-           # vec = (vec..., (aux[:]))  # Append aux to vec
-            meanVec = (meanVec..., (fill(mean(aux), length(aux))...))
-        end
-        #append!(meanVec, fill(mean(aux), length(aux)))  # Append mean(aux) to meanVec
-    end
+    #vec = ()  # Initialize empty vector
+    #meanVec = ()  # Initialize empty mean vector
+    #for i = 1:size(fieldNames, 1)
+    #    if occursin(".", fieldNames[i])
+    #        fieldsInCells = split(fieldNames[i], ".")
+    #        fieldName = Symbol.(fieldsInCells)
+    #        aux = get_nested_field(structin, fieldName)  # Get field value from struct
+    #        auxRef = get_nested_field(structRef, fieldName)  # Get field value from struct
+    #    else
+    #        fieldName = Symbol(fieldNames[i])  # Use the entire field name
+    #        aux = getproperty(structin, Symbol(fieldNames[i]))  # Get field value from struct
+    #        auxRef = getproperty(structRef, Symbol(fieldNames[i]))  # Get field value from struct
+    #    end
+    #    #aux = getproperty(structin, Symbol(fieldsInCells))  # Get field value from struct
+    #    #auxRef = getproperty(structRef, Symbol(fieldsInCells))  # Get corresponding field value from structRef
+    #    #auxRef = get_nested_field(structRef, fieldName) 
+    #    if length(aux) == 1
+    #        #aux = [aux]  # Convert scalar to 1-element array
+    #        #aux = aux[findall(.!isnan.(auxRef))]  # Remove values that have NaN's in structRef
+    #        vec = (vec..., (aux))  # Append aux to vec
+    #        #meanVec = (vec..., (aux[1]))
+    #    else
+    #        #aux = vec(aux)[:]  # Convert to 1D array
+    #        aux = aux[findall(.!isnan.(auxRef))]  # Remove values that have NaN's in structRef
+    #        vec = (vec..., (aux[:]...))  # Append aux to vec
+    #       # meanVec = (vec..., (fill(mean(aux), length(aux))))
+    #    end
+    #    if length(auxRef) == 1
+    #        #auxRef = [auxRef]  # Convert scalar to 1-element array
+    #       # vec = (vec..., (aux[1]))  # Append aux to vec
+    #        meanVec = (meanVec..., (aux))
+    #    else
+    #        #auxRef = vec(auxRef)[:]  # Convert to 1D array
+    #       # vec = (vec..., (aux[:]))  # Append aux to vec
+    #        meanVec = (meanVec..., (fill(mean(aux), length(aux))...))
+    #    end
+    #    #append!(meanVec, fill(mean(aux), length(aux)))  # Append mean(aux) to meanVec
+    #end
     #aux = aux[.!isnan.(auxRef)] # remove values that have NaN's in structRef - TO DO
-    return (SVector(vec), SVector(meanVec))
+    # out = (vec, meanVec)
+    out2 = struct2vector(structin, structRef)
+    # @show out[1] out2[1]
+    # @show out[2] out2[2]
+    # @assert out[1] == out2[1]
+    # @assert out[2] == out2[2]
+    return out2
 end

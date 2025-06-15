@@ -1,7 +1,19 @@
 ## lossfunction_sb
 # loss function "symmetric bounded"
 ##Y, meanY, P, meanP, W
-function lossfunction_sb(data::S, meanData, prdData, meanPrdData, weights) where {S<:SVector}
+function lossfunction_sb(data, meanData, prdData, meanPrdData, weights)
+    prdData  = map(prdData, data) do p, d
+        p isa Unitful.Quantity ? ustrip(Unitful.unit(d), p) : p
+    end
+    meanPrdData = map(meanPrdData, meanData) do p, d
+        p isa Unitful.Quantity ? ustrip(Unitful.unit(d), p) : p
+    end
+    data = map(ustrip, data)
+    meanData = map(ustrip, meanData)
+    return lossfunction_sb(map(SVector, (data, meanData, prdData, meanPrdData, weights))...)
+end
+function lossfunction_sb(data::SVector, meanData::SVector, prdData::SVector, meanPrdData::SVector, weights::SVector)
+
     # created: 2016/06/06 by Goncalo Marques, modified 2022/01/25 by Bas Kooijman
 
     ## Syntax 

@@ -23,7 +23,7 @@ model = DEBOrganism(
         Embryo() => Birth(),
         Juvenile() => Dimorphic(Female(Puberty()), Male(Puberty())),
         Adult() => Dimorphic(Female(Ultimate()), Male(Ultimate())),
-    )
+    ),
 )
 
 # EstimOptions to replace the globals set by `estim_options` below

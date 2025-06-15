@@ -37,40 +37,11 @@ ecoCode = (;
     reprod=["O"],
 )
 
-# tL1 = [
-#     0.981 6.876
-#     0.981 7.090
-#     1.956 8.369
-#     1.956 8.689
-#     1.957 9.115
-#     1.957 9.435
-#     1.957 9.808
-#     1.958 10.075
-#     1.958 10.235
-#     1.983 10.661
-#     2.833 11.141
-#     2.908 11.354
-#     2.931 9.701
-#     2.932 10.768
-#     2.984 12.420
-#     3.008 11.674
-#     3.833 13.220
-#     3.834 13.326
-#     3.834 13.646
-#     3.857 12.100
-#     3.883 12.420
-#     3.883 12.633
-#     3.883 12.953
-#     3.934 14.072
-# ]
-
 # Define units
 unit_age = u"d"
 unit_length = u"cm"
 
 # Convert the matrix tL1 into a named tuple with units assigned to each column
-# tL = SMatrix(hcat(tL1[:, 1] .* 365 .* unit_age, tL1[:, 2] .* unit_length))
-# tL = Unitful.K(22Unitful.°C) => tL
 tL = @SVector[
     6.876
     7.090
@@ -186,12 +157,18 @@ bibkey = (
     F1="Wiki",
 )
 
-## set weights for all real data
-weights=DEBtool_J.setweights(data);
-weights=merge(weights, (; tL=2 .* weights.tL))
-## set pseudodata and respective weights
-(psd, psdLabel, psdweights) = addpseudodata()
-psd = merge(psd, (k=0.3,))
+
+# set weights for all real data
+weights = DEBtool_J.setweights(data);
+weights = merge(weights, (; tL=2 .* weights.tL))
+
+# set pseudodata and respective weights
+pseudo = addpseudodata()
+@show keys(pseudo)
+# TODO why is k=0.3 here
+data = merge(data, (; pseudo=merge(pseudo.data, (k=0.3,))))
+# TODO why are these extra definitions here
+weights = merge(weights, (; pseudo=merge(pseudo.weight, (k_J=0.0, k=0.1))))
 
 label = (;
     ab="age at birth",
@@ -211,14 +188,8 @@ label = (;
     Wwim="ultimate wet weight for males",
     Ri="maximum reprod rate",
     tL=["time since birth", "carapace length"],
-    psd=psdLabel,
+    pseudo=pseudo.label,
 )
-
-data = merge(data, (; psd))
-psdweights = merge(psdweights, (k_J=0,))
-psdweights = merge(psdweights, (k=0.1,))
-psd = psdweights
-weights = merge(weights, (; psd))
 
 # label.psd.k = "maintenance ratio";
 

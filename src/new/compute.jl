@@ -80,7 +80,8 @@ function integrate_tm_s(range, t, tG)
     if tG > 0
         # Compute the scaled dataset
         s = c = first(range) * hGt
-        for x in @view range[2:end]
+        for i in 2:lastindex(range)
+            x = range[i]
             c *= hGt * x
             s += c 
         end
@@ -298,16 +299,6 @@ _any_male(d::Dimorphic) = _any_male(d.a) || _any_male(d.b)
 _any_male(x::Male) = true
 _any_male(x) = false
 
-
-# was fnget_lp
-function _fn_length_at_puberty(lp, a0, a1, a2, a3, lj, li, k, rB, vHj, vHp)
-    tjrB = (li - lp) / (li - lj) # exp(- tau_p r_B) for tau = scaled time since metam
-    tjk = tjrB^(k / rB)          # exp(- tau_p k)
-    # f = 0 if vH(tau_p) = vHp for varying lp
-    f = vHp + a0 + a1 * tjrB + a2 * tjrB^2 + a3 * tjrB^3 - (vHj + a0 + a1 + a2 + a3) * tjk
-    return f
-end
-
 ## Description
 # Obtains scaled age at birth, given the scaled reserve density at birth. 
 # Divide the result by the somatic maintenance rate coefficient to arrive at age at birth. 
@@ -336,16 +327,20 @@ function compute_time(at::At{<:Birth}, pars::NamedTuple, eb::Number)
 
     xb = g / (eb + g) # f = e_b 
     ab = 3 * g * xb^(1 / 3) / l # \alpha_b
-    τ = 3 * quadgk(x -> _d_time_at_birth(x, ab, xb), 1e-15, xb; atol=1e-6)[1]
+
+    f1 = _beta(xb)
+
+    τ = 3 * quadgk(x -> _d_time_at_birth(x, ab, f1), 1e-15, xb; atol=1e-6)[1]
     return (; τ, l, info)
 end
+
 
 # subfunction
 
 # dget_tb
-function _d_time_at_birth(x::Number, ab::Number, xb::Number)
+function _d_time_at_birth(x::Number, ab::Number, f1::Number)
     # called by get_tb
-    f = x ^ (-2 / 3) / (1 - x) / (ab - real(_beta0(x, xb)))
+    f = x ^ (-2 / 3) / (1 - x) / (ab - real(beta0_precalc_f1(x, f1)))
 end
 
 ## Description
@@ -412,8 +407,8 @@ function compute_length(::At{<:Birth}, p::NamedTuple, eb::Number)
     dx = xb / n
     x3 = x .^ (1 / 3)
 
-    # This is the main performance cost
-    b = real.(_beta0!(buffer, x, xb)) ./ (3 * g)
+    f1 = _beta(xb)
+    b = real.(beta0_precalc_f1.(x, f1)) ./ (3 * g)
     t0 = xb * g * v_Hb
     i = 0
     norm = 1 # make sure that we start Newton Raphson procedure
@@ -488,16 +483,24 @@ function compute_length(::At{<:Puberty}, p::NamedTuple, l0::Number)
         lp = v_Hp^(1/3)
         error()
     end
-    # else
-        info = true
-        #lp, info_lp = fzero(fnget_lp, [lb, li], [], a0, a1, a2, a3, lb, li, k, rB, v_H0, v_Hp)
-        try
-            lp = fzero(lp -> _fn_length_at_puberty(lp, a0, a1, a2, a3, lb, li, k, rB, v_H0, v_Hp), lb, li)
-        catch
-            info = false
-        end
-    # end
+
+    # Find value of lp where f(lp) == 0
+    bounds = (lb, li)
+    v_Hja = v_H0 + a0 + a1 + a2 + a3
+    lilj = 1 / (li - lb)
+    krB = k / rB
+    f = lp -> _fn_length_at_puberty(lp, a0, a1, a2, a3, lilj, li, krB, v_Hja, v_Hp)
+    lp = solve(ZeroProblem(f, bounds), Bisection())
+    info = !isnan(lp)
 
     return lp, info::Bool
 end
 
+# was fnget_lp
+function _fn_length_at_puberty(lp, a0, a1, a2, a3, lilj, li, krB, v_Hja, v_Hp)
+    tjrB = (li - lp) * lilj # exp(- tau_p r_B) for tau = scaled time since metam
+    tjk = tjrB^krB          # exp(- tau_p k)
+    # f = 0 if vH(tau_p) = vHp for varying lp
+    f = v_Hp + a0 + a1 * tjrB + a2 * tjrB^2 + a3 * tjrB^3 - v_Hja * tjk
+    return f
+end

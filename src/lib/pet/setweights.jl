@@ -28,25 +28,21 @@ function setweights(data)
     # computes the missing data weights in structure weight and adds them to it 
     # Function to strip units from values
     # Function to strip units from values
-    weight = (;)
-    nm = fieldnames(typeof(data)) # vector of cells with names of data sets
     # TODO: better way to separate zero-, uni-, bi- and tri-variate data
-    for i = 1:length(nm)
-        d = getproperty(data, nm[i])
-        nvar = size(d, 2)
+    return map(data) do d
         if d isa AbstractArray
+            nvar = size(d, 2)
             if nvar == 1 # uni- or bi-variate data
                 N = size(d, 1)
-                weight = merge(weight, (nm[i] => SVector{N}(ones(N)) / N / nvar,))
+                SVector{N}(ones(N)) / N / nvar
             else # tri-variate data
-                error()
+                error("Multiple columns of data not yet tested")
                 # N = size(getproperty(data, nm[i]), 1)
                 # nvar = size(getproperty(data, nm[i]), 3)
                 # weight = merge(weight, (nm[i] => ones(N, nvar, npage) / N / nvar / npage,))
             end
         else
-            weight = merge(weight, (nm[i] => 1.0,))
+            1.0
         end
     end
-    return weight
 end
