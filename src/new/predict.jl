@@ -1,37 +1,3 @@
-function estimate(model, options, par::P, mydata_pet) where P
-    (; data, auxData, metaData, weights) = mydata_pet
-
-    # Y: vector with all dependent data, NaNs omitted
-    # W: vector with all weights, but those that correspond NaNs in data omitted
-    y, meany = struct2vector(data, data)
-    W = struct2vector(weights, data)[1]
-    return estimate_inner(model, options, par, mydata_pet, y, meany, W)
-end
-
-function estimate_inner(model, options, par::P, mydata_pet, y, meany, W) where P
-    (; data, auxData, metaData, weights) = mydata_pet
-
-    function objective(parvec)
-        par1 = stripparams(ModelParameters.update(par, parvec)::P)
-        prdData, info = predict(model, par1, data, auxData)
-        prdData1 = predict_pseudodata(model, par1, data, prdData)
-        return prdData1, info
-    end
-    function filter(parvec)
-        par1 = ModelParameters.stripparams(ModelParameters.update(par, parvec))
-        filter_params(model, par1)
-    end
-    function loss(f)
-        p, meanp = struct2vector(f, data)
-        lossfunction_sb(y, meany, p, meanp, W)
-    end
-
-    qvec = collect(par[:val])::Vector{Float64}
-    qvec, info, nsteps, fval = optimize!(objective, filter, loss, qvec; options)
-    par = ModelParameters.update(par, qvec)
-    return par, nsteps, info, fval
-end
-
 function predict(model::DEBOrganism, par, data, auxData) # predict
     cPar = compound_parameters(model, par)
     d_V = 1Unitful.u"g/cm^3"               # cm, physical length at birth at f

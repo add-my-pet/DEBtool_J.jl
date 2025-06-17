@@ -26,19 +26,17 @@ model = DEBOrganism(
     ),
 )
 
-# EstimOptions to replace the globals set by `estim_options` below
-options = EstimOptions(;
+# StandardEstimator to replace the globals set by `estim_options` below
+estimator = StandardEstimator(;
+    method = DEBNelderMead(),
     max_step_number = 5000,
     max_fun_evals = 5000,
-    pars_init_method = 2, 
-    results_output = 3, 
-    method = "nm",
     calibration,
 ) 
-@time parout, nsteps, info, fval = estimate(model, options, par, data);
+@time parout, nsteps, info, fval = estimate(estimator, model, par, data);
 
-using ProfileView
-@profview parout, nsteps, info, fval = estimate(model, options, par, data)
+# using ProfileView
+# @profview parout, nsteps, info, fval = estimate(model, options, par, data)
 
 @testset "Parameter consistency" begin
     # get results from Matlab

@@ -12,7 +12,7 @@ using Roots
 using ModelParameters.Flatten
 using StaticArrays
 
-export EstimOptions
+export StandardEstimator, DEBNelderMead, DEBMultimodalEvolutionaryAlgorithm
 export DEBOrganism
 export Arrhenius1parTemperatureResponse, Arrhenius3parTemperatureResponse, Arrhenius5parTemperatureResponse
 export LifeStages, Dimorphic
@@ -36,10 +36,10 @@ include("new/temperature.jl")
 include("new/init.jl")
 include("new/compute.jl")
 include("new/predict.jl")
+include("new/estimation.jl")
 include("new/solvers.jl")
 include("new/parameters.jl")
 include("new/calibration.jl")
-include("new/options.jl")
 include("new/weights.jl")
 include("new/pseudodata.jl")
 

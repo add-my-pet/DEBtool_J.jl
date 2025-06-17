@@ -183,44 +183,7 @@ function calibration_options(key::String, val::String)
             verbose_options = 5 # The number of solutions to show from the 
             # set of optimal solutions found by the
             # algorithm through the calibration process.
-            random_seeds = [
-                2147483647,
-                2874923758,
-                1284092845,
-                2783758913,
-                3287594328,
-                2328947617,
-                1217489374,
-                1815931031,
-                3278479237,
-                3342427357,
-                223758927,
-                3891375891,
-                1781589371,
-                1134872397,
-                2784732823,
-                2183647447,
-                24923758,
-                122845,
-                2783784093,
-                394328,
-                2328757617,
-                12174974,
-                18593131,
-                3287237,
-                33442757,
-                2235827,
-                3837891,
-                17159371,
-                34211397,
-                2842823,
-            ] # The values of the
-            # seed used to
-            # generate random
-            # values (each one
-            # is used in a
-            # single run of the
-            # algorithm). 
+            random_seeds = DEFAULT_RANDOM_SEEDS,
             seed_index = 1 # index for seeds for random number generator
             #rng(random_seeds(seed_index), "twister"); # initialize the number generator is with a seed, to be updated for each run of the calibration method. 
             MersenneTwister(random_seeds[seed_index]) # initialize the number generator is with a seed, to be updated for each run of the calibration method.

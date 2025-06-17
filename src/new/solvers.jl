@@ -1,3 +1,5 @@
+# TODO reorganise where these functions live
+
 # created 2000/08/16 by Bas Kooijman; modified 2011/04/10, 2017/07/24
 
 ## Syntax
@@ -45,7 +47,7 @@ end
 ## was petregr_f
 # Finds parameter values for a pet that minimizes the lossfunction using Nelder Mead's simplex method using a filter
 # TODO: single objective/loss/filter function
-function optimize!(objective, filter, loss, qvec::Vector; options)
+function optimize!(objective, filter, loss, estimator::StandardEstimator{DEBNelderMead}, qvec::Vector)
     info = true # initiate info setting
     n_par = length(qvec)
 
@@ -69,8 +71,8 @@ function optimize!(objective, filter, loss, qvec::Vector; options)
     fv[1] = loss(f)
 
     # Following improvement suggested by L.Pfeffer at Stanford TODO: but what does it do???
-    usual_delta = options.simplex_size         # 5 percent deltas is the default for non-zero terms
-    zero_term_delta = options.simplex_size / 20 # Even smaller delta for zero elements of q
+    usual_delta = estimator.simplex_size         # 5 percent deltas is the default for non-zero terms
+    zero_term_delta = estimator.simplex_size / 20 # Even smaller delta for zero elements of q
     y_test = similar(xin)
     for j in 1:n_par
         f_test = false
@@ -106,7 +108,7 @@ function optimize!(objective, filter, loss, qvec::Vector; options)
     how = "initial"
     itercount = 1
     func_evals = n_par + 1
-    if options.report
+    if estimator.report
         println(
             "step " * string(itercount) * " ssq ",
             string(minimum(fv)) * "-",
@@ -116,13 +118,13 @@ function optimize!(objective, filter, loss, qvec::Vector; options)
     info = true
 
     # Main algorithm
-    # Iterate until the diameter of the simplex is less than options.tol_simplex
-    #   AND the function values differ from the min by less than options.tol_fun,
+    # Iterate until the diameter of the simplex is less than estimator.tol_simplex
+    #   AND the function values differ from the min by less than estimator.tol_fun,
     #   or the max function evaluations are exceeded. (Cannot use OR instead of AND.)
-    while func_evals < options.max_fun_evals && itercount < options.max_step_number
-        #if maximum(Unitful.ustrip(abs.(v[:, two2np1] .- v[:, onesn]))) <= options.tol_simplex && maximum(Unitful.ustrip(abs.(fv[1].-fv[two2np1]))) <= options.tol_fun
+    while func_evals < estimator.max_fun_evals && itercount < estimator.max_step_number
+        #if maximum(Unitful.ustrip(abs.(v[:, two2np1] .- v[:, onesn]))) <= estimator.tol_simplex && maximum(Unitful.ustrip(abs.(fv[1].-fv[two2np1]))) <= estimator.tol_fun
         if maximum(Unitful.ustrip(abs.(view(v, :, two2np1) .- view(v, :, onesn)))) <=
-            options.tol_simplex && maximum(Unitful.ustrip(abs.(fv[1] .- fv[two2np1]))) <= options.tol_fun
+            estimator.tol_simplex && maximum(Unitful.ustrip(abs.(fv[1] .- fv[two2np1]))) <= estimator.tol_fun
             break
         end
         how = ""
@@ -224,7 +226,7 @@ function optimize!(objective, filter, loss, qvec::Vector; options)
         fv = fv[j]
         v = v[:, j]
         itercount = itercount + 1
-        if options.report && mod(itercount, 100) == 0
+        if estimator.report && mod(itercount, 100) == 0
             println(
                 "step " * string(itercount) * " ssq ",
                 string(minimum(fv)) * "-",
@@ -236,20 +238,20 @@ function optimize!(objective, filter, loss, qvec::Vector; options)
     qvec .= v[:, 1]
 
     fval = minimum(fv)
-    if func_evals >= options.max_fun_evals
-        if options.report
+    if func_evals >= estimator.max_fun_evals
+        if estimator.report
             println(
-                "No convergences with " * string(options.max_fun_evals) * " function evaluations\n",
+                "No convergences with " * string(estimator.max_fun_evals) * " function evaluations\n",
             )
         end
         info = false
-    elseif itercount >= options.max_step_number
-        if options.report
-            println("No convergences with " * string(options.max_step_number) * " steps\n")
+    elseif itercount >= estimator.max_step_number
+        if estimator.report
+            println("No convergences with " * string(estimator.max_step_number) * " steps\n")
         end
         info = false
     else
-        if options.report
+        if estimator.report
             println("Successful convergence \n")
         end
         info = true
