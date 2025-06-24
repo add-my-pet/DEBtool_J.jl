@@ -62,7 +62,7 @@ function optimize!(objective, filter, loss, estimator::StandardEstimator{DEBNeld
     np1 = n_par + 1
 
     # Set up a simplex near the initial guess.
-    xin = copy(qvec)    # Place input guess in the simplex
+    xin = copy(qvec) # Place input guess in the simplex
     v = zeros(Float64, length(xin), Int(n_par) + 1)
     fv = zeros(Float64, n_par + 1)
     v_test = zeros(size(v, 1))
@@ -81,10 +81,10 @@ function optimize!(objective, filter, loss, estimator::StandardEstimator{DEBNeld
         step_reducer = 1 # step_reducer will serve to reduce usual_delta if the parameter set does not pass the filter
         y_test .= xin
         while !f_test
-            if xin[j] != 0
-                y_test[j] = (1 + usual_delta / step_reducer) * xin[j]
+            y_test[j] = if xin[j] != 0
+                (1 + usual_delta / step_reducer) * xin[j]
             else
-                y_test[j] = zero_term_delta / step_reducer
+                zero_term_delta / step_reducer
             end
             qvec .= y_test
 
@@ -119,11 +119,10 @@ function optimize!(objective, filter, loss, estimator::StandardEstimator{DEBNeld
     info = true
 
     # Main algorithm
-    # Iterate until the diameter of the simplex is less than estimator.tol_simplex
-    #   AND the function values differ from the min by less than estimator.tol_fun,
+    # Iterate until the diameter of the simplex is less than tol_simplex
+    #   AND the function values differ from the min by less than tol_fun,
     #   or the max function evaluations are exceeded. (Cannot use OR instead of AND.)
     while func_evals < estimator.max_fun_evals && itercount < estimator.max_step_number
-        #if maximum(Unitful.ustrip(abs.(v[:, two2np1] .- v[:, onesn]))) <= estimator.tol_simplex && maximum(Unitful.ustrip(abs.(fv[1].-fv[two2np1]))) <= estimator.tol_fun
         if maximum(Unitful.ustrip(abs.(view(v, :, two2np1) .- view(v, :, onesn)))) <=
             estimator.method.tol_simplex && maximum(Unitful.ustrip(abs.(fv[1] .- fv[two2np1]))) <= estimator.method.tol_fun
             break
@@ -136,14 +135,14 @@ function optimize!(objective, filter, loss, estimator::StandardEstimator{DEBNeld
         xbar = (sum(view(v, :, one2n); dims=2) ./ n_par) 
         xr = (1 + rho) * xbar - rho * v[:, np1]
         qvec .= xr
-        fxr = maybe_objective(objective, filter, loss, qvec, fv)
+        fxr = maybe_objective(objective, filter, loss, qvec, np1, fv)
         func_evals = func_evals + 1
 
         if fxr < fv[1]
             # Calculate the expansion point
             xe = (1 + rho * chi) .* xbar - rho * chi .* v[:, np1]
             qvec .= xe
-            fxe = maybe_objective(objective, filter, loss, qvec, fv)
+            fxe = maybe_objective(objective, filter, loss, qvec, np1, fv)
             func_evals = func_evals + 1
             if fxe < fxr
                 v[:, np1] = xe
@@ -165,7 +164,7 @@ function optimize!(objective, filter, loss, estimator::StandardEstimator{DEBNeld
                     # Perform an outside contraction
                     xc = (1 + psi * rho) .* xbar - psi * rho .* v[:, np1]
                     qvec .= xc
-                    fxc = maybe_objective(objective, filter, loss, qvec, fv)
+                    fxc = maybe_objective(objective, filter, loss, qvec, np1, fv)
                     func_evals = func_evals + 1
 
                     if fxc <= fxr
@@ -181,7 +180,7 @@ function optimize!(objective, filter, loss, estimator::StandardEstimator{DEBNeld
                     # Perform an inside contraction
                     xcc = (1 - psi) .* xbar + psi .* v[:, np1]
                     qvec .= xcc
-                    fxcc = maybe_objective(objective, filter, loss, qvec, fv)
+                    fxcc = maybe_objective(objective, filter, loss, qvec, np1, fv)
                     func_evals = func_evals + 1
 
                     if fxcc < fv[np1]
@@ -300,7 +299,7 @@ Base.@assume_effects :foldable function _mean(x::NamedTuple, ref::NamedTuple{N2}
 end
 
 
-function maybe_objective(objective, filter, loss, qvec, fv)
+function maybe_objective(objective, filter, loss, qvec, np1, fv)
     f_test, flag = filter(qvec)
     if !f_test
         fv[np1] + 1

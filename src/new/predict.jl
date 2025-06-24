@@ -14,7 +14,6 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
     TC_30 = tempcorr(tr, par, temp.ab30)
     TC_Ri = tempcorr(tr, par, temp.Ri)
 
-    par = merge(par, (; TC, TC_30, TC_Ri))
     lifestage_state = compute_transition_state(e, model.lifestages, par)
 
     τ_b =   lifestage_state[Birth()].τ
