@@ -32,11 +32,13 @@ export get_lp, get_tb, get_tp, get_tpm, get_ue0, get_tm_s, initial_scaled_reserv
 export get_lp1, fnget_lp
 
 include("new/types.jl")
+include("new/const.jl")
+include("new/loss.jl")
 include("new/temperature.jl")
 include("new/init.jl")
-include("new/compute.jl")
 include("new/predict.jl")
 include("new/estimation.jl")
+include("new/compute.jl")
 include("new/solvers.jl")
 include("new/parameters.jl")
 include("new/calibration.jl")

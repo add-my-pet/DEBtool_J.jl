@@ -12,9 +12,7 @@ species = "Emydura_macquarii"
     include(joinpath(speciespath, "pars_init_" * species * ".jl"))
 end
 par = StaticModel(par) # create a 'Model' out of the Pars struct
-data = include(joinpath(speciespath, "mydata_" * species * ".jl")) # load the mydata file
-resultsnm = "results_" * species * ".jld2"
-calibration = calibration_options("results_filename", resultsnm)
+speciesdata = include(joinpath(speciespath, "mydata_" * species * ".jl")) # load the mydata file
 
 # compute temperature correction factors
 model = DEBOrganism(

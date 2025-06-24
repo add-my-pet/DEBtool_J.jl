@@ -70,9 +70,11 @@ function optimize!(objective, filter, loss, estimator::StandardEstimator{DEBNeld
     f = objective(qvec)[1]
     fv[1] = loss(f)
 
-    # Following improvement suggested by L.Pfeffer at Stanford TODO: but what does it do???
-    usual_delta = estimator.simplex_size         # 5 percent deltas is the default for non-zero terms
-    zero_term_delta = estimator.simplex_size / 20 # Even smaller delta for zero elements of q
+    # Following improvement suggested by L.Pfeffer at Stanford 
+    # TODO: but what does it do and why is it needed
+    # This code prevents us rolling loss/objective/filter into one function
+    usual_delta = estimator.method.simplex_size         # 5 percent deltas is the default for non-zero terms
+    zero_term_delta = usual_delta / 20 # Even smaller delta for zero elements of q
     y_test = similar(xin)
     for j in 1:n_par
         f_test = false
@@ -108,9 +110,8 @@ function optimize!(objective, filter, loss, estimator::StandardEstimator{DEBNeld
     how = "initial"
     itercount = 1
     func_evals = n_par + 1
-    if estimator.report
-        println(
-            "step " * string(itercount) * " ssq ",
+    if estimator.verbose
+        println("step " * string(itercount) * " ssq ",
             string(minimum(fv)) * "-",
             string(maximum(fv)) * " " * how * "\n"
         )
@@ -124,7 +125,7 @@ function optimize!(objective, filter, loss, estimator::StandardEstimator{DEBNeld
     while func_evals < estimator.max_fun_evals && itercount < estimator.max_step_number
         #if maximum(Unitful.ustrip(abs.(v[:, two2np1] .- v[:, onesn]))) <= estimator.tol_simplex && maximum(Unitful.ustrip(abs.(fv[1].-fv[two2np1]))) <= estimator.tol_fun
         if maximum(Unitful.ustrip(abs.(view(v, :, two2np1) .- view(v, :, onesn)))) <=
-            estimator.tol_simplex && maximum(Unitful.ustrip(abs.(fv[1] .- fv[two2np1]))) <= estimator.tol_fun
+            estimator.method.tol_simplex && maximum(Unitful.ustrip(abs.(fv[1] .- fv[two2np1]))) <= estimator.method.tol_fun
             break
         end
         how = ""
@@ -201,16 +202,12 @@ function optimize!(objective, filter, loss, estimator::StandardEstimator{DEBNeld
                             qvec .= v_test
                             f_test, flag = filter(qvec)
                             if !f_test
-                                println(
-                                    "The parameter set for the simplex shrinking is not realistic. \n",
-                                )
+                                println("The parameter set for the simplex shrinking is not realistic. \n")
                                 step_reducer = 2 * step_reducer
                             else
                                 f, f_test = objective(qvec)
                                 if !f_test
-                                    println(
-                                        "The parameter set for the simplex shrinking is not realistic. \n",
-                                    )
+                                    println("The parameter set for the simplex shrinking is not realistic. \n")
                                     step_reducer = 2 * step_reducer
                                 end
                             end
@@ -226,7 +223,7 @@ function optimize!(objective, filter, loss, estimator::StandardEstimator{DEBNeld
         fv = fv[j]
         v = v[:, j]
         itercount = itercount + 1
-        if estimator.report && mod(itercount, 100) == 0
+        if estimator.verbose && mod(itercount, 100) == 0
             println(
                 "step " * string(itercount) * " ssq ",
                 string(minimum(fv)) * "-",
@@ -239,78 +236,68 @@ function optimize!(objective, filter, loss, estimator::StandardEstimator{DEBNeld
 
     fval = minimum(fv)
     if func_evals >= estimator.max_fun_evals
-        if estimator.report
-            println(
-                "No convergences with " * string(estimator.max_fun_evals) * " function evaluations\n",
-            )
-        end
+        estimator.verbose && println("No convergences with " * string(estimator.max_fun_evals) * " function evaluations\n")
         info = false
     elseif itercount >= estimator.max_step_number
-        if estimator.report
-            println("No convergences with " * string(estimator.max_step_number) * " steps\n")
-        end
+        estimator.verbose && println("No convergences with " * string(estimator.max_step_number) * " steps\n")
         info = false
     else
-        if estimator.report
-            println("Successful convergence \n")
-        end
+        estimator.verbose && println("Successful convergence \n")
         info = true
     end
     return (qvec, info, itercount, fval)
 end
 
-## Description
-# Calculates the loss function
-#   w' (d - f)^2/ (mean_d^2 + mean_f^2)
-# multiplicative symmetric bounded 
-#
-# Input
-#
-# * data: vector with (dependent) data
-# * meanData: vector with mean value of data per set
-# * prdData: vector with predictions
-# * meanPrdData: vector with mean value of predictions per set
-# * weights: vector with weights for the data
-function lossfunction_sb(data, meanData, prdData, meanPrdData, weights)
-    prdData  = map(prdData, data) do p, d
-        p isa Unitful.Quantity ? ustrip(Unitful.unit(d), p) : p
-    end
-    meanPrdData = map(meanPrdData, meanData) do p, d
-        p isa Unitful.Quantity ? ustrip(Unitful.unit(d), p) : p
-    end
-    data = map(ustrip, data)
-    meanData = map(ustrip, meanData)
-    return lossfunction_sb(map(SVector, (data, meanData, prdData, meanPrdData, weights))...)
-end
-function lossfunction_sb(data::SVector, meanData::SVector, prdData::SVector, meanPrdData::SVector, weights::SVector)
-    return sum(weights .* ((data .- prdData) .^ 2 ./ (meanData .^ 2 .+ meanPrdData .^ 2)))
-end
 
-function struct2vector(structin::NamedTuple, structref)
+function struct2vector(structin, structref)
     combined = _combine(structin, structref)
-    meanstruct = _mean(combined, structref)
-    vec = Flatten.flatten(combined, Number)
-    meanvec = Flatten.flatten(meanstruct, Number)
-
-    return vec, meanvec
+    return Flatten.flatten(combined, Number)
 end
+function struct2means(structin, structref)
+    combined = _combine(structin, structref)
+    meanstruct = _mean(structin, structref)
+    return Flatten.flatten(meanstruct, Number)
+end
+
+const SELECT = Union{Number,AbstractArray,AtTemperature}
+
+# function _combine(xs::Union{Tuple,NamedTuple}, refs::NamedTuple)
+#     map(Flatten.flatten(xs, SELECT), Flatten.flatten(refs, SELECT)) do x, ref
+#         _combine(x, ref)
+#     end |> Flatten.flatten
+# end
+_combine(x::Number, ref::AbstractArray) = map(_ -> x, ref)
+_combine(x::AbstractArray, ref::AbstractArray) = x
+_combine(x::Number, ref::Number) = x
+_combine(x::Pair, ref::Pair) = x
+_combine(x::AtTemperature, ref::AtTemperature) = x.x
+_combine(x::SVector, ref::AtTemperature) = _combine(x, ref.x)
+_combine(x::Number, ref::AtTemperature) = _combine(x, ref.x)
+
+
+# function _mean(xs::NamedTuple, refs::NamedTuple)
+#     map(Flatten.flatten(xs, SELECT), Flatten.flatten(refs, SELECT)) do x, ref
+#         _mean(x, ref)
+#     end |> Flatten.flatten
+# end
+_mean(x::Number, ref::AbstractArray) = map(_ -> x, ref)
+_mean(x::AbstractArray, ref::AbstractArray) = (m = mean(x); map(_ -> m, ref))
+_mean(x::Number, ref::Number) = x * 1.0
+_mean(x::AtTemperature, ref::AtTemperature) = only(Flatten.flatten(x.x, SELECT))
+_mean(x::SVector, ref::AtTemperature) = _mean(x, ref.x)
+_mean(x::Number, ref::AtTemperature) = _mean(x, ref.x)
 
 Base.@assume_effects :foldable function _combine(x::NamedTuple, ref::NamedTuple{N2}) where N2
     map(N2) do n
         _combine(x[n], ref[n])
     end |> NamedTuple{N2}
 end
-_combine(x::Number, ref::AbstractArray) = map(_ -> x, ref)
-_combine(x, ref) = x
 
 Base.@assume_effects :foldable function _mean(x::NamedTuple, ref::NamedTuple{N2}) where N2
     map(N2) do n
         _mean(x[n], ref[n])
     end |> NamedTuple{N2}
 end
-_mean(x::Number, ref::AbstractArray) = map(_ -> x, ref)
-_mean(x::AbstractArray, ref::AbstractArray) = (m = mean(x); map(_ -> m, ref))
-_mean(x::Number, ref::Number) = x * 1.0
 
 
 function maybe_objective(objective, filter, loss, qvec, fv)

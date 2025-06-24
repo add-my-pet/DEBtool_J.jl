@@ -21,7 +21,7 @@
 # Obsolete function; please use get_tm_mod.
 # Theory is given in comments on DEB3 Section 6.1.1.
 # See <get_tm.html *get_tm*> for the general case of long growth period relative to life span
-function compute_time(since::Since{<:Birth}, ::At{<:Ultimate}, p, lb)
+function compute_time(e::AbstractEstimator, since::Since{<:Birth}, ::At{<:Ultimate}, p, lb)
     (; g, l_T, ha, s_G, f) = p
 
     # TODO: explain - for numerical stability?
@@ -47,13 +47,13 @@ function compute_time(since::Since{<:Birth}, ::At{<:Ultimate}, p, lb)
     elseif hG > 0
         tm = 10 / hG # upper boundary for main integration of S(t)
         tm_tail = expint(exp(tm * hG) * 6 / tG3) / hG
-        tm = _integrate_quad(hW, tG, tm, tm_tail)
+        tm = _integrate_quad(e, hW, tG, tm, tm_tail)
     else # hG < 0
         error("This hG < 0 branch has never been used")
         tm = -1e4 / hG # upper boundary for main integration of S(t)
         hw = hW * sqrt(-3 / tG) # scaled hW
         tm_tail = sqrt(pi) * erfc(tm * hw) / 2 / hw 
-        tm = _integrate_quad(hW, tG, tm, tm_tail)
+        tm = _integrate_quad(e, hW, tG, tm, tm_tail)
     end
 
     return (; t_m=tm)
@@ -62,7 +62,7 @@ end
 # TODO: could this range be shorter, or an accuracy parameter?
 const QUAD_RANGE = 1 ./ (4:500)
 
-function _integrate_quad(hW, tG, tm, tm_tail)
+function _integrate_quad(e::AbstractEstimator, hW, tG, tm, tm_tail)
     # TODO explain these numbers
     # These buffers are performance critical
     # integrate_tm_s is the most deeply nested function call
@@ -98,36 +98,36 @@ end
 #
 # Reduce over all lifestages computing basic variables
 # The output state of each transition is used as input state for the next
-function compute_transition_state(ls::LifeStages, pars)
+function compute_transition_state(e::AbstractEstimator, ls::LifeStages, pars)
     init = (Init((;)),)
     # Reduce over all transitions, where each uses the state of the previous
     states = foldl(values(ls); init) do transition_states, (lifestage, transition)
         prevstate = last(transition_states)
-        transition_state = compute_transition_state(transition, pars, prevstate)
+        transition_state = compute_transition_state(e, transition, pars, prevstate)
         (transition_states..., transition_state)
     end
     # Remove the init state
     return LifeStages(Base.tail(states))
 end
 # Handle Dimorphism: split the transition to male and female
-compute_transition_state(t::Dimorphic, pars, state) =
-    Dimorphic(compute_transition_state(t.a, pars, state), compute_transition_state(t.b, pars, state))
-compute_transition_state(t::Dimorphic, pars, state::Dimorphic) =
-    Dimorphic(compute_transition_state(t.a, pars, state.a), compute_transition_state(t.b, pars, state.b))
-compute_transition_state(t::AbstractTransition, pars, state::Dimorphic) =
-    Dimorphic(compute_transition_state(t, pars, state.a), compute_transition_state(t, pars, state.b))
-compute_transition_state(sex::Female, pars, state) = 
-    Female(compute_transition_state(sex.val, pars, state))
-function compute_transition_state(t::Male, pars, state)
+compute_transition_state(e::AbstractEstimator, t::Dimorphic, pars, state) =
+    Dimorphic(compute_transition_state(e, t.a, pars, state), compute_transition_state(e, t.b, pars, state))
+compute_transition_state(e::AbstractEstimator, t::Dimorphic, pars, state::Dimorphic) =
+    Dimorphic(compute_transition_state(e, t.a, pars, state.a), compute_transition_state(e, t.b, pars, state.b))
+compute_transition_state(e::AbstractEstimator, t::AbstractTransition, pars, state::Dimorphic) =
+    Dimorphic(compute_transition_state(e, t, pars, state.a), compute_transition_state(e, t, pars, state.b))
+compute_transition_state(e::AbstractEstimator, sex::Female, pars, state) = 
+    Female(compute_transition_state(e, sex.val, pars, state))
+function compute_transition_state(e::AbstractEstimator, t::Male, pars, state)
     pars_male = merge(pars, pars.male)
-    return Male(compute_transition_state(t.val, pars_male, state))
+    return Male(compute_transition_state(e, t.val, pars_male, state))
 end
 
 # This is the actual transition state code!
-function compute_transition_state(transition::Birth, pars, state)
+function compute_transition_state(e::AbstractEstimator, transition::Birth, pars, state)
     (; L_m, del_M, d_V, k_M, w, f, TC, TC_30) = pars
 
-    τ, l, info = compute_time(At(transition), pars, f)
+    τ, l, info = compute_time(e, At(transition), pars, f)
     L = L_m * l                        # cm, structural length at birth at f
     Lw = L / del_M
     Ww = wet_weight(transition, L, d_V, f, w)
@@ -139,7 +139,7 @@ function compute_transition_state(transition::Birth, pars, state)
     end
     Birth((; l, L, Lw, Ww, τ, aT))
 end
-function compute_transition_state(trans::Puberty, pars, state)
+function compute_transition_state(e::AbstractEstimator, trans::Puberty, pars, state)
     (; L_m, del_M, d_V, k_M, w, TC, l_T, g, f) = pars
 
     # Calculate necessary parameters
@@ -147,7 +147,7 @@ function compute_transition_state(trans::Puberty, pars, state)
     l_i = f - l_T
     l_d = l_i - state.val.l
 
-    l, info = compute_length(At(trans), pars, state.val.l)
+    l, info = compute_length(e, At(trans), pars, state.val.l)
     τ = state.val.τ + log(l_d / (l_i - l)) / rho_B
 
     # Check if τ_p is real and positive
@@ -162,7 +162,7 @@ function compute_transition_state(trans::Puberty, pars, state)
 
     return Puberty((; l, L, Lw, Ww, τ, tT))
 end
-function compute_transition_state(t::Ultimate, pars, state)
+function compute_transition_state(e::AbstractEstimator, t::Ultimate, pars, state)
     (; f, l_T, L_m, del_M, d_V, w) = pars
     l = f - l_T                    # -, scaled ultimate length
     L = L_m * l                    # cm, ultimate structural length at f
@@ -175,17 +175,17 @@ end
 wet_weight(::Union{Sex,AbstractTransition}, L, d_V, f, ω) =
     L^3 * d_V * (oneunit(f) + f * ω) # transition wet weight
 
-function compute_lifespan(pars, l_b)
+function compute_lifespan(e::AbstractEstimator, pars, l_b)
     (; h_a, k_M, TC) = pars
     # TODO this merge is awful fix and explain ha/h_a
     pars_tm = merge(pars, (; ha=h_a / k_M^2))  # compose parameter vector at T_ref
-    (; t_m) = compute_time(Age(), At(Ultimate()), pars_tm, l_b) # -, scaled mean life span at T_ref
+    (; t_m) = compute_time(e, Age(), At(Ultimate()), pars_tm, l_b) # -, scaled mean life span at T_ref
     am = t_m / k_M
     return aT_m = am / TC
 end
 
-function compute_reproduction(pars::NamedTuple, L_i, lifestages_state)
-    (; R) = compute_reproduction_rate(pars, L_i, lifestages_state)
+function compute_reproduction(e::AbstractEstimator, pars::NamedTuple, L_i, lifestages_state)
+    (; R) = compute_reproduction_rate(e, pars, L_i, lifestages_state)
     RT_i = pars.TC_Ri * R[1] # ultimate reproduction rate at T
     return RT_i
 end
@@ -235,7 +235,7 @@ end
 #  SC = f (g/ L + (1 + LT/L)/ Lm)/ (f + g); Lm = v/ (kM g)
 #
 # unpack parameters; parameter sequence, cf get_pars_r
-function compute_reproduction_rate(p::NamedTuple, L, lifestages_state)
+function compute_reproduction_rate(e::AbstractEstimator, p::NamedTuple, L, lifestages_state)
     (; kap, kap_R, g, f, k_J, k_M, L_T, v, U_Hb, U_Hp, v_Hb, v_Hp) = p
 
     L_m = v / (k_M * g) # maximum length
@@ -273,7 +273,7 @@ end
 # end
 # function compute_univariate(::ReprodRates, at::Temperatures, pars, Lw_i, Lw_b)
 # end
-function compute_univariate(::Lengths, at::Times, pars, Lw_i, Lw_b)
+function compute_univariate(e::AbstractEstimator, ::Lengths, at::Times, pars, Lw_i, Lw_b)
     (; TC, k_M, f, g) = pars
     rT_B = TC * k_M / 3 / (oneunit(f) + f / g)
     return Lw_i .- (Lw_i - Lw_b) * exp.(-rT_B * at.val)
@@ -320,9 +320,9 @@ _any_male(x) = false
 ## Remarks
 # See also <get_tb1.html *get_tb1*> for backward integration over maturity and
 # <get_tb_foetus.html *get_tb_foetus*> for foetal development
-function compute_time(at::At{<:Birth}, pars::NamedTuple, eb::Number)
+function compute_time(e::AbstractEstimator, at::At{<:Birth}, pars::NamedTuple, eb::Number)
     info = true
-    l, info = compute_length(at, pars, eb)
+    l, info = compute_length(e, at, pars, eb)
     (; g) = pars  # energy investment ratio
 
     xb = g / (eb + g) # f = e_b 
@@ -372,7 +372,7 @@ end
 # Bisection method (via fzero): <get_lb3.html *get_lb3*>.
 # In case of no convergence, <get_lb2.html *get_lb2*> is run automatically as backup.
 # Consider the application of <get_lb_foetus.html *get_lb_foetus*> for an alternative initial value.
-function compute_length(::At{<:Birth}, p::NamedTuple, eb::Number)
+function compute_length(e::AbstractEstimator, ::At{<:Birth}, p::NamedTuple, eb::Number)
     (; g, k, v_Hb) = p   # g = [E_G] * v/ kap * {p_Am}, energy investment ratio
     # k = k_J/ k_M, ratio of maturity and somatic maintenance rate coeff
     # v_H^b = U_H^b g^2 kM^3/ (1 - kap) v^2; U_H^b = M_H^b/ {J_EAm}
@@ -449,7 +449,7 @@ function compute_length(::At{<:Birth}, p::NamedTuple, eb::Number)
 end
 
 # was get_lp1
-function compute_length(::At{<:Puberty}, p::NamedTuple, l0::Number)
+function compute_length(e::AbstractEstimator, ::At{<:Puberty}, p::NamedTuple, l0::Number)
     (; g, k, l_T, v_Hb, v_Hp, f) = p
     sM = haskey(p, :sM) ? p.sM : 1.0
     v_H0 = v_Hb

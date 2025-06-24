@@ -98,6 +98,7 @@ end
 struct Female{T} <: Sex{T}
     val::T
 end
+(::Type{T})() where T<:Sex = T(nothing)
 
 @kwdef struct Dimorphic{A,B}
     a::A
@@ -118,13 +119,28 @@ Base.@assume_effects :foldable function Base.getindex(stages::LifeStages, stage:
 end
 Base.@assume_effects :foldable function Base.getindex(stages::LifeStages, stage::Union{AbstractLifeStage,AbstractTransition,Sex,Dimorphic}) 
     # Get the stage in stages matching `stage`
-    foldl(values(stages); init=nothing) do acc, x
+    out = foldl(values(stages); init=nothing) do acc, x
         if isnothing(acc)
             _match(x, stage)
         else
             acc # found just return it
         end
     end 
+    isnothing(out) && throw(ArgumentError("No object found matching $(basetypeof(stage))"))
+    return out
+end
+Base.@assume_effects :foldable function Base.getindex(stages::LifeStages, sex::Sex{Nothing}) 
+    map(stages.lifestages) do stage
+        stage isa Dimorphic ? stage[sex] : stage
+    end |> LifeStages
+end
+
+Base.@assume_effects :foldable function Base.getindex(x::Dimorphic, sex::Sex) 
+    if x.a isa basetypeof(sex)
+        x.a
+    else
+        x.b isa basetypeof(sex) ? x.b : throw(ArgumentError("$sex not found in $x"))
+    end
 end
 
 @inline function _match(x::Dimorphic, stage::Sex) 
@@ -285,3 +301,9 @@ At{T}() where T = At(T())
 
 # Age is a convenience const for Since{Birth}
 const Age = Since{Birth}
+
+struct AtTemperature{T,X}
+    t::T
+    x::X
+end
+

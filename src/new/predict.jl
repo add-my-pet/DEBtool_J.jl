@@ -1,4 +1,5 @@
-function predict(model::DEBOrganism, par, data, auxData) # predict
+function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # predict
+    (; weights, data, auxData) = speciesdata
     cPar = compound_parameters(model, par)
     d_V = 1Unitful.u"g/cm^3"               # cm, physical length at birth at f
 
@@ -14,7 +15,7 @@ function predict(model::DEBOrganism, par, data, auxData) # predict
     TC_Ri = tempcorr(tr, par, temp.Ri)
 
     par = merge(par, (; TC, TC_30, TC_Ri))
-    lifestage_state = compute_transition_state(model.lifestages, par)
+    lifestage_state = compute_transition_state(e, model.lifestages, par)
 
     τ_b =   lifestage_state[Birth()].τ
     l_b =   lifestage_state[Birth()].l
@@ -40,11 +41,11 @@ function predict(model::DEBOrganism, par, data, auxData) # predict
     Lw_im = lifestage_state[Male(Ultimate())].Lw
     Ww_im = lifestage_state[Male(Ultimate())].Ww
 
-    aT_m = compute_lifespan(par, l_b)
-    RT_i = compute_reproduction(par, L_i, lifestage_state)
+    aT_m = compute_lifespan(e, par, l_b)
+    RT_i = compute_reproduction(e, par, L_i, lifestage_state)
 
     # uni-variate data
-    ELw = compute_univariate(Lengths(), Times(auxData.tLt), par, Lw_i, Lw_b)
+    ELw = compute_univariate(e, Lengths(), Times(auxData.tLt), par, Lw_i, Lw_b)
 
     # pack to output
     prdData = (;
