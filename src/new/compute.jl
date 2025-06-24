@@ -127,22 +127,18 @@ end
 
 # This is the actual transition state code!
 function compute_transition_state(e::AbstractEstimator, transition::Birth, pars, ls::LifeStages, state)
-    (; L_m, del_M, d_V, k_M, w, f, TC, TC_30) = pars
+    (; L_m, del_M, d_V, k_M, w, f) = pars
 
     τ, l, info = compute_time(e, At(transition), pars, f)
     L = L_m * l                        # cm, structural length at birth at f
     Lw = L / del_M
     Ww = wet_weight(transition, L, d_V, f, w)
-    a = τ / k_M
+    a = τ / k_M # TODO is this correct
     # TODO generalise for multiple temperatures
-    temps = (TC, TC_30)
-    aT = map(temps) do T
-        a / T
-    end
-    Birth((; l, L, Lw, Ww, τ, aT))
+    Birth((; l, L, Lw, Ww, τ, a))
 end
 function compute_transition_state(e::AbstractEstimator, trans::Puberty, pars, ls::LifeStages, state)
-    (; L_m, del_M, d_V, k_M, w, TC, l_T, g, f) = pars
+    (; L_m, del_M, d_V, k_M, w, l_T, g, f) = pars
 
     # Calculate necessary parameters
     rho_B = 1 / (3 * (1 + f / g))
@@ -152,17 +148,17 @@ function compute_transition_state(e::AbstractEstimator, trans::Puberty, pars, ls
     l, info = compute_length(e, At(trans), pars, state.val.l)
     τ = state.val.τ + log(l_d / (l_i - l)) / rho_B
 
-    # Check if τ_p is real and positive
+    # Check if τ is real and positive
     if !isreal(τ) || τ < zero(τ)
         info = false
     end
 
-    tT = (τ - state.val.τ) / k_M / TC  # d, time since birth at puberty
+    t = (τ - state.val.τ) / k_M    # d, time since birth at puberty
     L = L_m * l                    # cm, structural length at puberty
     Lw = L / del_M                 # cm, plastron length at puberty
     Ww = wet_weight(trans, L, d_V, f, w)
-
-    return Puberty((; l, L, Lw, Ww, τ, tT))
+    a = τ / k_M # TODO is this correct
+    return Puberty((; l, L, Lw, Ww, τ, t, a))
 end
 function compute_transition_state(e::AbstractEstimator, transition::Ultimate, pars, ls::LifeStages, state)
     (; f, l_T, L_m, del_M, d_V, w) = pars
@@ -178,18 +174,12 @@ wet_weight(::Union{Sex,AbstractTransition}, L, d_V, f, ω) =
     L^3 * d_V * (oneunit(f) + f * ω) # transition wet weight
 
 function compute_lifespan(e::AbstractEstimator, pars, l_b)
-    (; h_a, k_M, TC) = pars
+    (; h_a, k_M) = pars
     # TODO this merge is awful fix and explain ha/h_a
     pars_tm = merge(pars, (; ha=h_a / k_M^2))  # compose parameter vector at T_ref
     (; t_m) = compute_time(e, Age(), At(Ultimate()), pars_tm, l_b) # -, scaled mean life span at T_ref
     am = t_m / k_M
-    return aT_m = am / TC
-end
-
-function compute_reproduction(e::AbstractEstimator, pars::NamedTuple, L_i, lifestages_state)
-    (; R) = compute_reproduction_rate(e, pars, L_i, lifestages_state)
-    RT_i = pars.TC_Ri * R[1] # ultimate reproduction rate at T
-    return RT_i
+    return am
 end
 
 # was reprod_rate
@@ -237,8 +227,10 @@ end
 #  SC = f (g/ L + (1 + LT/L)/ Lm)/ (f + g); Lm = v/ (kM g)
 #
 # unpack parameters; parameter sequence, cf get_pars_r
-function compute_reproduction_rate(e::AbstractEstimator, p::NamedTuple, L, lifestages_state)
+function compute_reproduction_rate(e::AbstractEstimator, p::NamedTuple, lifestages_state)
     (; kap, kap_R, g, f, k_J, k_M, L_T, v, U_Hb, U_Hp, v_Hb, v_Hp) = p
+
+    L = lifestages_state[Female(Ultimate())].L
 
     L_m = v / (k_M * g) # maximum length
     k = k_J / k_M       # -, maintenance ratio
@@ -275,11 +267,14 @@ end
 # end
 # function compute_univariate(::ReprodRates, at::Temperatures, pars, Lw_i, Lw_b)
 # end
-function compute_univariate(e::AbstractEstimator, ::Lengths, at::Times, pars, Lw_i, Lw_b)
-    (; TC, k_M, f, g) = pars
+function compute_univariate(e::AbstractEstimator, ::Lengths, at::Times, pars, lifestages_state, TC)
+    (; k_M, f, g) = pars
+    Lw_b = lifestages_state[Birth()].Lw
+    Lw_i = lifestages_state[Female(Ultimate())].Lw
     rT_B = TC * k_M / 3 / (oneunit(f) + f / g)
-    return Lw_i .- (Lw_i - Lw_b) * exp.(-rT_B * at.val)
+    return Lw_i .- (Lw_i .- Lw_b) .* exp.(-rT_B .* at.val)
 end
+
 ## Description
 # Obtains scaled age at birth, given the scaled reserve density at birth. 
 # Divide the result by the somatic maintenance rate coefficient to arrive at age at birth. 
@@ -487,7 +482,8 @@ function _fn_length_at_puberty(lp, a0, a1, a2, a3, lilj, li, krB, v_Hja, v_Hp)
     return f
 end
 
-# TODO: generalise dimorphism to other differences, like multiple male morphs
+# TODO: put parameters in objects so this isn't needed
+# ending params with _m is bad and has multiple meanings
 function compute_male_params(model::DEBOrganism, par)
     _any_male(model.lifestages) || return (;)
 
@@ -506,4 +502,3 @@ _any_male(p::Pair) = _any_male(p[1]) || _any_male(p[2])
 _any_male(d::Dimorphic) = _any_male(d.a) || _any_male(d.b)
 _any_male(x::Male) = true
 _any_male(x) = false
-

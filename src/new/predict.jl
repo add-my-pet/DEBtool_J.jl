@@ -22,9 +22,9 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
     L_b =   lifestage_state[Birth()].L
     Lw_b =  lifestage_state[Birth()].Lw
     Ww_b =  lifestage_state[Birth()].Ww
-    aT_b =  lifestage_state[Birth()].aT[1]
-    a30_b = lifestage_state[Birth()].aT[2]
-    tT_p =  lifestage_state[Female(Puberty())].tT
+    a_b =  lifestage_state[Birth()].a
+    a30_b = lifestage_state[Birth()].a
+    t_p =  lifestage_state[Female(Puberty())].t
     τ_p =   lifestage_state[Female(Puberty())].τ
     L_p =   lifestage_state[Female(Puberty())].L
     Lw_p =  lifestage_state[Female(Puberty())].Lw
@@ -33,7 +33,7 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
     L_i =   lifestage_state[Female(Ultimate())].L
     Lw_i =  lifestage_state[Female(Ultimate())].Lw
     Ww_i =  lifestage_state[Female(Ultimate())].Ww
-    tT_pm = lifestage_state[Male(Puberty())].tT
+    t_pm = lifestage_state[Male(Puberty())].t
     L_pm =  lifestage_state[Male(Puberty())].L
     Lw_pm = lifestage_state[Male(Puberty())].Lw
     Ww_pm = lifestage_state[Male(Puberty())].Ww
@@ -41,19 +41,19 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
     Lw_im = lifestage_state[Male(Ultimate())].Lw
     Ww_im = lifestage_state[Male(Ultimate())].Ww
 
-    aT_m = compute_lifespan(e, par, l_b)
-    RT_i = compute_reproduction(e, par, L_i, lifestage_state)
+    a_m = compute_lifespan(e, par, l_b)
+    (; R) = compute_reproduction_rate(e, par, lifestage_state)
 
     # uni-variate data
-    ELw = compute_univariate(e, Lengths(), Times(auxData.tLt), par, Lw_i, Lw_b)
+    ELw = compute_univariate(e, Lengths(), Times(auxData.tLt), par, lifestage_state, TC)
 
     # pack to output
     prdData = (;
-        ab=aT_b,
-        ab30=a30_b,
-        tp=tT_p,
-        tpm=tT_pm,
-        am=aT_m,
+        ab=a_b / TC,
+        ab30=a30_b / TC_30,
+        tp=t_p / TC,
+        tpm=t_pm / TC,
+        am=a_m / TC,
         Lb=Lw_b,
         Lp=Lw_p,
         Lpm=Lw_pm,
@@ -64,7 +64,7 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
         Wwpm=Ww_pm,
         Wwi=Ww_i,
         Wwim=Ww_im,
-        Ri=RT_i,
+        Ri=R * TC_Ri,
         tL=ELw,
     )
     info = true # TODO get this from solves
