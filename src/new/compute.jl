@@ -63,9 +63,9 @@ end
 const QUAD_RANGE = 1 ./ (4:500)
 
 function _integrate_quad(e::AbstractEstimator, hW, tG, tm, tm_tail)
-    # TODO explain these numbers
     # These buffers are performance critical
     # integrate_tm_s is the most deeply nested function call
+    # TODO explain what 0 is, why is atol not specified
     quadgk(x -> integrate_tm_s(QUAD_RANGE, x * hW, tG), 0, tm * hW)[1][1] + tm_tail
 end
 
@@ -103,28 +103,30 @@ function compute_transition_state(e::AbstractEstimator, ls::LifeStages, pars)
     # Reduce over all transitions, where each uses the state of the previous
     states = foldl(values(ls); init) do transition_states, (lifestage, transition)
         prevstate = last(transition_states)
-        transition_state = compute_transition_state(e, transition, pars, prevstate)
+        transition_state = compute_transition_state(e, transition, pars, LifeStages(transition_states), prevstate)
         (transition_states..., transition_state)
     end
     # Remove the init state
     return LifeStages(Base.tail(states))
 end
 # Handle Dimorphism: split the transition to male and female
-compute_transition_state(e::AbstractEstimator, t::Dimorphic, pars, state) =
-    Dimorphic(compute_transition_state(e, t.a, pars, state), compute_transition_state(e, t.b, pars, state))
-compute_transition_state(e::AbstractEstimator, t::Dimorphic, pars, state::Dimorphic) =
-    Dimorphic(compute_transition_state(e, t.a, pars, state.a), compute_transition_state(e, t.b, pars, state.b))
-compute_transition_state(e::AbstractEstimator, t::AbstractTransition, pars, state::Dimorphic) =
-    Dimorphic(compute_transition_state(e, t, pars, state.a), compute_transition_state(e, t, pars, state.b))
-compute_transition_state(e::AbstractEstimator, sex::Female, pars, state) = 
-    Female(compute_transition_state(e, sex.val, pars, state))
-function compute_transition_state(e::AbstractEstimator, t::Male, pars, state)
+compute_transition_state(e::AbstractEstimator, t::Dimorphic, pars, ls::LifeStages, state) =
+    Dimorphic(compute_transition_state(e, t.a, pars, ls[basetypeof(t.a)()], state), 
+              compute_transition_state(e, t.b, pars, ls[basetypeof(t.b)()], state))
+compute_transition_state(e::AbstractEstimator, t::Dimorphic, pars, ls::LifeStages, state::Dimorphic) =
+    Dimorphic(compute_transition_state(e, t.a, pars, ls[basetypeof(state.a)()], state.a), 
+              compute_transition_state(e, t.b, pars, ls[basetypeof(state.b)()], state.b))
+compute_transition_state(e::AbstractEstimator, t::AbstractTransition, pars, ls, state::Dimorphic) =
+    Dimorphic(compute_transition_state(e, t, pars, ls, state.a), compute_transition_state(e, t, pars, ls, state.b))
+compute_transition_state(e::AbstractEstimator, sex::Female, pars, ls::LifeStages, state) = 
+    Female(compute_transition_state(e, sex.val, pars, ls, state))
+function compute_transition_state(e::AbstractEstimator, t::Male, pars, ls::LifeStages, state)
     pars_male = merge(pars, pars.male)
-    return Male(compute_transition_state(e, t.val, pars_male, state))
+    return Male(compute_transition_state(e, t.val, pars_male, ls, state))
 end
 
 # This is the actual transition state code!
-function compute_transition_state(e::AbstractEstimator, transition::Birth, pars, state)
+function compute_transition_state(e::AbstractEstimator, transition::Birth, pars, ls::LifeStages, state)
     (; L_m, del_M, d_V, k_M, w, f, TC, TC_30) = pars
 
     τ, l, info = compute_time(e, At(transition), pars, f)
@@ -139,7 +141,7 @@ function compute_transition_state(e::AbstractEstimator, transition::Birth, pars,
     end
     Birth((; l, L, Lw, Ww, τ, aT))
 end
-function compute_transition_state(e::AbstractEstimator, trans::Puberty, pars, state)
+function compute_transition_state(e::AbstractEstimator, trans::Puberty, pars, ls::LifeStages, state)
     (; L_m, del_M, d_V, k_M, w, TC, l_T, g, f) = pars
 
     # Calculate necessary parameters
@@ -162,13 +164,13 @@ function compute_transition_state(e::AbstractEstimator, trans::Puberty, pars, st
 
     return Puberty((; l, L, Lw, Ww, τ, tT))
 end
-function compute_transition_state(e::AbstractEstimator, t::Ultimate, pars, state)
+function compute_transition_state(e::AbstractEstimator, transition::Ultimate, pars, ls::LifeStages, state)
     (; f, l_T, L_m, del_M, d_V, w) = pars
     l = f - l_T                    # -, scaled ultimate length
     L = L_m * l                    # cm, ultimate structural length at f
     # TODO make these calculations optional based on data?. 
     Lw = L / del_M                 # cm, ultimate plastron length
-    Ww = wet_weight(t, L, d_V, f, w)
+    Ww = wet_weight(transition, L, d_V, f, w)
     return Ultimate((; l, L, Lw, Ww))
 end
 
@@ -278,27 +280,6 @@ function compute_univariate(e::AbstractEstimator, ::Lengths, at::Times, pars, Lw
     rT_B = TC * k_M / 3 / (oneunit(f) + f / g)
     return Lw_i .- (Lw_i - Lw_b) * exp.(-rT_B * at.val)
 end
-
-# TODO: generalise dimorphism to other differences, like multiple male morphs
-function compute_male_params(model::DEBOrganism, par)
-    _any_male(model.lifestages) || return (;)
-
-    (; kap, z_m, p_M, w_E, w_V, v, E_G, k_M, kap, y_E_V, v_Hpm) = par
-    p_Am_m = z_m * p_M / kap           # J/d.cm^2, {p_Am} spec assimilation flux
-    E_m_m = p_Am_m / v                 # J/cm^3, reserve capacity [E_m]
-    g = E_G / (kap * E_m_m)            # -, energy investment ratio
-    m_Em_m = y_E_V * E_m_m / E_G       # mol/mol, reserve capacity
-    w = m_Em_m * w_E / w_V             # -, contribution of reserve to weight
-    L_m = v / k_M / g                  # cm, max struct length
-    return (; w, g, L_m, v_Hp=v_Hpm)
-end
-
-_any_male(stages::LifeStages) = any(map(_any_male, values(stages)))
-_any_male(p::Pair) = _any_male(p[1]) || _any_male(p[2])
-_any_male(d::Dimorphic) = _any_male(d.a) || _any_male(d.b)
-_any_male(x::Male) = true
-_any_male(x) = false
-
 ## Description
 # Obtains scaled age at birth, given the scaled reserve density at birth. 
 # Divide the result by the somatic maintenance rate coefficient to arrive at age at birth. 
@@ -323,24 +304,23 @@ _any_male(x) = false
 function compute_time(e::AbstractEstimator, at::At{<:Birth}, pars::NamedTuple, eb::Number)
     info = true
     l, info = compute_length(e, at, pars, eb)
-    (; g) = pars  # energy investment ratio
+    (; g) = pars # energy investment ratio
 
-    xb = g / (eb + g) # f = e_b 
-    ab = 3 * g * xb^(1 / 3) / l # \alpha_b
-
-    f1 = _beta(xb)
-
-    τ = 3 * quadgk(x -> _d_time_at_birth(x, ab, f1), 1e-15, xb; atol=1e-6)[1]
+    # TODO explain all of this math
+    xb = g / (eb + g)
+    αb = 3 * g * xb^(1 / 3) / l
+    f1 = _beta(xb) # Precalculate f1 here rather than in _d_time_at_birth inside quadgk
+    # Note: this quadgk is the most expensive call in the whole paremeter estimation
+    τ = 3 * quadgk(x -> _d_time_at_birth(x, αb, f1), 1e-15, xb; atol=e.quad_atol)[1]
     return (; τ, l, info)
 end
 
-
 # subfunction
 
-# dget_tb
-function _d_time_at_birth(x::Number, ab::Number, f1::Number)
+# was dget_tb
+function _d_time_at_birth(x::Number, αb::Number, f1::Number)
     # called by get_tb
-    f = x ^ (-2 / 3) / (1 - x) / (ab - real(beta0_precalc_f1(x, f1)))
+    x ^ (-2 / 3) / (1 - x) / (αb - real(beta0_precalc_f1(x, f1)))
 end
 
 ## Description
@@ -414,6 +394,7 @@ function compute_length(e::AbstractEstimator, ::At{<:Birth}, p::NamedTuple, eb::
     norm = 1 # make sure that we start Newton Raphson procedure
     ni = 100 # max number of iterations
 
+    # TODO comment all of this
     while i < ni && norm > 1e-8
         l .= x3 ./ (xb3 ./ lb .- b)
         s .= (k .- x) ./ (1 .- x) .* l ./ g ./ x
@@ -460,6 +441,7 @@ function compute_length(e::AbstractEstimator, ::At{<:Puberty}, p::NamedTuple, l0
     li = sM * (f - l_T)  # scaled ultimate length
     ld = li - lb         # scaled length
 
+    # TODO comment all of this math
     b3 = 1 / (1 + g / f) 
     b2 = f * sM - b3 * li
 
@@ -504,3 +486,24 @@ function _fn_length_at_puberty(lp, a0, a1, a2, a3, lilj, li, krB, v_Hja, v_Hp)
     f = v_Hp + a0 + a1 * tjrB + a2 * tjrB^2 + a3 * tjrB^3 - v_Hja * tjk
     return f
 end
+
+# TODO: generalise dimorphism to other differences, like multiple male morphs
+function compute_male_params(model::DEBOrganism, par)
+    _any_male(model.lifestages) || return (;)
+
+    (; kap, z_m, p_M, w_E, w_V, v, E_G, k_M, kap, y_E_V, v_Hpm) = par
+    p_Am_m = z_m * p_M / kap           # J/d.cm^2, {p_Am} spec assimilation flux
+    E_m_m = p_Am_m / v                 # J/cm^3, reserve capacity [E_m]
+    g = E_G / (kap * E_m_m)            # -, energy investment ratio
+    m_Em_m = y_E_V * E_m_m / E_G       # mol/mol, reserve capacity
+    w = m_Em_m * w_E / w_V             # -, contribution of reserve to weight
+    L_m = v / k_M / g                  # cm, max struct length
+    return (; w, g, L_m, v_Hp=v_Hpm)
+end
+
+_any_male(stages::LifeStages) = any(map(_any_male, values(stages)))
+_any_male(p::Pair) = _any_male(p[1]) || _any_male(p[2])
+_any_male(d::Dimorphic) = _any_male(d.a) || _any_male(d.b)
+_any_male(x::Male) = true
+_any_male(x) = false
+
