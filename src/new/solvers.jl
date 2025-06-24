@@ -260,11 +260,11 @@ end
 
 const SELECT = Union{Number,AbstractArray,AtTemperature}
 
-# function _combine(xs::Union{Tuple,NamedTuple}, refs::NamedTuple)
-#     map(Flatten.flatten(xs, SELECT), Flatten.flatten(refs, SELECT)) do x, ref
-#         _combine(x, ref)
-#     end |> Flatten.flatten
-# end
+function _combine(xs::Union{Tuple,NamedTuple}, refs::NamedTuple)
+    map(Flatten.flatten(xs, SELECT), Flatten.flatten(refs, SELECT)) do x, ref
+        _combine(x, ref)
+    end |> Flatten.flatten
+end
 _combine(x::Number, ref::AbstractArray) = map(_ -> x, ref)
 _combine(x::AbstractArray, ref::AbstractArray) = x
 _combine(x::Number, ref::Number) = x
@@ -274,30 +274,17 @@ _combine(x::SVector, ref::AtTemperature) = _combine(x, ref.x)
 _combine(x::Number, ref::AtTemperature) = _combine(x, ref.x)
 
 
-# function _mean(xs::NamedTuple, refs::NamedTuple)
-#     map(Flatten.flatten(xs, SELECT), Flatten.flatten(refs, SELECT)) do x, ref
-#         _mean(x, ref)
-#     end |> Flatten.flatten
-# end
+function _mean(xs::NamedTuple, refs::NamedTuple)
+    map(Flatten.flatten(xs, SELECT), Flatten.flatten(refs, SELECT)) do x, ref
+        _mean(x, ref)
+    end |> Flatten.flatten
+end
 _mean(x::Number, ref::AbstractArray) = map(_ -> x, ref)
 _mean(x::AbstractArray, ref::AbstractArray) = (m = mean(x); map(_ -> m, ref))
 _mean(x::Number, ref::Number) = x * 1.0
 _mean(x::AtTemperature, ref::AtTemperature) = only(Flatten.flatten(x.x, SELECT))
 _mean(x::SVector, ref::AtTemperature) = _mean(x, ref.x)
 _mean(x::Number, ref::AtTemperature) = _mean(x, ref.x)
-
-Base.@assume_effects :foldable function _combine(x::NamedTuple, ref::NamedTuple{N2}) where N2
-    map(N2) do n
-        _combine(x[n], ref[n])
-    end |> NamedTuple{N2}
-end
-
-Base.@assume_effects :foldable function _mean(x::NamedTuple, ref::NamedTuple{N2}) where N2
-    map(N2) do n
-        _mean(x[n], ref[n])
-    end |> NamedTuple{N2}
-end
-
 
 function maybe_objective(objective, filter, loss, qvec, np1, fv)
     f_test, flag = filter(qvec)

@@ -1,5 +1,5 @@
 function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # predict
-    (; weights, data, auxData) = speciesdata
+    (; weights, data, auxData, data2) = speciesdata
     cPar = compound_parameters(model, par)
     d_V = 1Unitful.u"g/cm^3"               # cm, physical length at birth at f
 
@@ -7,14 +7,13 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
     # Add male params, will be empty if there is no dimorphic lifestage
     male = compute_male_params(model, par)
     par = merge(par, (; male))
+    lifestage_state = compute_transition_state(e, model.lifestages, par)
 
     (; temp) = auxData
     tr = model.temperatureresponse
     TC = tempcorr(tr, par, temp.am)
     TC_30 = tempcorr(tr, par, temp.ab30)
     TC_Ri = tempcorr(tr, par, temp.Ri)
-
-    lifestage_state = compute_transition_state(e, model.lifestages, par)
 
     τ_b =   lifestage_state[Birth()].τ
     l_b =   lifestage_state[Birth()].l
@@ -44,7 +43,27 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
     (; R) = compute_reproduction_rate(e, par, lifestage_state)
 
     # uni-variate data
-    ELw = compute_univariate(e, Lengths(), Times(auxData.tLt), par, lifestage_state, TC)
+    tL = compute_univariate(e, Lengths(), Times(auxData.tLt), par, lifestage_state, TC)
+
+    predictions = (
+        age = map(data2.age) do x
+            if x isa AtTemperature
+                lifestage_state[x.x].a / tempcorr(tr, par, x.t)
+            else
+                lifestage_state[x].a / TC
+            end
+        end,
+        time = map(data2.time) do x
+            if x isa AtTemperature
+                lifestage_state[x.x].t / tempcorr(tr, par, x.t)
+            else
+                lifestage_state[x].t / TC
+            end
+        end,
+        length = map(x -> lifestage_state[x].Lw, data2.length),
+        wetweigth = map(x -> lifestage_state[x].Ww, data2.wetweight),
+        tL,
+    )
 
     # pack to output
     prdData = (;
@@ -64,8 +83,8 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
         Wwi=Ww_i,
         Wwim=Ww_im,
         Ri=R * TC_Ri,
-        tL=ELw,
+        tL,
     )
     info = true # TODO get this from solves
-    return (; prdData, info)
+    return (; prdData, predictions, info)
 end

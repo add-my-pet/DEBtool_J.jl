@@ -167,7 +167,12 @@ function compute_transition_state(e::AbstractEstimator, transition::Ultimate, pa
     # TODO make these calculations optional based on data?. 
     Lw = L / del_M                 # cm, ultimate plastron length
     Ww = wet_weight(transition, L, d_V, f, w)
-    return Ultimate((; l, L, Lw, Ww))
+    # τ, l, info = compute_time(e, At(transition), pars, f)
+    # a = τ / k_M
+    # TODO: why was a calculated this way fot Ultimate
+    l_b = ls[Birth()].l
+    a = compute_lifespan(e, pars, l_b)
+    return Ultimate((; l, L, Lw, Ww, a))
 end
 
 wet_weight(::Union{Sex,AbstractTransition}, L, d_V, f, ω) =

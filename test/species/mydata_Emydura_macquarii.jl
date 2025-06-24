@@ -96,6 +96,35 @@ tLt = @SVector[
     3.934
 ] * 365 * unit_age
 
+data2 = (; 
+    age=(
+        Birth(78.0u"d"),
+        Birth(AtTemperature(Unitful.K(30Unitful.°C), 48.0u"d")),
+        Female(Ultimate(20.9 * 365.0u"d")),
+    ),
+    # TODO what does time mean as different to age
+    time=(
+        Female(Puberty(10.0 * 365.0u"d")),
+        Male(Puberty(5.5 * 365.0u"d")),
+    ),
+    length=(
+        Birth(2.7u"cm"),
+        Female(Puberty(18.7u"cm")),
+        Female(Ultimate(21.4u"cm")),
+        Male(Puberty(14.7u"cm")),
+        Male(Ultimate(20.8u"cm")),
+    ),
+    wetweight=(
+        Birth(8.0u"g"),
+        Female(Puberty(2669.0u"g")),
+        Female(Ultimate(4000.0u"g")),
+        Male(Puberty(1297.0u"g")),
+        Male(Ultimate(3673.0u"g")),
+    ),
+    reproduction=(Female(Ultimate(36.0 / 365.0u"d")),),
+    tL=AtTemperature(tLt, tL),
+)
+
 data = (;
     ab=78.0u"d",
     ab30=48.0u"d",
@@ -161,6 +190,8 @@ bibkey = (
 # set weights for all real data
 weights = DEBtool_J.setweights(data);
 weights = merge(weights, (; tL=2 .* weights.tL))
+weights2 = DEBtool_J.setweights(data2);
+weights2 = merge(weights2, (; tL=2 .* weights2.tL))
 
 # set pseudodata and respective weights
 pseudo = addpseudodata()
@@ -307,4 +338,4 @@ metaData = (;
     biblist=biblist,
 )
 
-(; data, auxData, metaData, txtData, weights)
+(; data, auxData, metaData, txtData, weights, data2, weights2)

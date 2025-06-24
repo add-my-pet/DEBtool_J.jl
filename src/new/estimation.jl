@@ -93,7 +93,7 @@ function _estimate_inner(e::StandardEstimator, model, par::P, speciesdata, meand
 
     function objective(parvec)
         par1 = stripparams(ModelParameters.update(par, parvec)::P)
-        prdData, info = predict(e, model, par1, speciesdata)
+        (; prdData, info) = predict(e, model, par1, speciesdata)
         prdData1 = predict_pseudodata(model, par1, data, prdData)
         return prdData1, info
     end

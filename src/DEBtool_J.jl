@@ -16,30 +16,29 @@ export StandardEstimator, DEBNelderMead, DEBMultimodalEvolutionaryAlgorithm
 export DEBOrganism
 export Arrhenius1parTemperatureResponse, Arrhenius3parTemperatureResponse, Arrhenius5parTemperatureResponse
 export LifeStages, Dimorphic
-export Birth, Puberty, Ultimate
+export Birth, Puberty, Maturity, Ultimate
 export Embryo, Juvenile, Adult
 export Female, Male
+export AtTemperature
 
-# New
-export predict, estimate
+export estimate, addpseudodata, setweights
 
-# Old
-export beta0, tempcorr, calibration_options, addpseudodata, estim_options, estim_pars
-export fieldnm_wtxt, filter_std, mydata_pets, parscomp_st, petregr_f
-export predict_pseudodata, print_filterflag, reach_birth, struct2vector
-export fieldnmst_st, lossfunction_sb, dget_l_ISO, dget_l_ISO_t, get_lb, get_lb2
-export get_lp, get_tb, get_tp, get_tpm, get_ue0, get_tm_s, initial_scaled_reserve, reprod_rate
-export get_lp1, fnget_lp
+# TODO make these types
+export DEFAULT_CHEMICAL_PARAMETERS,
+    DEFAULT_CHEMICAL_POTENTIALS,
+    DEFAULT_CHEMICAL_POTENTIAL_OF_MINERALS,
+    DEFAULT_CHEMICAL_INDICES_FOR_MINERALS,
+    DEFAULT_CHEMICAL_INDICES_FOR_WATER_ORGANICS
 
-include("new/types.jl")
 include("new/const.jl")
-include("new/loss.jl")
+include("new/types.jl")
 include("new/temperature.jl")
 include("new/init.jl")
+include("new/loss.jl")
 include("new/estimation.jl")
+include("new/solvers.jl")
 include("new/predict.jl")
 include("new/compute.jl")
-include("new/solvers.jl")
 include("new/parameters.jl")
 include("new/calibration.jl")
 include("new/weights.jl")
