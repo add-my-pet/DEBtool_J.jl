@@ -9,11 +9,16 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
     par = merge(par, (; male))
     lifestage_state = compute_transition_state(e, model.lifestages, par)
 
-    (; temp) = auxData
     tr = model.temperatureresponse
-    TC = tempcorr(tr, par, temp.am)
-    TC_Ri = tempcorr(tr, par, temp.Ri)
+    TC = tempcorr(tr, par, auxData.temp)
     (; R) = compute_reproduction_rate(e, par, lifestage_state)
+    r_at_t = Flatten.flatten(data.reproduction, AtTemperature)
+    RT = if isempty(r_at_t)
+        R * TC
+    else
+        TC_R = tempcorr(tr, par, only(r_at_t).t)
+        R * TC_R
+    end
 
     # uni-variate data
     tL = compute_univariate(e, Lengths(), Times(auxData.tLt), par, lifestage_state, TC)
@@ -35,7 +40,7 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
         end,
         length = map(x -> lifestage_state[x].Lw, data.length),
         wetweigth = map(x -> lifestage_state[x].Ww, data.wetweight),
-        Ri=R * TC_Ri,
+        Ri=RT,
         tL,
     )
     info = true # TODO get this from solves

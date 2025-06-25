@@ -96,10 +96,10 @@ tLt = @SVector[
     3.934
 ] * 365 * unit_age
 
-data = (; 
+data = (;
     age=(
         Birth(78.0u"d"),
-        Birth(AtTemperature(Unitful.K(30Unitful.°C), 48.0u"d")),
+        Birth(AtTemperature(Unitful.K(30.0Unitful.°C), 48.0u"d")),
         Female(Ultimate(20.9 * 365.0u"d")),
     ),
     # TODO what does time mean as different to age
@@ -121,19 +121,11 @@ data = (;
         Female(Ultimate(4000.0u"g")),
         Male(Ultimate(3673.0u"g")),
     ),
-    reproduction=(Female(Ultimate(36.0 / 365.0u"d")),),
+    reproduction=Female(Ultimate(AtTemperature(Unitful.K(22.0Unitful.°C), 36.0 / 365.0u"d"))),
     tL=AtTemperature(tLt, tL),
 )
 
-temp = (;
-    ab=Unitful.K(22Unitful.°C),
-    ab30=Unitful.K(30Unitful.°C),
-    tp=Unitful.K(22Unitful.°C),
-    tpm=Unitful.K(22Unitful.°C),
-    am=Unitful.K(22Unitful.°C),
-    Ri=Unitful.K(22Unitful.°C),
-    tL=Unitful.K(22Unitful.°C),
-)
+temp = Unitful.K(22Unitful.°C)
 
 bibkey = (
     ab="carettochelys",
