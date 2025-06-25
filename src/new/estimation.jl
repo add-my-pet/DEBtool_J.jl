@@ -79,22 +79,17 @@ The standard DEBtool parameter estimator.
 end
 
 function estimate(estimator::StandardEstimator, model, par, speciesdata)
-    (; data, weights, data2, weights2) = speciesdata
-    # @assert data.tL == data2.tL.x
+    (; data, weights) = speciesdata
 
     # Precalculate data means and weights
     meandatavec = struct2means(data, data)
     weightsvec = struct2means(weights, data)
-    meandatavec1 = struct2means(data2, data2)
-    weightsvec1 = struct2means(weights2, data2)
-    @assert weightsvec == weightsvec1
-    @assert meandatavec == meandatavec1
     return _estimate_inner(estimator, model, par, speciesdata, meandatavec, weightsvec)
 end
 
 # Function barrier so local functions are type stable
 function _estimate_inner(e::StandardEstimator, model, par::P, speciesdata, meandatavec, weightsvec) where P
-    (; data, data2) = speciesdata
+    (; data) = speciesdata
 
     function objective(parvec)
         par1 = stripparams(ModelParameters.update(par, parvec)::P)

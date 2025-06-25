@@ -96,7 +96,7 @@ tLt = @SVector[
     3.934
 ] * 365 * unit_age
 
-data2 = (; 
+data = (; 
     age=(
         Birth(78.0u"d"),
         Birth(AtTemperature(Unitful.K(30Unitful.°C), 48.0u"d")),
@@ -123,26 +123,6 @@ data2 = (;
     ),
     reproduction=(Female(Ultimate(36.0 / 365.0u"d")),),
     tL=AtTemperature(tLt, tL),
-)
-
-data = (;
-    ab=78.0u"d",
-    ab30=48.0u"d",
-    am=20.9 * 365.0u"d",
-    tp=10.0 * 365.0u"d",
-    tpm=5.5 * 365.0u"d",
-    Lb=2.7u"cm",
-    Lp=18.7u"cm",
-    Lpm=14.7u"cm",
-    Li=21.4u"cm",
-    Lim=20.8u"cm",
-    Wwb=8.0u"g",
-    Wwp=2669.0u"g",
-    Wwpm=1297.0u"g",
-    Wwi=4000.0u"g",
-    Wwim=3673.0u"g",
-    Ri=36.0 / 365.0u"d",
-    tL,
 )
 
 temp = (;
@@ -180,20 +160,13 @@ bibkey = (
 # set weights for all real data
 weights = DEBtool_J.setweights(data);
 weights = merge(weights, (; tL=2 .* weights.tL))
-weights2 = DEBtool_J.setweights(data2);
-weights2 = merge(weights2, (; tL=2 .* weights2.tL))
 
 # set pseudodata and respective weights
 pseudo = addpseudodata()
 # TODO why is k=0.3 here
 data = merge(data, (; pseudo=merge(pseudo.data, (k=0.3,))))
-data2 = merge(data2, (; pseudo=merge(pseudo.data, (k=0.3,))))
 # TODO why are these extra definitions here
 weights = merge(weights, (; pseudo=merge(pseudo.weight, (k_J=0.0, k=0.1))))
-weights2 = merge(weights2, (; pseudo=merge(pseudo.weight, (k_J=0.0, k=0.1))))
-f(d) = Flatten.modify(x -> x isa AtTemperature ? x.x : x, Flatten.flatten(d, DEBtool_J.SELECT), DEBtool_J.SELECT)
-@assert f(weights) == f(weights2)
-@assert f(data) == f(data2)
 
 label = (;
     ab="age at birth",
@@ -332,4 +305,4 @@ metaData = (;
     biblist=biblist,
 )
 
-(; data=data2, auxData, metaData, txtData, weights=weights2, data2, weights2)
+(; data, auxData, metaData, txtData, weights)
