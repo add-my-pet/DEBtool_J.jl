@@ -3,16 +3,11 @@ using ModelParameters
 using Unitful
 using MAT
 using Test
+using Flatten
 
 srcpath = dirname(pathof(DEBtool_J))
 speciespath = realpath(joinpath(srcpath, "../test/species"))
 species = "Emydura_macquarii"
-
-(; par, metapar) = let # Let block so we only import the last variable into scope
-    include(joinpath(speciespath, "pars_init_" * species * ".jl"))
-end
-par = StaticModel(par) # create a 'Model' out of the Pars struct
-speciesdata = include(joinpath(speciespath, "mydata_" * species * ".jl")) # load the mydata file
 
 # compute temperature correction factors
 model = DEBOrganism(
@@ -23,13 +18,17 @@ model = DEBOrganism(
         Adult() => Dimorphic(Female(Ultimate()), Male(Ultimate())),
     ),
 )
-
-# StandardEstimator to replace the globals set by `estim_options` below
 estimator = StandardEstimator(;
     method = DEBNelderMead(),
     max_step_number = 5000,
     max_fun_evals = 5000,
 ) 
+
+(; par, metapar) = let # Let block so we only import the last variable into scope
+    include(joinpath(speciespath, "pars_init_" * species * ".jl"))
+end
+par = StaticModel(par) # create a 'Model' out of the Pars struct
+speciesdata = include(joinpath(speciespath, "mydata_" * species * ".jl")) # load the mydata file
 @time parout, nsteps, info, fval = estimate(estimator, model, par, speciesdata);
 
 # using ProfileView

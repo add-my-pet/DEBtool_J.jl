@@ -65,29 +65,29 @@ struct AdultNoFeeding{T} <: AbstractAdult
 end
 
 abstract type AbstractEvent end
-abstract type AbstractTransition <: AbstractEvent end
+abstract type AbstractTransition{T} <: AbstractEvent end
 
 (::Type{T})() where T<:AbstractTransition = T(nothing)
 
-struct Init{T} <: AbstractTransition 
+struct Init{T} <: AbstractTransition{T}
     val::T
 end
-struct Birth{T} <: AbstractTransition
+struct Birth{T} <: AbstractTransition{T}
     val::T
 end
-struct Puberty{T} <: AbstractTransition
+struct Puberty{T} <: AbstractTransition{T}
     val::T
 end
-struct Metamorphosis{T} <: AbstractTransition
+struct Metamorphosis{T} <: AbstractTransition{T}
     val::T
 end
-struct Maturity{T} <: AbstractTransition
+struct Maturity{T} <: AbstractTransition{T}
     val::T
 end
-struct Ultimate{T} <: AbstractTransition
+struct Ultimate{T} <: AbstractTransition{T}
     val::T
 end
-struct Death{T} <: AbstractTransition
+struct Death{T} <: AbstractTransition{T}
     val::T
 end
 

@@ -1,5 +1,5 @@
 function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # predict
-    (; weights, data, auxData, data2) = speciesdata
+    (; data, auxData, data2) = speciesdata
     cPar = compound_parameters(model, par)
     d_V = 1Unitful.u"g/cm^3"               # cm, physical length at birth at f
 
@@ -38,40 +38,41 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
     L_im =  lifestage_state[Male(Ultimate())].L
     Lw_im = lifestage_state[Male(Ultimate())].Lw
     Ww_im = lifestage_state[Male(Ultimate())].Ww
+    a_m = lifestage_state[Female(Ultimate())].a
 
-    a_m = compute_lifespan(e, par, l_b)
     (; R) = compute_reproduction_rate(e, par, lifestage_state)
 
     # uni-variate data
     tL = compute_univariate(e, Lengths(), Times(auxData.tLt), par, lifestage_state, TC)
 
-    predictions = (
+    predictions1 = (
         age = map(data2.age) do x
-            if x isa AtTemperature
-                lifestage_state[x.x].a / tempcorr(tr, par, x.t)
+            if x isa AbstractTransition{<:AtTemperature}
+                lifestage_state[x].a / tempcorr(tr, par, x.val.t)
             else
                 lifestage_state[x].a / TC
             end
         end,
         time = map(data2.time) do x
-            if x isa AtTemperature
-                lifestage_state[x.x].t / tempcorr(tr, par, x.t)
+            if x isa AbstractTransition{<:AtTemperature}
+                lifestage_state[x].t / tempcorr(tr, par, x.val.t)
             else
                 lifestage_state[x].t / TC
             end
         end,
         length = map(x -> lifestage_state[x].Lw, data2.length),
         wetweigth = map(x -> lifestage_state[x].Ww, data2.wetweight),
+        Ri=R * TC_Ri,
         tL,
     )
 
     # pack to output
-    prdData = (;
+    predictions = (;
         ab=a_b / TC,
         ab30=a30_b / TC_30,
+        am=a_m / TC,
         tp=t_p / TC,
         tpm=t_pm / TC,
-        am=a_m / TC,
         Lb=Lw_b,
         Lp=Lw_p,
         Lpm=Lw_pm,
@@ -85,6 +86,8 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
         Ri=R * TC_Ri,
         tL,
     )
+    f(d) = Flatten.modify(x -> x isa AtTemperature ? x.x : x, Flatten.flatten(d, DEBtool_J.SELECT), DEBtool_J.SELECT)
+    @assert f(predictions) == f(predictions1)
     info = true # TODO get this from solves
-    return (; prdData, predictions, info)
+    return (; predictions, info)
 end

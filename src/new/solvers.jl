@@ -253,7 +253,6 @@ function struct2vector(structin, structref)
     return Flatten.flatten(combined, Number)
 end
 function struct2means(structin, structref)
-    combined = _combine(structin, structref)
     meanstruct = _mean(structin, structref)
     return Flatten.flatten(meanstruct, Number)
 end
@@ -269,10 +268,9 @@ _combine(x::Number, ref::AbstractArray) = map(_ -> x, ref)
 _combine(x::AbstractArray, ref::AbstractArray) = x
 _combine(x::Number, ref::Number) = x
 _combine(x::Pair, ref::Pair) = x
-_combine(x::AtTemperature, ref::AtTemperature) = x.x
+_combine(x::AtTemperature, ref::AtTemperature) = _combine(only(Flatten.flatten(x.x, SELECT)), only(Flatten.flatten(x.x, SELECT)))
 _combine(x::SVector, ref::AtTemperature) = _combine(x, ref.x)
 _combine(x::Number, ref::AtTemperature) = _combine(x, ref.x)
-
 
 function _mean(xs::NamedTuple, refs::NamedTuple)
     map(Flatten.flatten(xs, SELECT), Flatten.flatten(refs, SELECT)) do x, ref
@@ -282,9 +280,9 @@ end
 _mean(x::Number, ref::AbstractArray) = map(_ -> x, ref)
 _mean(x::AbstractArray, ref::AbstractArray) = (m = mean(x); map(_ -> m, ref))
 _mean(x::Number, ref::Number) = x * 1.0
-_mean(x::AtTemperature, ref::AtTemperature) = only(Flatten.flatten(x.x, SELECT))
-_mean(x::SVector, ref::AtTemperature) = _mean(x, ref.x)
-_mean(x::Number, ref::AtTemperature) = _mean(x, ref.x)
+_mean(x::AtTemperature, ref::AtTemperature) = _mean(only(Flatten.flatten(x.x, SELECT)), only(Flatten.flatten(x.x, SELECT)))
+_mean(x::SVector, ref::AtTemperature) = _mean(x, only(Flatten.flatten(ref.x, SELECT)))
+_mean(x::Number, ref::AtTemperature) = _mean(x, only(Flatten.flatten(ref.x, SELECT)))
 
 function maybe_objective(objective, filter, loss, qvec, np1, fv)
     f_test, flag = filter(qvec)

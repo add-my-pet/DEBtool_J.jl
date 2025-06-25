@@ -110,15 +110,15 @@ data2 = (;
     length=(
         Birth(2.7u"cm"),
         Female(Puberty(18.7u"cm")),
-        Female(Ultimate(21.4u"cm")),
         Male(Puberty(14.7u"cm")),
+        Female(Ultimate(21.4u"cm")),
         Male(Ultimate(20.8u"cm")),
     ),
     wetweight=(
         Birth(8.0u"g"),
         Female(Puberty(2669.0u"g")),
-        Female(Ultimate(4000.0u"g")),
         Male(Puberty(1297.0u"g")),
+        Female(Ultimate(4000.0u"g")),
         Male(Ultimate(3673.0u"g")),
     ),
     reproduction=(Female(Ultimate(36.0 / 365.0u"d")),),
@@ -128,9 +128,9 @@ data2 = (;
 data = (;
     ab=78.0u"d",
     ab30=48.0u"d",
+    am=20.9 * 365.0u"d",
     tp=10.0 * 365.0u"d",
     tpm=5.5 * 365.0u"d",
-    am=20.9 * 365.0u"d",
     Lb=2.7u"cm",
     Lp=18.7u"cm",
     Lpm=14.7u"cm",
@@ -141,7 +141,8 @@ data = (;
     Wwpm=1297.0u"g",
     Wwi=4000.0u"g",
     Wwim=3673.0u"g",
-    Ri=36.0 / 365.0u"d"
+    Ri=36.0 / 365.0u"d",
+    tL,
 )
 
 temp = (;
@@ -153,17 +154,6 @@ temp = (;
     Ri=Unitful.K(22Unitful.°C),
     tL=Unitful.K(22Unitful.°C),
 )
-
-rates = (;
-    ab=Unitful.K(22Unitful.°C) => 78.0u"d",
-    ab30=Unitful.K(30Unitful.°C) => 48.0u"d",
-    tp=Unitful.K(22Unitful.°C) => 10.0 * 365.0u"d",
-    tpm=Unitful.K(22Unitful.°C) => 5.5 * 365.0u"d",
-    am=Unitful.K(22Unitful.°C) => 20.9 * 365.0u"d",
-    Ri=Unitful.K(22Unitful.°C) => 36.0 / 365.0u"d",
-)
-
-data = merge(data, (; tL))
 
 bibkey = (
     ab="carettochelys",
@@ -195,11 +185,15 @@ weights2 = merge(weights2, (; tL=2 .* weights2.tL))
 
 # set pseudodata and respective weights
 pseudo = addpseudodata()
-@show keys(pseudo)
 # TODO why is k=0.3 here
 data = merge(data, (; pseudo=merge(pseudo.data, (k=0.3,))))
+data2 = merge(data2, (; pseudo=merge(pseudo.data, (k=0.3,))))
 # TODO why are these extra definitions here
 weights = merge(weights, (; pseudo=merge(pseudo.weight, (k_J=0.0, k=0.1))))
+weights2 = merge(weights2, (; pseudo=merge(pseudo.weight, (k_J=0.0, k=0.1))))
+f(d) = Flatten.modify(x -> x isa AtTemperature ? x.x : x, Flatten.flatten(d, DEBtool_J.SELECT), DEBtool_J.SELECT)
+@assert f(weights) == f(weights2)
+@assert f(data) == f(data2)
 
 label = (;
     ab="age at birth",
@@ -338,4 +332,4 @@ metaData = (;
     biblist=biblist,
 )
 
-(; data, auxData, metaData, txtData, weights, data2, weights2)
+(; data=data2, auxData, metaData, txtData, weights=weights2, data2, weights2)
