@@ -11,7 +11,7 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
 
     tr = model.temperatureresponse
     TC = tempcorr(tr, par, auxData.temp)
-    (; R) = compute_reproduction_rate(e, par, lifestage_state)
+    (; R) = compute_reproduction_rate(e, model, par, lifestage_state)
     r_at_t = Flatten.flatten(data.reproduction, AtTemperature)
     RT = if isempty(r_at_t)
         R * TC
@@ -21,7 +21,7 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
     end
 
     # uni-variate data
-    tL = compute_univariate(e, Lengths(), Times(data.tL.t), par, lifestage_state, TC)
+    tL = compute_univariate(e, model, Lengths(), Times(data.tL.t), par, lifestage_state, TC)
 
     predictions = (
         age = map(data.age) do x
