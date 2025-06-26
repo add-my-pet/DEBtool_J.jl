@@ -30,8 +30,8 @@
 
 # global loss_function
 # set pseudodata
-function addpseudodata()
-    data = (;
+function addpseudodata(; data::NamedTuple=(;), weights::NamedTuple=(;))
+    pseudodata = (;
         v = 0.02u"cm/d",
         kap = 0.8,
         kap_R = 0.95,
@@ -52,7 +52,7 @@ function addpseudodata()
     )
 
     # set weights
-    weight = (;
+    pseudoweights = (;
         v = 0.1,
         kap = 0.1,
         kap_R = 0.1,
@@ -70,8 +70,11 @@ function addpseudodata()
     #   psdWeight.kap   = 10^(-4) * psdWeight.kap;
     #   psdWeight.kap_G = 10^(-4) * psdWeight.kap_G;
     # end
+    
+    data = merge(pseudodata, data)
+    weights = merge(pseudoweights, weights)
 
-    return (; data, label, weight)
+    return (; data, label, weights)
 end
 
 # created 2015/02/04 by Goncalo Marques

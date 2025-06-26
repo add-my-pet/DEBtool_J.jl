@@ -21,7 +21,7 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
     end
 
     # uni-variate data
-    tL = compute_univariate(e, Lengths(), Times(auxData.tLt), par, lifestage_state, TC)
+    tL = compute_univariate(e, Lengths(), Times(data.tL.t), par, lifestage_state, TC)
 
     predictions = (
         age = map(data.age) do x

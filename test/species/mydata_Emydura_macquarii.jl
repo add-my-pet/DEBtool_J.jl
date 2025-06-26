@@ -37,10 +37,6 @@ ecoCode = (;
     reprod=["O"],
 )
 
-# Define units
-unit_age = u"d"
-unit_length = u"cm"
-
 # Convert the matrix tL1 into a named tuple with units assigned to each column
 tL = @SVector[
     6.876
@@ -67,7 +63,7 @@ tL = @SVector[
     12.633
     12.953
     14.072
-] * unit_length
+]u"cm"
 
 tLt = @SVector[
     0.981
@@ -94,7 +90,7 @@ tLt = @SVector[
     3.883
     3.883
     3.934
-] * 365 * unit_age
+] * 365u"d"
 
 data = (;
     age=(
@@ -125,7 +121,7 @@ data = (;
     tL=AtTemperature(tLt, tL),
 )
 
-temp = Unitful.K(22Unitful.°C)
+temp = Unitful.K(22.0Unitful.°C)
 
 bibkey = (
     ab="carettochelys",
@@ -148,17 +144,15 @@ bibkey = (
     F1="Wiki",
 )
 
-
 # set weights for all real data
 weights = DEBtool_J.setweights(data);
 weights = merge(weights, (; tL=2 .* weights.tL))
 
 # set pseudodata and respective weights
-pseudo = addpseudodata()
-# TODO why is k=0.3 here
-data = merge(data, (; pseudo=merge(pseudo.data, (k=0.3,))))
-# TODO why are these extra definitions here
-weights = merge(weights, (; pseudo=merge(pseudo.weight, (k_J=0.0, k=0.1))))
+# TODO why is k=0.3 etc here
+pseudo = addpseudodata(; data=(k=0.3,), weights=(k_J=0.0, k=0.1))
+data = merge(data, (; pseudo=pseudo.data))
+weights = merge(weights, (; pseudo=pseudo.weights))
 
 label = (;
     ab="age at birth",
@@ -237,7 +231,7 @@ comment = (;
 # end
 
 txtData = (; label, bibkey, comment)
-auxData = (; temp, tLt)
+auxData = (; temp)
 
 # ## References
 bibkey = "Wiki";
