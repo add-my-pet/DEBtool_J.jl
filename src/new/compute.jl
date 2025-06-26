@@ -234,7 +234,7 @@ end
 #
 # unpack parameters; parameter sequence, cf get_pars_r
 compute_reproduction_rate(e::AbstractEstimator, o::DEBOrganism, p::NamedTuple, ls::LifeStages) =
-    compute_reproduction_rate(e, StandardReproduction(), p, ls)
+    compute_reproduction_rate(e, o.reproduction, p, ls)
 function compute_reproduction_rate(e::AbstractEstimator, ::StandardReproduction, p::NamedTuple, ls::LifeStages)
     (; kap, kap_R, g, f, k_J, k_M, L_T, v, U_Hb, U_Hp, v_Hb, v_Hp) = p
 

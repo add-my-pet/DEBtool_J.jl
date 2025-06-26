@@ -21,7 +21,7 @@ end
 
 struct Multivariate{I,D<:Tuple} <: Data
     independent::I
-    dependent::D
+    dependents::D
 end
 
 struct Lengths{T} <: Data
@@ -42,6 +42,11 @@ basetypeof(::Type{T}) where T = T.name.wrapper
 basetypeof(::T) where T = basetypeof(T)
 rebuild(::T, x) where T = basetypeof(T)(x)
 
+"""
+    AbstractMorph
+
+Abstract supertype for organism shape morphs.
+"""
 abstract type AbstractMorph end
 
 struct Isomorph <: AbstractMorph end
@@ -49,8 +54,12 @@ struct V0Morph <: AbstractMorph end
 struct V1Morph <: AbstractMorph end
 # struct VHalf <: AbstractMorph end
 
-abstract type AbstractLifeStage end
+"""
+    AbstractLifeStage
 
+Abstract supertype for organism life stages.
+"""
+abstract type AbstractLifeStage end
 (::Type{T})() where T<:AbstractLifeStage = T(nothing)
 
 abstract type AbstractEmbryo <: AbstractLifeStage end
@@ -74,9 +83,19 @@ struct AdultNoFeeding{T} <: AbstractAdult
     val::T
 end
 
-abstract type AbstractEvent end
-abstract type AbstractTransition{T} <: AbstractEvent end
 
+"""
+    AbstractEvent 
+
+Abstract supertype for all life events
+"""
+abstract type AbstractEvent end
+"""
+    AbstractTransition 
+
+Abstract supertype for events that are transitions between life stages.
+"""
+abstract type AbstractTransition{T} <: AbstractEvent end
 (::Type{T})() where T<:AbstractTransition = T(nothing)
 
 struct Init{T} <: AbstractTransition{T}
@@ -101,15 +120,29 @@ struct Death{T} <: AbstractTransition{T}
     val::T
 end
 
+"""
+    Sex
+
+Abstract supertype for sexes.
+"""
 abstract type Sex{T} end
+(::Type{T})() where T<:Sex = T(nothing)
+
 struct Male{T} <: Sex{T}
     val::T
 end
 struct Female{T} <: Sex{T}
     val::T
 end
-(::Type{T})() where T<:Sex = T(nothing)
 
+"""
+    Dimorphic
+
+    Dimorphic(a, b)
+
+A wrapper for diomorphic life stage. 
+`a` and `b` are usually `Female` and `Male`.
+"""
 @kwdef struct Dimorphic{A,B}
     a::A
     b::B
@@ -117,6 +150,16 @@ end
 
 abstract type AbstractLifeStages end
 
+"""
+    LifeStages <: AbstractLifeStages
+
+A wrapper that holds a sequence of `AbstractLifeStage` and `AbstractTransition` pairs.
+
+Crucially, getindex works by lifestage:
+
+`lifestage[Puberty()]` will return the object wrapped by the `Puberty` transition. 
+`lifestages[Male(Puberty())]` may be required for `Dimorphic` transitions.
+"""
 @kwdef struct LifeStages{LS<:Tuple}
     lifestages::LS
 end
@@ -144,7 +187,6 @@ Base.@assume_effects :foldable function Base.getindex(stages::LifeStages, sex::S
         stage isa Dimorphic ? stage[sex] : stage
     end |> LifeStages
 end
-
 Base.@assume_effects :foldable function Base.getindex(x::Dimorphic, sex::Sex) 
     if x.a isa basetypeof(sex)
         x.a
@@ -182,73 +224,72 @@ abstract type AbstractReproduction end
 
 struct StandardReproduction end
 
-function reproduction(r::StandardReproduction, par, cpar)
-    (; kap, kap_R, v) = par 
-    (; g, k_J, k_M, L_T, U_Hb, U_Hp) = cpar
+"""
+    DEBOrganism
 
-    pars_R = (g, k_J, k_M, L_T, v, U_Hb, U_Hp)            # compose parameter vector at T
-    reproduction_rate_at_T = TC_Ri * reprod_rate(L_i, f, pars_R)[1][1] # #/d, ultimate reproduction rate at T
-    return reproduction_rate_at_T
-end
-
-@kwdef struct DEBOrganism{LS,TR}
+Organism object specifies lifestages, temperature response,
+reproduction and other organism traits and structure.
+"""
+@kwdef struct DEBOrganism{LS,TR,R}
     # structures::M
     # reserves::E
     # chemicalcomposition::CC
     lifestages::LS
     temperatureresponse::TR
+    reproduction::R = StandardReproduction()
 end
 
 lifestages(model::DEBOrganism) = model.lifestages
 chemicalcomposition(model::DEBOrganism) = model.chemicalcomposition
 
-abstract type FeedingMode end
-struct Feeding end
-struct NoFeeding end
+# abstract type FeedingMode end
+# struct Feeding end
+# struct NoFeeding end
 
-abstract type Mode end
-# std
-struct Standard <: Mode end 
-# stf
-struct FoetalDevelopment <: Mode end 
-# stx
-struct FoetalDevelopmentX <: Mode end 
-# ssj?
-# sbp
-struct GrowthCeasesAtPuberty <: Mode end 
-struct Accelerated{A<:AbstractEvent,B<:AbstractEvent} <: Mode
-    startevent::A
-    stopevent::B
-end
+# abstract type Mode end
+# # std
+# struct Standard <: Mode end 
+# # stf
+# struct FoetalDevelopment <: Mode end 
+# # stx
+# struct FoetalDevelopmentX <: Mode end 
+# # ssj?
+# # sbp
+# struct GrowthCeasesAtPuberty <: Mode end 
+# struct Accelerated{A<:AbstractEvent,B<:AbstractEvent} <: Mode
+#     startevent::A
+#     stopevent::B
+# end
 
-"""
-    Hemimetabolous(feeding::FeedingMode)
+# """
+#     Hemimetabolous(feeding::FeedingMode)
 
-# abp = Hemimetabolous{Feeding}
-# hep = Hemimetabolous{NotFeeding}
-"""
-struct Hemimetabolous{F} <: Mode
-    feeding::F
-end
+# # abp = Hemimetabolous{Feeding}
+# # hep = Hemimetabolous{NotFeeding}
+# """
+# struct Hemimetabolous{F} <: Mode
+#     feeding::F
+# end
 
-"""
-    Holometabolous(feeding::FeedingMode)
+# """
+#     Holometabolous(feeding::FeedingMode)
 
-# unnamed = Holometabolous{Feeding}
-# hax = Holometabolous{NoFeeding}
-# hex = Holometabolous{NoFeeding} (but maybe its not worth converting)
-"""
-struct Holometabolous{F} <: Mode
-    feeding::F
-end
+# # unnamed = Holometabolous{Feeding}
+# # hax = Holometabolous{NoFeeding}
+# # hex = Holometabolous{NoFeeding} (but maybe its not worth converting)
+# """
+# struct Holometabolous{F} <: Mode
+#     feeding::F
+# end
 
-# Should we have the old model definitions ?
-std() = DEBModel(Standard())
-stf() = DEBModel(FoetalDevelopment())
-stx() = DEBModel(FoetalDevelopmentX())
-sbp() = DEBModel(GrowthCeasesAtPuberty())
-hax() = DEBModel(Holometabolous(NoFeeding()))
-hex() = DEBModel(Holometabolous(NoFeeding()))
+# # Should we have the old model definitions ?
+# std(; kw...) = DEBModel(Standard())
+# stf(; kw...) = DEBModel(FoetalDevelopment())
+# stx(; kw...) = DEBModel(FoetalDevelopmentX())
+# sbp(; kw...) = DEBModel(GrowthCeasesAtPuberty())
+# hax(; kw...) = DEBModel(Holometabolous(NoFeeding()))
+# hex(; kw...) = DEBModel(Holometabolous(NoFeeding()))
+
 
 abstract type AbstractSynthesizingUnit end
 
