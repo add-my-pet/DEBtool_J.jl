@@ -1,42 +1,5 @@
 using StaticArrays
 
-metaData = (;
-    phylum="Chordata",
-    class="Reptilia",
-    order="Testudines",
-    family="Chelidae",
-    species="Emydura_macquarii",
-    species_en="Murray River turtle",
-    # ecoCode::Any,
-    T_typical=Unitful.K(22Unitful.°C),
-    data_0=["ab_T", "ap", "am", "Lb", "Lp", "Li", "Wwb", "Wwp", "Wwi", "Ri"],
-    data_1=["t-L"],
-    COMPLETE=2.5,
-    author="Bas Kooijman",
-    date_subm=[2017, 10, 09],
-    email="bas.kooijman@vu.nl",
-    address="VU University, Amsterdam",
-    curator="Starrlight Augustine",
-    email_cur="starrlight@akvaplan.niva.no",
-    date_acc=[2017, 10, 09],
-    # links
-    # facts
-    # discussion
-    # bibkey
-    # biblist
-)
-
-ecoCode = (;
-    climate=["Cfa", "Cfb"],
-    ecozone=["TA"],
-    habitat=["0bTd", "biFr"],
-    embryo=["Tt"],
-    migrate=String[],
-    food=["biCi"],
-    gender=["Dg"],
-    reprod=["O"],
-)
-
 # Convert the matrix tL1 into a named tuple with units assigned to each column
 tL = @SVector[
     6.876
@@ -118,177 +81,16 @@ data = (;
         Male(Ultimate(3673.0u"g")),
     ),
     reproduction=Female(Ultimate(AtTemperature(Unitful.K(22.0Unitful.°C), 36.0 / 365.0u"d"))),
-    tL=AtTemperature(tLt, tL),
+    univariate=(; lengths=Univariate(Times(tLt), Lengths(tL))),
 )
-
-temp = Unitful.K(22.0Unitful.°C)
-
-bibkey = (
-    ab="carettochelys",
-    ab30="carettochelys",
-    tp="Spen2002",
-    tpm="Spen2002",
-    am="life span",
-    Lb="Spen2002",
-    Lp="Spen2002",
-    Lpm="Spen2002",
-    Li="Spen2002",
-    Lim="Spen2002",
-    Wwb="Spen2002",
-    Wwp="Spen2002",
-    Wwpm="Spen2002",
-    Wwi="carettochelys",
-    Wwim="carettochelys",
-    Ri="Spen2002",
-    tL="Spen2002",
-    F1="Wiki",
-)
-
-# set weights for all real data
-weights = DEBtool_J.setweights(data);
-weights = merge(weights, (; tL=2 .* weights.tL))
 
 # set pseudodata and respective weights
 # TODO why is k=0.3 etc here
 pseudo = addpseudodata(; data=(k=0.3,), weights=(k_J=0.0, k=0.1))
+# set weights for all real data
+weights = DEBtool_J.setweights(data);
+weights = merge(weights, (; univariate=(; lengths=2 .* weights.univariate.lengths), pseudo=pseudo.weights))
 data = merge(data, (; pseudo=pseudo.data))
-weights = merge(weights, (; pseudo=pseudo.weights))
+temp = Unitful.K(22.0Unitful.°C)
 
-label = (;
-    ab="age at birth",
-    ab30="age at birth",
-    tp="time since birth at puberty for females",
-    tpm="time since birth at puberty for males",
-    am="life span",
-    Lb="plastron length at birth",
-    Lp="plastron length at puberty for females",
-    Lpm="plastron length at puberty for males",
-    Li="ultimate plastron length for females",
-    Lim="ultimate plastron length for females",
-    Wwb="wet weight at birth",
-    Wwp="wet weight at puberty for females",
-    Wwpm="wet weight at puberty for males",
-    Wwi="ultimate wet weight for females",
-    Wwim="ultimate wet weight for males",
-    Ri="maximum reprod rate",
-    tL=["time since birth", "carapace length"],
-    pseudo=pseudo.label,
-)
-
-# label.psd.k = "maintenance ratio";
-
-# Discussion points
-discussion = (;
-    D1="Males are assumed to differ from females by {p_Am} and E_Hb only", # Cat of Life
-)
-
-# Facts
-facts = (
-    F1 = "Omnivorous"
-)
-
-# Links
-links = (;
-    id_CoL="39LSX", # Cat of Life
-    id_ITIS="949506", # ITIS
-    id_EoL="794804", # Ency of Life
-    id_Wiki="Emydura_macquarii", # Wikipedia
-    id_ADW="Emydura_macquarii", # ADW
-    id_Taxo="93062", # Taxonomicon
-    id_WoRMS="1447999", # WoRMS
-    id_ReptileDB="genus=Emydura&species=macquarii", # ReptileDB
-    id_AnAge="Emydura_macquarii", # AnAge
-)
-
-comment = (;
-    ab="all temps are guessed",
-    ab30="",
-    tp="",
-    tpm="",
-    am="",
-    Lb="",
-    Lp="",
-    Lpm="",
-    Li="",
-    Lim="",
-    Wwb="based on (Lb/Li)^3*Wwi",
-    Wwp="based on (Lp/Li)^3*Wwi",
-    Wwpm="based on (Lpm/Li)^3*Ww",
-    Wwi="",
-    Wwim="based on (Lim/Li)^3*Wwi",
-    Ri="#/d",
-    tL="carapace length",
-)
-
-# pack auxData and txtData for output
-
-# TODO: move this somewhere shared if this is a common structure?
-# struct TxtData{A,B,C,D}
-#     units::A
-#     label::B
-#     bibkey::C
-#     comment::D
-# end
-
-txtData = (; label, bibkey, comment)
-auxData = (; temp)
-
-# ## References
-bibkey = "Wiki";
-type = "Misc";
-bib = "howpublished = {\\url{http://en.wikipedia.org/wiki/Emydura_macquarii}}";
-#metaData.biblist.(bibkey) = ["""@", type, "{", bibkey, ", " bib, "}"";"];
-Wiki = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
-
-# #
-bibkey = "Kooy2010"
-type = "Book"
-bib = [ # used in setting of chemical parameters and pseudodata
-    "author = {Kooijman, S.A.L.M.}, ",
-    "year = {2010}, ",
-    "title  = {Dynamic Energy Budget theory for metabolic organisation}, ",
-    "publisher = {Cambridge Univ. Press, Cambridge}, ",
-    "pages = {Table 4.2 (page 150), 8.1 (page 300)}, ",
-    "howpublished = {\\url{../../../bib/Kooy2010.html}}",
-]
-Kooy2010 = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
-#Kooy2010 = ["''@" * type * "{" * bibkey * ", " * bib[1] * "}'';"];
-# #
-bibkey = "Spen2002";
-type = "Article";
-bib = [
-    "author = {R.-J. Spencer}, "
-    "year = {2002}, "
-    "title = {Growth patterns in two widely distributed freshwater turtles and a comparison of methods used to estimate age}, "
-    "journal = {Austr. J. Zool.}, "
-    "volume = {50}, "
-    "pages = {477--490}"
-];
-#Spen2002 = ["''@" * type * "{" * bibkey * ", " * bib * "}'';"];
-Spen2002 = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
-# metaData.biblist.(bibkey) = ["""@", type, "{", bibkey, ", " bib, "}"";"];
-
-bibkey = "AnAge";
-type = "Misc";
-bib = "howpublished = {\\url{http://genomics.senescence.info/species/entry.php?species=Emydura_macquarii}}";
-AnAge = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
-#metaData.biblist.(bibkey) = ["""@", type, "{", bibkey, ", " bib, "}"";"];
-
-bibkey = "carettochelys";
-type = "Misc";
-bib = "howpublished = {\\url{http://www.carettochelys.com/emydura/emydura_mac_mac_3.htm}}";
-carettochelys = "''@" * type * "{" * bibkey * ", " * join(bib) * "}'';";
-# metaData.biblist.(bibkey) = ["""@", type, "{", bibkey, ", " bib, "}"";"];
-
-biblist = [Kooy2010, Kooy2010, Spen2002, AnAge, carettochelys]
-
-metaData = (;
-    ecoCode=ecoCode,
-    links=links,
-    facts=facts,
-    discussion=discussion,
-    bibkey=bibkey,
-    biblist=biblist,
-)
-
-(; data, auxData, metaData, txtData, weights)
+(; data, temp, weights)

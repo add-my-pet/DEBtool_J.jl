@@ -24,9 +24,7 @@ estimator = StandardEstimator(;
     max_fun_evals = 5000,
 ) 
 
-(; par, metapar) = let # Let block so we only import the last variable into scope
-    include(joinpath(speciespath, "pars_init_" * species * ".jl"))
-end
+par = include(joinpath(speciespath, "pars_init_" * species * ".jl")) 
 par = StaticModel(par) # create a 'Model' out of the Pars struct
 speciesdata = include(joinpath(speciespath, "mydata_" * species * ".jl")) # load the mydata file
 @time parout, nsteps, info, fval = estimate(estimator, model, par, speciesdata);
