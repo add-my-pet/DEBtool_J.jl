@@ -22,6 +22,7 @@
 function init_scaled_reserve(p::NamedTuple, l_b::Number)
     (; v_Hb, g, k_J, k_M, v, f) = p
 
+    # TODO explain why k_J / k_M
     q = (; g, k=k_J / k_M, v_Hb)
     info = true
 

@@ -20,6 +20,7 @@ export Birth, Puberty, Maturity, Ultimate
 export Embryo, Juvenile, Adult
 export Female, Male
 export AtTemperature
+export Data, Univariate, Times, Lengths, Food
 
 export estimate, addpseudodata, setweights
 
@@ -40,9 +41,9 @@ include("new/solvers.jl")
 include("new/predict.jl")
 include("new/compute.jl")
 include("new/parameters.jl")
-include("new/calibration.jl")
 include("new/weights.jl")
 include("new/pseudodata.jl")
+# include("new/calibration.jl")
 
 # include("lib/misc/beta0.jl")
 # include("lib/misc/tempcorr.jl")

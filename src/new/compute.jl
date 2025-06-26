@@ -272,12 +272,14 @@ end
 # end
 # function compute_univariate(::ReprodRates, at::Temperatures, pars, Lw_i, Lw_b)
 # end
-function compute_univariate(e::AbstractEstimator, ::Lengths, at::Times, pars, lifestages_state, TC)
+compute_univariate(e::AbstractEstimator, u::Univariate, pars, lifestages_state, TC) =
+    compute_univariate(e, u.dependent, u.independent, pars, lifestages_state, TC)
+function compute_univariate(e::AbstractEstimator, dependent::Lengths, independent::Times, pars, lifestages_state, TC)
     (; k_M, f, g) = pars
     Lw_b = lifestages_state[Birth()].Lw
     Lw_i = lifestages_state[Female(Ultimate())].Lw
     rT_B = TC * k_M / 3 / (oneunit(f) + f / g)
-    return Lw_i .- (Lw_i .- Lw_b) .* exp.(-rT_B .* at.val)
+    return Lw_i .- (Lw_i .- Lw_b) .* exp.(-rT_B .* independent.val)
 end
 
 ## Description

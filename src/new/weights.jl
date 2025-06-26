@@ -27,5 +27,6 @@ function generateweight(d::AbstractArray)
         # weight = merge(weight, (nm[i] => ones(N, nvar, npage) / N / nvar / npage,))
     end
 end
+generateweight(d::Univariate) = generateweight(d.dependent.val)
 generateweight(d::AtTemperature) = generateweight(d.x)
 generateweight(d::Number) = 1.0
