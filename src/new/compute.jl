@@ -63,7 +63,7 @@ end
 const QUAD_RANGE = 1 ./ (4:500)
 
 function _integrate_quad(e::AbstractEstimator, hW, tG, tm, tm_tail)
-    # These buffers are performance critical
+    # Performance critical!!
     # integrate_tm_s is the most deeply nested function call
     # TODO explain what 0 is, why is atol not specified
     quadgk(x -> integrate_tm_s(QUAD_RANGE, x * hW, tG), 0, tm * hW)[1][1] + tm_tail
@@ -98,6 +98,8 @@ end
 #
 # Reduce over all lifestages computing basic variables
 # The output state of each transition is used as input state for the next
+compute_transition_state(e::AbstractEstimator, o::DEBOrganism, pars) =
+    compute_transition_state(e, o.lifestages, pars)
 function compute_transition_state(e::AbstractEstimator, ls::LifeStages, pars)
     init = (Init((;)),)
     # Reduce over all transitions, where each uses the state of the previous
@@ -124,7 +126,6 @@ function compute_transition_state(e::AbstractEstimator, t::Male, pars, ls::LifeS
     pars_male = merge(pars, pars.male)
     return Male(compute_transition_state(e, t.val, pars_male, ls, state))
 end
-
 # This is the actual transition state code!
 function compute_transition_state(e::AbstractEstimator, transition::Birth, pars, ls::LifeStages, state)
     (; L_m, del_M, d_V, k_M, w, f) = pars
@@ -232,17 +233,19 @@ end
 #  SC = f (g/ L + (1 + LT/L)/ Lm)/ (f + g); Lm = v/ (kM g)
 #
 # unpack parameters; parameter sequence, cf get_pars_r
-function compute_reproduction_rate(e::AbstractEstimator, p::NamedTuple, lifestages_state)
+compute_reproduction_rate(e::AbstractEstimator, o::DEBOrganism, p::NamedTuple, ls::LifeStages) =
+    compute_reproduction_rate(e, StandardReproduction(), p, ls)
+function compute_reproduction_rate(e::AbstractEstimator, ::StandardReproduction, p::NamedTuple, ls::LifeStages)
     (; kap, kap_R, g, f, k_J, k_M, L_T, v, U_Hb, U_Hp, v_Hb, v_Hp) = p
 
-    L = lifestages_state[Female(Ultimate())].L
+    L = ls[Female(Ultimate())].L
 
     L_m = v / (k_M * g) # maximum length
     k = k_J / k_M       # -, maintenance ratio
     l_T = L_T / L_m
 
-    lb = lifestages_state[Birth()].l
-    lp = lifestages_state[Female(Puberty())].l
+    lb = ls[Birth()].l
+    lp = ls[Female(Puberty())].l
     Lb = lb * L_m
     Lp = lp * L_m # structural length at birth, puberty
 
@@ -272,12 +275,13 @@ end
 # end
 # function compute_univariate(::ReprodRates, at::Temperatures, pars, Lw_i, Lw_b)
 # end
-compute_univariate(e::AbstractEstimator, u::Univariate, pars, lifestages_state, TC) =
-    compute_univariate(e, u.dependent, u.independent, pars, lifestages_state, TC)
-function compute_univariate(e::AbstractEstimator, dependent::Lengths, independent::Times, pars, lifestages_state, TC)
+compute_univariate(e::AbstractEstimator, o::DEBOrganism, u::Univariate, pars, lifestages_state, TC) =
+    compute_univariate(e, o, u.dependent, u.independent, pars, lifestages_state, TC)
+function compute_univariate(e::AbstractEstimator, o::DEBOrganism, dependent::Lengths, independent::Times, pars, lifestages_state, TC)
     (; k_M, f, g) = pars
     Lw_b = lifestages_state[Birth()].Lw
     Lw_i = lifestages_state[Female(Ultimate())].Lw
+    # TODO explain these equations
     rT_B = TC * k_M / 3 / (oneunit(f) + f / g)
     return Lw_i .- (Lw_i .- Lw_b) .* exp.(-rT_B .* independent.val)
 end
@@ -316,8 +320,6 @@ function compute_time(e::AbstractEstimator, at::At{<:Birth}, pars::NamedTuple, e
     τ = 3 * quadgk(x -> _d_time_at_birth(x, αb, f1), 1e-15, xb; atol=e.quad_atol)[1]
     return (; τ, l, info)
 end
-
-# subfunction
 
 # was dget_tb
 function _d_time_at_birth(x::Number, αb::Number, f1::Number)
@@ -492,8 +494,6 @@ end
 # TODO: put parameters in objects so this isn't needed
 # ending params with _m is bad and has multiple meanings
 function compute_male_params(model::DEBOrganism, par)
-    _any_male(model.lifestages) || return (;)
-
     (; kap, z_m, p_M, w_E, w_V, v, E_G, k_M, kap, y_E_V, v_Hpm) = par
     p_Am_m = z_m * p_M / kap           # J/d.cm^2, {p_Am} spec assimilation flux
     E_m_m = p_Am_m / v                 # J/cm^3, reserve capacity [E_m]
@@ -503,9 +503,3 @@ function compute_male_params(model::DEBOrganism, par)
     L_m = v / k_M / g                  # cm, max struct length
     return (; w, g, L_m, v_Hp=v_Hpm)
 end
-
-_any_male(stages::LifeStages) = any(map(_any_male, values(stages)))
-_any_male(p::Pair) = _any_male(p[1]) || _any_male(p[2])
-_any_male(d::Dimorphic) = _any_male(d.a) || _any_male(d.b)
-_any_male(x::Male) = true
-_any_male(x) = false
