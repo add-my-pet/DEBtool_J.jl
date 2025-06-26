@@ -14,6 +14,16 @@ abstract type Weights end
 # struct TemperatureData <: AuxData end
 # struct PseudoData <: AbstractPseudoData end
 
+struct Univariate{I,D} <: Data
+    independent::I
+    dependent::D
+end
+
+struct Multivariate{I,D<:Tuple} <: Data
+    independent::I
+    dependent::D
+end
+
 struct Lengths{T} <: Data
     val::T
 end
