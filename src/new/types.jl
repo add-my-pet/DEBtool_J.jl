@@ -1,46 +1,40 @@
-# These are very preliminary ideas...
-# abstract type DEBData end
-# abstract type AbstractPseudoData <: DEBData end
-# abstract type AbstractUniVariate <: DEBData end
-# abstract type AbstractZeroVariate <: DEBData end
 
-abstract type Data end
-abstract type AuxData end
-abstract type MetaData end
-abstract type Weights end
-# abstract type TxtData end
-
-# struct EcoCode <: MetaData end
-# struct TemperatureData <: AuxData end
-# struct PseudoData <: AbstractPseudoData end
-
-struct Univariate{I,D} <: Data
-    independent::I
-    dependent::D
-end
-
-struct Multivariate{I,D<:Tuple} <: Data
-    independent::I
-    dependents::D
-end
-
-struct Lengths{T} <: Data
-    val::T
-end
-Lengths() = Lengths(nothing)
-
-struct Times{T} <: Data
-    val::T
-end
-Times() = Times(nothing)
-struct Food{T} <: Data
-    val::T
-end
-Food() = Food(nothing)
+# Utilities copied from DimensionalData.jl
 
 basetypeof(::Type{T}) where T = T.name.wrapper
 basetypeof(::T) where T = basetypeof(T)
 rebuild(::T, x) where T = basetypeof(T)(x)
+
+abstract type Data end
+
+"""
+    Sequence <: Data
+
+Abstract supertype for a sequence of data points, 
+usually wrapping a vector.
+"""
+abstract type Sequence <: Data end
+(::Type{T})() where T<:Sequence = T(nothing)
+
+struct Lengths{T} <: Sequence
+    val::T
+end
+struct Times{T} <: Sequence
+    val::T
+end
+struct Food{T} <: Sequence
+    val::T
+end
+
+struct Univariate{I<:Sequence,D<:Sequence} <: Data
+    independent::I
+    dependent::D
+end
+
+struct Multivariate{I<:Sequence,D<:Tuple{<:Sequence,Vararg}} <: Data
+    independent::I
+    dependents::D
+end
 
 """
     AbstractMorph
@@ -54,6 +48,28 @@ struct V0Morph <: AbstractMorph end
 struct V1Morph <: AbstractMorph end
 # struct VHalf <: AbstractMorph end
 
+
+"""
+    AbstractSynthesizingUnit
+
+Abstract supertype for synthesizing units.
+"""
+abstract type AbstractSynthesizingUnit end
+
+struct ImplicitSU <: AbstractSynthesizingUnit end
+struct SerialSU <: AbstractSynthesizingUnit end 
+struct PreferenceSU <: AbstractSynthesizingUnit end
+struct ProducerSU <: AbstractSynthesizingUnit end
+struct AssimilationSU <: AbstractSynthesizingUnit end
+struct MainenanceSU <: AbstractSynthesizingUnit end
+struct GrowthSU <: AbstractSynthesizingUnit end
+
+# TODO flesh these out
+flux(::ImplicitSU, a) = a
+function flux(::PreferenceSU, preferred, other) 
+    # ???
+end
+
 """
     AbstractLifeStage
 
@@ -62,6 +78,8 @@ Abstract supertype for organism life stages.
 abstract type AbstractLifeStage end
 (::Type{T})() where T<:AbstractLifeStage = T(nothing)
 
+# TODO is this layer of abstract types needed?
+# The idea is to allow extending them for e.g. custom Emryo behabiour
 abstract type AbstractEmbryo <: AbstractLifeStage end
 abstract type AbstractJuvenile <: AbstractLifeStage end
 abstract type AbstractAdult <: AbstractLifeStage end
@@ -83,13 +101,13 @@ struct AdultNoFeeding{T} <: AbstractAdult
     val::T
 end
 
-
 """
     AbstractEvent 
 
 Abstract supertype for all life events
 """
 abstract type AbstractEvent end
+
 """
     AbstractTransition 
 
@@ -222,7 +240,7 @@ Lifespans are used in `reproduction`
 """
 abstract type AbstractReproduction end
 
-struct StandardReproduction end
+struct StandardReproduction <: AbstractReproduction end
 
 """
     DEBOrganism
@@ -240,7 +258,28 @@ reproduction and other organism traits and structure.
 end
 
 lifestages(model::DEBOrganism) = model.lifestages
-chemicalcomposition(model::DEBOrganism) = model.chemicalcomposition
+temperatureresponse(model::DEBOrganism) = model.temperatureresponse
+reproduction(model::DEBOrganism) = model.reproduction
+# chemicalcomposition(model::DEBOrganism) = model.chemicalcomposition
+
+struct Since{E<:AbstractEvent}
+    event::E
+end
+Since{T}() where T = Since(T())
+
+struct At{E<:AbstractEvent}
+    event::E
+end
+At{T}() where T = At(T())
+
+# Age is a convenience const for Since{Birth}
+const Age = Since{Birth}
+
+struct AtTemperature{T,X}
+    t::T
+    x::X
+end
+
 
 # abstract type FeedingMode end
 # struct Feeding end
@@ -290,23 +329,6 @@ chemicalcomposition(model::DEBOrganism) = model.chemicalcomposition
 # hax(; kw...) = DEBModel(Holometabolous(NoFeeding()))
 # hex(; kw...) = DEBModel(Holometabolous(NoFeeding()))
 
-
-abstract type AbstractSynthesizingUnit end
-
-struct ImplicitSU <: AbstractSynthesizingUnit end
-struct SerialSU <: AbstractSynthesizingUnit end 
-struct PreferenceSU <: AbstractSynthesizingUnit end
-struct ProducerSU <: AbstractSynthesizingUnit end
-struct AssimilationSU <: AbstractSynthesizingUnit end
-struct MainenanceSU <: AbstractSynthesizingUnit end
-struct GrowthSU <: AbstractSynthesizingUnit end
-
-# TODO flesh these out
-flux(::ImplicitSU, a) = a
-function flux(::PreferenceSU, preferred, other) 
-    # ???
-end
-
 # Gets chemical indices and chemical potential of N-waste from phylum, class
 
 # abstract type Element end
@@ -339,22 +361,3 @@ end
 #     ammonia::Am
 # end
 #
-
-struct Since{E<:AbstractEvent}
-    event::E
-end
-Since{T}() where T = Since(T())
-
-struct At{E<:AbstractEvent}
-    event::E
-end
-At{T}() where T = At(T())
-
-# Age is a convenience const for Since{Birth}
-const Age = Since{Birth}
-
-struct AtTemperature{T,X}
-    t::T
-    x::X
-end
-
