@@ -25,6 +25,9 @@ end
 struct Food{T} <: Sequence
     val::T
 end
+struct FunctionalResponses{T} <: Sequence
+    val::T
+end
 
 struct Univariate{I<:Sequence,D<:Sequence} <: Data
     independent::I
@@ -243,6 +246,34 @@ abstract type AbstractReproduction end
 struct StandardReproduction <: AbstractReproduction end
 
 """
+    AbstractBehavior
+
+Abstract supertype for organism behaviors.
+
+Behaviors respond to physiological state and external stimuli, 
+to either control *exposure* to the external stimuli, or modify 
+physiological parameters to change the *effect* of the external stimuli.
+"""
+abstract type AbstractBehavior end
+
+"""
+    AbstractMetabolicBehavior
+
+Abstract supertype behaviors that modify metabolism based
+on inforation from the environment, such as diapause or hibernation.
+"""
+abstract type AbstractMetabolicBehavior <: AbstractBehavior end
+
+"""
+    AbstractMovementBehavior
+
+Abstract supertype behaviors that modify location based
+on inforation from the environment, such as moving up into
+cooler air or moving underground into a warmer/cooler burror.
+"""
+abstract type AbstractMovementBehavior <: AbstractBehavior end
+
+"""
     DEBOrganism
 
 Organism object specifies lifestages, temperature response,
@@ -261,6 +292,8 @@ lifestages(model::DEBOrganism) = model.lifestages
 temperatureresponse(model::DEBOrganism) = model.temperatureresponse
 reproduction(model::DEBOrganism) = model.reproduction
 # chemicalcomposition(model::DEBOrganism) = model.chemicalcomposition
+
+
 
 struct Since{E<:AbstractEvent}
     event::E
@@ -360,4 +393,3 @@ end
 #     mu_N::N
 #     ammonia::Am
 # end
-#
