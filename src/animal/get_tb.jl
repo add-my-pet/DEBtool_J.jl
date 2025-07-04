@@ -55,7 +55,7 @@ function get_tb(p, eb, lb)
     # end
     lb, info = get_lb(p, eb)
     # unpack p
-    g = p[1]  # energy investment ratio
+    g = p.g  # energy investment ratio
 
     xb = g / (eb + g) # f = e_b 
     ab = 3 * g * xb^(1 / 3) / lb # \alpha_b
@@ -110,7 +110,7 @@ function get_tb(p, eb)
     #   lb, info = get_lb(p, eb);
     # end
     # unpack p
-    g = p[1]  # energy investment ratio
+    g = p.g  # energy investment ratio
 
     xb = g / (eb + g) # f = e_b 
     ab = 3 * g * xb^(1 / 3) / lb # \alpha_b
@@ -121,7 +121,7 @@ end
 # subfunction
 
 function dget_tb(x, ab, xb)
+    error()
     # called by get_tb
-
     f = x .^ (-2 / 3) ./ (1 - x) ./ (ab - real(beta0(x, xb)))
 end

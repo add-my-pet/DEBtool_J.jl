@@ -2,18 +2,7 @@
 # Finds parameter values for a pet that minimizes the lossfunction using Nelder Mead's simplex method using a filter
 
 ##
-function petregr_f(predict, func, par, data, auxData, weights, filternm, options)
-
-    function call_func(par, data, auxData)
-        out=predict(par, data, auxData)
-        prdData = out[1]
-        info = out[2]
-        # if ~info
-        #     return
-        # end
-        prdData=predict_pseudodata(par, data, prdData)
-        (prdData, info)
-    end
+function petregr_f(call_func, filter_std1, loss, model, par, st, data, auxData, weights, filternm, options, nm)
     # created 2001/09/07 by Bas Kooijman; 
     # modified 2015/01/29 by Goncalo Marques, 
     #   2015/03/21 by Bas Kooijman, 
@@ -69,67 +58,10 @@ function petregr_f(predict, func, par, data, auxData, weights, filternm, options
 
     #modified_nt = merge(new_matrices, select(nt, Not(:matrix1, :matrix2)))
    # modified_nt = merge(NamedTuple(modified_matrices), select(nt, v -> !isa(v, Matrix)))
-    
-    # assumes psd is the last item in data
-    nmsize=ones(length(data)-1)
-    for i in 1:length(data)-1
-        if(!isempty(size(data[i])))
-         nmsize[i]=size(data[i], 2)   
-        end
-    end
-    matrix_indices = findall(==(2), nmsize)
-    modmatrices=(;)
-    for i in 1:length(matrix_indices)
-        matrix_extract = data[matrix_indices[i]]
-        matrix_extract = matrix_extract[:,size(matrix_extract, 2)]
-        modmatrices=merge(modmatrices, (keys(data)[matrix_indices[i]] => matrix_extract,))
-    end
-    st=merge(data)
-    for i in 1:length(modmatrices)
-        st=merge(data, (keys(modmatrices)[i] => modmatrices[i],))  
-    end
 
-    nm=([string(k) for k in keys(data)[1:(length(data)-1)]]..., ["psd." * string(s) for s in keys(data.psd)]...) # assumes psd is the last item in data
-    #nst=length(nm)
+    n_par = length(par[:val])
+    qvec = collect(par[:val])::Vector{Float64}
 
-
-    # Y: vector with all dependent data, NaNs omitted
-    # W: vector with all weights, but those that correspond NaNs in data omitted
-    YmeanY = struct2vector(st, nm, st)
-    Y = YmeanY[1]
-    meanY = YmeanY[2]
-    W = struct2vector(weights, nm, st)[1]
-
-    parnm = fieldnames(typeof(par.free))
-    np = Int(length(parnm))
-    #n_par = sum(cell2mat(struct2cell(par.free)));
-    n_par = 0
-    for field in parnm
-        n_par += Int(getproperty(par.free, field))
-    end
-
-    if n_par == 0
-        return # no parameters to iterate
-    end
-    index = 1:np
-    index = index[vec([
-        getfield(par.free, field) for field in fieldnames(typeof(par.free))
-    ]).==1]
-
-    free = merge(par.free, ) # free is here removed, and after iteration added again
-    #q = rmfield(par, "free"); # copy input parameter matrix into output TO DO
-    q = merge(par, )
-    #qvec = cell2mat(struct2cell(q));
-    qvec = []
-    #i = 0
-    for field in fieldnames(typeof(par))
-        #i = i + 1
-        #field = fieldnames(typeof(par))[i]
-        if field != :free
-            aux = getproperty(par, field)
-            append!(qvec, aux...)
-        end
-    end
     # set options if necessary
 
     # if !@isdefined(options.max_step_number) || isempty(options.max_step_number)
@@ -165,42 +97,39 @@ function petregr_f(predict, func, par, data, auxData, weights, filternm, options
     #call_fileLossfunc = Meta.parse("$fileLossfunc(Y, meanY, P, meanP, W)")
     #call_filternm = Meta.parse("$filternm(q)")
     # Set up a simplex near the initial guess.
-    xin = qvec[index]    # Place input guess in the simplex
+    xin = copy(qvec)    # Place input guess in the simplex
     #v[:,1] = xin;
     unit_xin = map(unit, xin)
     v = zeros(Float64, length(xin), Int(n_par) + 1) .* unit_xin
-    v[:, 1] = xin
+    v[:, 1] .= xin
     v_test = zeros(size(v, 1))
     #prdData = (;$petnm = outPseudoData)
-    f = call_func(q, data, auxData)[1]#eval(call_func)[1]
-    PmeanP = struct2vector(f, nm, st)
-    P = PmeanP[1]
-    meanP = PmeanP[2]
+    f = call_func(qvec, data, auxData)[1]
+    P, meanP = struct2vector(f, st)
     #P = [value(x) for x in values(PmeanP[1])]
     #meanP = [value(x) for x in values(PmeanP[2])]
-    fv = zeros(Float64, 1, Int(n_par) + 1)
-    fv[:, 1] .= lossfunction_sb(Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
+    fv = zeros(Float64, 1, n_par + 1)
+    fv[:, 1] .= loss(P, meanP) #eval(call_fileLossfunc)
     #fv(:,1) = feval(fileLossfunc, Y, meanY, P, meanP, W);
 
     # Following improvement suggested by L.Pfeffer at Stanford
     usual_delta = options.simplex_size         # 5 percent deltas is the default for non-zero terms
     zero_term_delta = options.simplex_size / 20 # Even smaller delta for zero elements of q
-    for j = 1:Int(n_par)
-        y = deepcopy(xin)#merge(xin, )
+    y = copy(xin)#merge(xin, )
+    y_test = similar(xin)
+    for j = 1:n_par
         f_test = false
         step_reducer = 1 # step_reducer will serve to reduce usual_delta if the parameter set does not pass the filter
-        y_test = deepcopy(y)#merge(y, )
+        y_test .= y
         while !f_test
             if y[j] != 0
                 y_test[j] = (1 + usual_delta / step_reducer) * y[j]
             else
                 y_test[j] = zero_term_delta / step_reducer
             end
-            qvec[index] = y_test
-            #q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
-            q = NamedTuple{parnm}(Tuple(qvec))
+            qvec .= y_test
             #f_test = feval(filternm, q);
-            f_test, flag = filter_std(q) #eval(call_filternm)
+            f_test, flag = filter_std1(qvec) #eval(call_filternm)
 
             if !f_test
                 println(
@@ -209,7 +138,7 @@ function petregr_f(predict, func, par, data, auxData, weights, filternm, options
                 step_reducer = 2 * step_reducer
             else
                 #[f, f_test] = feval(func, q, data, auxData);
-                f, f_test = call_func(q, data, auxData)#eval(call_func)
+                f, f_test = call_func(qvec, data, auxData)#eval(call_func)
 
                 if !f_test
                     println(
@@ -220,9 +149,9 @@ function petregr_f(predict, func, par, data, auxData, weights, filternm, options
             end
         end
         v[:, j+1] = y_test
-        P, meanP = struct2vector(f, nm, st)
+        P, meanP = struct2vector(f, st)
         #fv(:,j+1) = feval(fileLossfunc, Y, meanY, P, meanP, W);
-        fv[:, j+1] .= lossfunction_sb(Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
+        fv[:, j+1] .= loss(P, meanP) #eval(call_fileLossfunc)
     end
 
     # sort so v(1,:) has the lowest function value 
@@ -260,23 +189,22 @@ function petregr_f(predict, func, par, data, auxData, weights, filternm, options
         #xbar = sum(v(:,one2n), 2)/ n_par;
         xbar = (sum(Unitful.ustrip(v[:, one2n]), dims = 2) / n_par) .* unit_xin
         xr = (1 + rho) * xbar - rho * v[:, np1]
-        qvec[index] = xr
+        qvec .= xr
         #q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
-        q = NamedTuple{parnm}(Tuple(qvec))
         #f_test = feval(filternm, q);
-        f_test, flag = filter_std(q) #eval(call_filternm)
+        f_test, flag = filter_std1(qvec) #eval(call_filternm)
         if !f_test
             fxr = fv[:, np1] + 1
         else
             #f, f_test = feval(func, q, data, auxData);
-            f, f_test = call_func(q, data, auxData)#eval(call_func)[1]
+            f, f_test = call_func(qvec, data, auxData)#eval(call_func)[1]
             if !f_test
                 fxr = fv[:, np1] + 1
             else
                 #[P, meanP] = struct2vector(f, nm, st);
-                P, meanP = struct2vector(f, nm, st)
+                P, meanP = struct2vector(f, st)
                 #fxr = feval(fileLossfunc, Y, meanY, P, meanP, W);
-                fxr = lossfunction_sb(Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
+                fxr = loss(P, meanP) #eval(call_fileLossfunc)
             end
         end
         func_evals = func_evals + 1
@@ -284,23 +212,22 @@ function petregr_f(predict, func, par, data, auxData, weights, filternm, options
         if fxr < fv[1, 1]#[1]
             # Calculate the expansion point
             xe = (1 + rho * chi) .* xbar - rho * chi .* v[:, np1]
-            qvec[index] = xe
-            q = NamedTuple{parnm}(Tuple(qvec))
+            qvec .= xe
             #q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
-            f_test, flag = filter_std(q) #eval(call_filternm)
+            f_test, flag = filter_std1(qvec) #eval(call_filternm)
             #f_test = feval(filternm, q);
             if !f_test
                 fxe = fxr + 1
             else
                 #[f, f_test] = feval(func, q, data, auxData);
-                f, f_test = call_func(q, data, auxData)#eval(call_func)[1]
+                f, f_test = call_func(qvec, data, auxData)#eval(call_func)[1]
                 if !f_test
                     fxe = fv[:, np1] + 1
                 else
                     #[P, meanP] = struct2vector(f, nm, st);
                     #fxe = feval(fileLossfunc, Y, meanY, P, meanP, W);
-                    P, meanP = struct2vector(f, nm, st)
-                    fxe = lossfunction_sb(Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
+                    P, meanP = struct2vector(f, st)
+                    fxe = loss(P, meanP)
                 end
             end
             func_evals = func_evals + 1
@@ -324,22 +251,21 @@ function petregr_f(predict, func, par, data, auxData, weights, filternm, options
                     # Perform an outside contraction
                     xc = [1 + psi * rho] .* xbar - psi * rho .* v[:, np1]
                     #qvec(index) = xc; q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
-                    qvec[index] = xc
-                    q = NamedTuple{parnm}(Tuple(qvec))
+                    qvec .= xc
                     #f_test = feval(filternm, q);
-                    f_test, flag = filter_std(q) #eval(call_filternm)
+                    f_test, flag = filter_std1(qvec) #eval(call_filternm)
                     if !f_test
                         fxc = fxr + 1
                     else
                         #[f, f_test] = feval(func, q, data, auxData);
-                        f, f_test = call_func(q, data, auxData)#eval(call_func)[1]
+                        f, f_test = call_func(qvec, data, auxData)#eval(call_func)[1]
                         if !f_test
                             fxc = fv[1, np1] + 1
                         else
                             #[P, meanP] = struct2vector(f, nm, st);
                             #fxc = feval(fileLossfunc, Y, meanY, P, meanP, W);
-                            P, meanP = struct2vector(f, nm, st)
-                            fxc = lossfunction_sb(Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
+                            P, meanP = struct2vector(f, st)
+                            fxc = loss(P, meanP)
                         end
                     end
                     func_evals = func_evals + 1
@@ -357,22 +283,21 @@ function petregr_f(predict, func, par, data, auxData, weights, filternm, options
                     # Perform an inside contraction
                     xcc = (1 - psi) .* xbar + psi .* v[:, np1]
                     #qvec(index) = xcc; q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
-                    qvec[index] = xcc
-                    q = NamedTuple{parnm}(Tuple(qvec))
+                    qvec .= xcc
                     #f_test = feval(filternm, q);
-                    f_test, flag = filter_std(q) #eval(call_filternm)
+                    f_test, flag = filter_std1(qvec) #eval(call_filternm)
                     if !f_test
                         fxcc = fv[:, np1] + 1
                     else
                         #[f, f_test] = feval(func, q, data, auxData);
-                        f, f_test = call_func(q, data, auxData)#eval(call_func)[1]
+                        f, f_test = call_func(qvec, data, auxData)#eval(call_func)[1]
                         if !f_test
                             fxcc = fv[1, np1] + 1
                         else
                             #[P, meanP] = struct2vector(f, nm, st);
                             #fxcc = feval(fileLossfunc, Y, meanY, P, meanP, W);
-                            P, meanP = struct2vector(f, nm, st)
-                            fxcc = lossfunction_sb(Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
+                            P, meanP = struct2vector(f, st)
+                            fxcc = loss(P, meanP)
                         end
                     end
                     func_evals = func_evals + 1
@@ -394,9 +319,8 @@ function petregr_f(predict, func, par, data, auxData, weights, filternm, options
                             v_test = v[:, 1] + sigma / step_reducer * (v[:, j] - v[:, 1])
                             #qvec(index) = v_test; q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
                             #f_test = feval(filternm, q);
-                            qvec[index] = v_test
-                            q = NamedTuple{parnm}(Tuple(qvec))
-                            f_test, flag = filter_std(q) #eval(call_filternm)
+                            qvec .= v_test
+                            f_test, flag = filter_std1(qvec) #eval(call_filternm)
                             if !f_test
                                 println(
                                     "The parameter set for the simplex shrinking is not realistic. \n",
@@ -404,7 +328,7 @@ function petregr_f(predict, func, par, data, auxData, weights, filternm, options
                                 step_reducer = 2 * step_reducer
                             else
                                 #[f, f_test] = feval(func, q, data, auxData);
-                                f, f_test = call_func(q, data, auxData)#eval(call_func)[1]
+                                f, f_test = call_func(qvec, data, auxData)#eval(call_func)[1]
                                 if !f_test
                                     println(
                                         "The parameter set for the simplex shrinking is not realistic. \n",
@@ -414,11 +338,8 @@ function petregr_f(predict, func, par, data, auxData, weights, filternm, options
                             end
                         end
                         v[:, j] = v_test
-                        #[P, meanP] = struct2vector(f, nm, st);
-                        #fv(:,j) = feval(fileLossfunc, Y, meanY, P, meanP, W);
-                        P, meanP = struct2vector(f, nm, st)
-                        #fv(:,j+1) = feval(fileLossfunc, Y, meanY, P, meanP, W);
-                        fv[:, j] .= lossfunction_sb(Y, meanY, P, meanP, W) #eval(call_fileLossfunc)
+                        P, meanP = struct2vector(f, st)
+                        fv[:, j] .= loss(P, meanP)
                     end
                     func_evals = func_evals + n_par
                 end
@@ -431,7 +352,7 @@ function petregr_f(predict, func, par, data, auxData, weights, filternm, options
         # if itercount == 70
         #     itercount = 70
         # end
-        if options.report && mod(itercount, 10) == 0
+        if options.report && mod(itercount, 100) == 0
             println(
                 "step " * string(itercount) * " ssq ",
                 string(minimum(fv)) * "-",
@@ -442,10 +363,7 @@ function petregr_f(predict, func, par, data, auxData, weights, filternm, options
 
 
     #qvec(index) = v(:,1); q = cell2struct(mat2cell(qvec, ones(np, 1), [1]), parnm);
-    qvec[index] = v[:, 1]
-    q = NamedTuple{parnm}(Tuple(qvec))
-    #q.free = free; # add substructure free to q,
-    q = merge(q, (free = free,))
+    qvec .= v[:, 1]
 
     fval = minimum(fv)
     if func_evals >= options.max_fun_evals
@@ -466,15 +384,24 @@ function petregr_f(predict, func, par, data, auxData, weights, filternm, options
         end
         info = true
     end
+    q = ModelParameters.update(par, qvec)
     (q, info, itercount, fval)
 end
+function struct2vector(structin::NamedTuple, structref)
+    combined = _combine(structin, structref)
+    meanstruct = _mean(combined, structref)
+    vec = Flatten.flatten(combined, Number)
+    meanvec = Flatten.flatten(meanstruct, Number)
+
+    return vec, meanvec
+end
 function struct2vector(structin, fieldNames, structRef)
-    function get_nested_field(obj, fields::Vector{Symbol})
-        for field in fields
-            obj = getfield(obj, field)
-        end
-        return obj
-    end
+    # function get_nested_field(obj, fields::Vector{Symbol})
+    #     for field in fields
+    #         obj = getfield(obj, field)
+    #     end
+    #     return obj
+    # end
     # structRef has the same structure as struct, but some values can be NaN's; the values themselves are not used
     # struct2vector is called for data (which might have NaN's), but also for predictions, which do not have NaN's
     # vec = ()
@@ -501,44 +428,50 @@ function struct2vector(structin, fieldNames, structRef)
     # end
     # structRef has the same structure as struct, but some values can be NaN's; the values themselves are not used
     # struct2vector is called for data (which might have NaN's), but also for predictions, which do not have NaN's
-    vec = ()  # Initialize empty vector
-    meanVec = ()  # Initialize empty mean vector
-    for i = 1:size(fieldNames, 1)
-        if occursin(".", fieldNames[i])
-            fieldsInCells = split(fieldNames[i], ".")
-            fieldName = Symbol.(fieldsInCells)
-            aux = get_nested_field(structin, fieldName)  # Get field value from struct
-            auxRef = get_nested_field(structRef, fieldName)  # Get field value from struct
-        else
-            fieldName = Symbol(fieldNames[i])  # Use the entire field name
-            aux = getproperty(structin, Symbol(fieldNames[i]))  # Get field value from struct
-            auxRef = getproperty(structRef, Symbol(fieldNames[i]))  # Get field value from struct
-        end
-        #aux = getproperty(structin, Symbol(fieldsInCells))  # Get field value from struct
-        #auxRef = getproperty(structRef, Symbol(fieldsInCells))  # Get corresponding field value from structRef
-        #auxRef = get_nested_field(structRef, fieldName) 
-        if length(aux) == 1
-            #aux = [aux]  # Convert scalar to 1-element array
-            #aux = aux[findall(.!isnan.(auxRef))]  # Remove values that have NaN's in structRef
-            vec = (vec..., (aux))  # Append aux to vec
-            #meanVec = (vec..., (aux[1]))
-        else
-            #aux = vec(aux)[:]  # Convert to 1D array
-            aux = aux[findall(.!isnan.(auxRef))]  # Remove values that have NaN's in structRef
-            vec = (vec..., (aux[:]...))  # Append aux to vec
-           # meanVec = (vec..., (fill(mean(aux), length(aux))))
-        end
-        if length(auxRef) == 1
-            #auxRef = [auxRef]  # Convert scalar to 1-element array
-           # vec = (vec..., (aux[1]))  # Append aux to vec
-            meanVec = (meanVec..., (aux))
-        else
-            #auxRef = vec(auxRef)[:]  # Convert to 1D array
-           # vec = (vec..., (aux[:]))  # Append aux to vec
-            meanVec = (meanVec..., (fill(mean(aux), length(aux))...))
-        end
-        #append!(meanVec, fill(mean(aux), length(aux)))  # Append mean(aux) to meanVec
-    end
+    #vec = ()  # Initialize empty vector
+    #meanVec = ()  # Initialize empty mean vector
+    #for i = 1:size(fieldNames, 1)
+    #    if occursin(".", fieldNames[i])
+    #        fieldsInCells = split(fieldNames[i], ".")
+    #        fieldName = Symbol.(fieldsInCells)
+    #        aux = get_nested_field(structin, fieldName)  # Get field value from struct
+    #        auxRef = get_nested_field(structRef, fieldName)  # Get field value from struct
+    #    else
+    #        fieldName = Symbol(fieldNames[i])  # Use the entire field name
+    #        aux = getproperty(structin, Symbol(fieldNames[i]))  # Get field value from struct
+    #        auxRef = getproperty(structRef, Symbol(fieldNames[i]))  # Get field value from struct
+    #    end
+    #    #aux = getproperty(structin, Symbol(fieldsInCells))  # Get field value from struct
+    #    #auxRef = getproperty(structRef, Symbol(fieldsInCells))  # Get corresponding field value from structRef
+    #    #auxRef = get_nested_field(structRef, fieldName) 
+    #    if length(aux) == 1
+    #        #aux = [aux]  # Convert scalar to 1-element array
+    #        #aux = aux[findall(.!isnan.(auxRef))]  # Remove values that have NaN's in structRef
+    #        vec = (vec..., (aux))  # Append aux to vec
+    #        #meanVec = (vec..., (aux[1]))
+    #    else
+    #        #aux = vec(aux)[:]  # Convert to 1D array
+    #        aux = aux[findall(.!isnan.(auxRef))]  # Remove values that have NaN's in structRef
+    #        vec = (vec..., (aux[:]...))  # Append aux to vec
+    #       # meanVec = (vec..., (fill(mean(aux), length(aux))))
+    #    end
+    #    if length(auxRef) == 1
+    #        #auxRef = [auxRef]  # Convert scalar to 1-element array
+    #       # vec = (vec..., (aux[1]))  # Append aux to vec
+    #        meanVec = (meanVec..., (aux))
+    #    else
+    #        #auxRef = vec(auxRef)[:]  # Convert to 1D array
+    #       # vec = (vec..., (aux[:]))  # Append aux to vec
+    #        meanVec = (meanVec..., (fill(mean(aux), length(aux))...))
+    #    end
+    #    #append!(meanVec, fill(mean(aux), length(aux)))  # Append mean(aux) to meanVec
+    #end
     #aux = aux[.!isnan.(auxRef)] # remove values that have NaN's in structRef - TO DO
-    return (vec, meanVec)
+    # out = (vec, meanVec)
+    out2 = struct2vector(structin, structRef)
+    # @show out[1] out2[1]
+    # @show out[2] out2[2]
+    # @assert out[1] == out2[1]
+    # @assert out[2] == out2[2]
+    return out2
 end

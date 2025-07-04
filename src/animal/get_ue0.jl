@@ -57,7 +57,7 @@ function get_ue0(p, eb, lb0)
 
     xb = g / (eb + g)
     uE0 = (3 * g / (3 * g * xb^(1 / 3) / lb - real(beta0(0, xb))))^3
-    (uE0, lb, info)
+    (; uE0, lb, info)
 end
 
 ## get_ue0
@@ -119,5 +119,6 @@ function get_ue0(p, eb)
 
     xb = g / (eb + g)
     uE0 = (3 * g / (3 * g * xb^(1 / 3) / lb - real(beta0(0, xb))))^3
-    (uE0, lb, info)
+
+    return (; uE0, lb, info)
 end

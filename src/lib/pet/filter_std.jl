@@ -93,10 +93,11 @@ function filter_std(p)
         return (filter, flag)
     end
 
-    if !reach_birth(c.g, c.k, c.v_Hb, p.f) # constraint required for reaching birth
-        flag = 6
-        return (filter, flag)
-    end
+    # TODO do this check elsewhere
+    # if !reach_birth(c.g, c.k, c.v_Hb, p.f) # constraint required for reaching birth
+    #     flag = 6
+    #     return (filter, flag)
+    # end
 
     filter = true
     return (filter, flag)
