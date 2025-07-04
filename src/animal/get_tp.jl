@@ -145,9 +145,9 @@ function get_tp(p, f=1, tel_b=nothing, tau=nothing)
         
         # Return results
         if tau !== nothing
-            return tvel, tau_p, tau_b, l_p, l_b, info
+            return (; tvel, tau_p, tau_b, l_p, l_b, info)
         else
-            return tau_p, tau_b, l_p, l_b, info
+            return (; tau_p, tau_b, l_p, l_b, info)
         end
     end
     

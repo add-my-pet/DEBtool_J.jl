@@ -11,6 +11,7 @@ using OrdinaryDiffEq
 using Roots
 using ModelParameters.Flatten
 using StaticArrays
+using DataInterpolations
 
 export StandardEstimator, DEBNelderMead, DEBMultimodalEvolutionaryAlgorithm
 export DEBOrganism
@@ -20,9 +21,15 @@ export Birth, Puberty, Maturity, Ultimate
 export Embryo, Juvenile, Adult
 export Female, Male
 export AtTemperature
-export Data, Univariate, Times, Lengths, Food
+export Data, Univariate, Times, Temperatures, Lengths, FunctionalResponses, Food
+export AbstractEnvironment, Environment
+export Standard, FoetalDevelopment, FoetalDevelopmentX, GrowthCeasesAtPuberty, Accelerated, Hemimetabolous, Holometabolous
+export std, stf, stx, sbp, abj, abp, asj, hep, hex, hax
+export std_organism, stf_organism, stx_organism, sbp_organism, 
+    abj_organism, abp_organism, asj_organism, 
+    hep_organism, hex_organism, hax_organism
 
-export estimate, addpseudodata, setweights
+export estimate, simulate, addpseudodata, setweights
 
 # TODO make these types
 export DEFAULT_CHEMICAL_PARAMETERS,
@@ -39,10 +46,16 @@ include("new/loss.jl")
 include("new/estimation.jl")
 include("new/solvers.jl")
 include("new/predict.jl")
-include("new/compute.jl")
 include("new/parameters.jl")
 include("new/weights.jl")
 include("new/pseudodata.jl")
+include("new/simulate.jl")
+include("new/compute/length.jl")
+include("new/compute/misc.jl")
+include("new/compute/reproduction.jl")
+include("new/compute/scaled_mean_age.jl")
+include("new/compute/survival_probability.jl")
+include("new/compute/transition_state.jl")
 # include("new/calibration.jl")
 
 # include("lib/misc/beta0.jl")
@@ -68,8 +81,8 @@ include("new/pseudodata.jl")
 # include("animal/get_lb.jl")
 # include("animal/get_lb2.jl")
 # include("animal/get_lp.jl")
-# include("animal/get_tb.jl")
-# include("animal/get_tp.jl")
+include("animal/get_tb.jl")
+include("animal/get_tp.jl")
 # include("animal/get_tpm.jl")
 # include("animal/get_ue0.jl")
 # include("animal/get_tm_s.jl")
@@ -79,3 +92,4 @@ include("new/pseudodata.jl")
 # include("animal/get_lp1.jl")
 
 end # module DEBtool_J
+
