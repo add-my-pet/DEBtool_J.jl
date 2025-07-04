@@ -3,14 +3,15 @@ using ModelParameters
 using Unitful
 using MAT
 using Test
+using Flatten
+using Unitful
 
 srcpath = dirname(pathof(DEBtool_J))
 speciespath = realpath(joinpath(srcpath, "../test/species"))
 species = "Emydura_macquarii"
 
 # compute temperature correction factors
-model = DEBOrganism(
-    temperatureresponse = Arrhenius1parTemperatureResponse(),
+model = std_organism(
     lifestages = LifeStages(
         Embryo() => Birth(),
         Juvenile() => Dimorphic(Female(Puberty()), Male(Puberty())),
@@ -51,3 +52,23 @@ speciesdata = include(joinpath(speciespath, "mydata_" * species * ".jl")) # load
     end
     println()
 end
+
+times = Times([0.0, 300.0, 600, 900.0, 1200.0])
+temperatures = Temperatures(u"K".([19.0, 5.0, 22.0, 10.0, -5.0]u"°C"))
+functional_responses = FunctionalResponses([1.0, 0.8, 1.0, 0.5, 0.0])
+environment = Environment(; times, data=(; temperatures, functional_responses)) 
+sol = simulate(model, stripparams(par), environment)
+
+using Plots
+Plots.plot(sol)
+
+# @time simulate(model, stripparams(par), environment);
+# using ProfileView
+# @profview 1 + 2
+# sim(model, par, environment, n) = for i in 1:n simulate(model, stripparams(par), environment); end
+# @time sim(model, par, environment, 500)
+
+# using GLMakie
+# Makie.plot(sol)
+
+# TODO: test simulation outputs

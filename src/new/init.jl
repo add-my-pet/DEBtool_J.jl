@@ -19,28 +19,32 @@
 
 ## Example of use 
 # p = [.8 .42 1.7 1.7 3.24 .012]; initial_scaled_reserve(1, p)
-function init_scaled_reserve(p::NamedTuple, l_b::Number)
-    (; v_Hb, g, k_J, k_M, v, f) = p
-
-    # TODO explain why k_J / k_M
+function initial_scaled_reserve(mode::AbstractStandardFoetalMode, p::NamedTuple, l_b::Number)
+    error("Not tested")
     q = (; g, k=k_J / k_M, v_Hb)
+    (; l_b, info) = get_lb(mode, q)
+    (; l_b, info)
+end
+
+function initial_scaled_reserve(mode::Mode, p::NamedTuple, l_b::Number)
+    (; v_Hb, g, k_M, v, f) = p
+
     info = true
-
-    # lb, info = get_lb(q, f)
-    # @assert lb == l_b
-    ## try get_lb1 or get_lb2 for higher accuracy
     Lb = l_b * v / k_M / g
-    (; uE0, info) = get_ue0(q, f, l_b)
+    uE0 = get_ue0(mode, p, f, l_b)
     UE0 = uE0 * v^2 / g^2 / k_M^3
-
     return (; UE0, Lb, info)
 end
 
-function get_ue0(p::NamedTuple, eb, lb)
+function get_ue0(::Mode, p::NamedTuple, eb, l_b)
     (; g) = p  # energy investment ratio
-    info = true
-
+    # TODO: explain math here
     xb = g / (eb + g)
-    uE0 = (3 * g / (3 * g * xb^(1 / 3) / lb - real(beta0(zero(xb), xb))))^3
-    (; uE0, lb, info)
+    return (3 * g / (3 * g * xb^(1 / 3) / l_b - real(beta0(zero(xb), xb))))^3
+end
+function get_ue0(::AbstractStandardFoetalMode, p, eb, l_b)
+    (; g) = p
+    # TODO: explain math here
+    uEb = eb * l_b^3 / g
+    return uEb + l_b^3 + 3 * l_b^4 / 4 / g
 end
