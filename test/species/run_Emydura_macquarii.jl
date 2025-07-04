@@ -3,7 +3,6 @@ using ModelParameters
 using Unitful
 using MAT
 using Test
-using Flatten
 
 srcpath = dirname(pathof(DEBtool_J))
 speciespath = realpath(joinpath(srcpath, "../test/species"))
