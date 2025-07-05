@@ -1,31 +1,32 @@
 using DEBtool_J
 using ModelParameters
-using Unitful
 using MAT
 using Test
 using Flatten
 using Unitful
+using DataInterpolations
 
 srcpath = dirname(pathof(DEBtool_J))
 speciespath = realpath(joinpath(srcpath, "../test/species"))
 species = "Emydura_macquarii"
-
+ntpar = include(joinpath(speciespath, "pars_init_" * species * ".jl")) 
+par = StaticModel(ntpar) # create a 'Model' out of the Pars struct
 # compute temperature correction factors
-model = std_organism(
-    lifestages = LifeStages(
+temperatureresponse = ArrheniusResponse(; ntpar[(:T_ref, :T_A)]...)
+model = std_organism(;
+    temperatureresponse,
+    life = Life(
         Embryo() => Birth(),
         Juvenile() => Dimorphic(Female(Puberty()), Male(Puberty())),
         Adult() => Dimorphic(Female(Ultimate()), Male(Ultimate())),
     ),
 )
-estimator = StandardEstimator(;
+estimator = Estimator(;
     method = DEBNelderMead(),
     max_step_number = 5000,
     max_fun_evals = 5000,
-) 
+)
 
-par = include(joinpath(speciespath, "pars_init_" * species * ".jl")) 
-par = StaticModel(par) # create a 'Model' out of the Pars struct
 speciesdata = include(joinpath(speciespath, "mydata_" * species * ".jl")) # load the mydata file
 @time parout, nsteps, info, fval = estimate(estimator, model, par, speciesdata);
 
@@ -53,22 +54,25 @@ speciesdata = include(joinpath(speciespath, "mydata_" * species * ".jl")) # load
     println()
 end
 
-times = Times([0.0, 300.0, 600, 900.0, 1200.0])
-temperatures = Temperatures(u"K".([19.0, 5.0, 22.0, 10.0, -5.0]u"°C"))
-functional_responses = FunctionalResponses([1.0, 0.8, 1.0, 0.5, 0.0])
-environment = Environment(; times, data=(; temperatures, functional_responses)) 
-sol = simulate(model, stripparams(par), environment)
+environment = Environment(; 
+    times=[0.0, 300.0, 600, 900.0, 1200.0],
+    temperatures=u"K".([19.0, 5.0, 22.0, 10.0, -5.0]u"°C"),
+    functionalresponses=[1.0, 0.8, 1.0, 0.5, 0.0],
+    temperatureresponse,
+    interpolation=QuadraticInterpolation,
+) 
+@time sol = simulate(model, par, environment)
 
-using Plots
-Plots.plot(sol)
+# using Plots
+# Plots.plot(sol)
+
+# using GLMakie
+# Makie.plot(sol)
 
 # @time simulate(model, stripparams(par), environment);
 # using ProfileView
 # @profview 1 + 2
 # sim(model, par, environment, n) = for i in 1:n simulate(model, stripparams(par), environment); end
 # @time sim(model, par, environment, 500)
-
-# using GLMakie
-# Makie.plot(sol)
 
 # TODO: test simulation outputs

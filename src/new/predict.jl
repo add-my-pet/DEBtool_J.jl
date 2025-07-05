@@ -7,11 +7,11 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
     # Add male params, will be empty if there is no dimorphic lifestage
     male = compute_male_params(model, par)
     par = merge(par, (; male))
-    lifestage_state = compute_transition_state(e, model.lifestages, par)
+    transitions = compute_transition_state(e, model, par)
 
     tr = model.temperatureresponse
     TC = tempcorr(tr, par, temp)
-    (; R) = compute_reproduction_rate(e, model, par, lifestage_state)
+    (; R) = compute_reproduction_rate(e, model, par, transitions)
     r_at_t = Flatten.flatten(data.reproduction, AtTemperature)
     RT = if isempty(r_at_t)
         R * TC
@@ -21,14 +21,14 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
     end
 
     predictions = (
-        age = _temp_correct_predictions(x -> x.a, tr, par, lifestage_state, data.age, TC),
-        time = _temp_correct_predictions(x -> x.t, tr, par, lifestage_state, data.time, TC),
-        length = map(x -> lifestage_state[x].Lw, data.length),
-        wetweigth = map(x -> lifestage_state[x].Ww, data.wetweight),
+        age = _temp_correct_predictions(x -> x.a, tr, par, transitions, data.age, TC),
+        time = _temp_correct_predictions(x -> x.t, tr, par, transitions, data.time, TC),
+        length = map(x -> transitions[x].Lw, data.length),
+        wetweigth = map(x -> transitions[x].Ww, data.wetweight),
     )
     # Only calculate reproduction when needed
     if haskey(data, :reproduction)
-        (; R) = compute_reproduction_rate(e, model, par, lifestage_state)
+        (; R) = compute_reproduction_rate(e, model, par, transitions)
         r_at_t = Flatten.flatten(data.reproduction, AtTemperature)
         RT = if isempty(r_at_t)
             R * TC
@@ -41,7 +41,7 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
     if haskey(data, :univariate)
         # uni-variate data
         univariate = map(data.univariate) do u
-            compute_univariate(e, model, u, par, lifestage_state, TC)
+            compute_univariate(e, model, u, par, transitions, TC)
         end
         predictions = merge(predictions, (; univariate))
     end
@@ -50,7 +50,7 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # p
     return (; predictions, info)
 end
 
-function _temp_correct_predictions(fieldgetter::Function, tr, par::NamedTuple, ls::LifeStages, pred, TC::Number)
+function _temp_correct_predictions(fieldgetter::Function, tr, par::NamedTuple, ls::Transitions, pred, TC::Number)
     map(pred) do p
         if p isa AbstractTransition{<:AtTemperature}
             fieldgetter(ls[p]) / tempcorr(tr, par, p.val.t)

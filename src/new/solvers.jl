@@ -47,7 +47,7 @@ end
 ## was petregr_f
 # Finds parameter values for a pet that minimizes the lossfunction using Nelder Mead's simplex method using a filter
 # TODO: single objective/loss/filter function
-function optimize!(objective, filter, loss, estimator::StandardEstimator{DEBNelderMead}, qvec::Vector)
+function optimize!(objective, filter, loss, estimator::Estimator{DEBNelderMead}, qvec::Vector)
     info = true # initiate info setting
     n_par = length(qvec)
 

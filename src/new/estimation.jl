@@ -55,7 +55,7 @@ Estimates parameter values for a DEB model.
 function estimate end
 
 """
-    StandardEstimator <: AbstractEstimator
+    Estimator <: AbstractEstimator
 
 The standard DEBtool parameter estimator.
 
@@ -68,7 +68,7 @@ The standard DEBtool parameter estimator.
 - `filter`: whether to filter paramters, `true` by defualt.
 - `verbose`: whether to print information during optimization, `true` by defualt.
 """
-@kwdef struct StandardEstimator{M<:DEBOptimizer,L} <: AbstractEstimator
+@kwdef struct Estimator{M<:DEBOptimizer,L} <: AbstractEstimator
     method::M = DEBNelderMead()
     lossfunction::L = SymmetricBoundedLoss()
     max_step_number::Int = 500
@@ -78,7 +78,7 @@ The standard DEBtool parameter estimator.
     verbose::Bool = true
 end
 
-function estimate(estimator::StandardEstimator, model, par, speciesdata)
+function estimate(estimator::Estimator, model, par, speciesdata)
     (; data, weights) = speciesdata
 
     # Precalculate data means and weights
@@ -88,7 +88,7 @@ function estimate(estimator::StandardEstimator, model, par, speciesdata)
 end
 
 # Function barrier so local functions are type stable
-function _estimate_inner(e::StandardEstimator, model, par::P, speciesdata, meandatavec, weightsvec) where P
+function _estimate_inner(e::Estimator, model, par::P, speciesdata, meandatavec, weightsvec) where P
     (; data) = speciesdata
 
     function objective(parvec)

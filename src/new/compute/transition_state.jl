@@ -7,35 +7,35 @@
 # Reduce over all lifestages computing basic variables
 # The output state of each transition is used as input state for the next
 compute_transition_state(e::AbstractEstimator, o::DEBOrganism, pars) =
-    compute_transition_state(e, o.lifestages, pars)
-function compute_transition_state(e::AbstractEstimator, ls::LifeStages, pars)
-    init = (Init((;)),)
+    compute_transition_state(e, life(o), pars)
+function compute_transition_state(e::AbstractEstimator, life::Life, pars)
+    init = (nothing => Init(),)
     # Reduce over all transitions, where each uses the state of the previous
-    states = foldl(values(ls); init) do transition_states, (lifestage, transition)
+    states = foldl(values(life); init) do transition_states, (lifestage, transition)
         prevstate = last(transition_states)
-        transition_state = compute_transition_state(transition, e, pars, LifeStages(transition_states), prevstate)
+        transition_state = compute_transition_state(transition, e, pars, Transitions(Base.tail(transition_states)), prevstate)
         (transition_states..., transition_state)
     end
     # Remove the init state
-    return LifeStages(Base.tail(states))
+    return Transitions(Base.tail(states)...)
 end
 # Handle Dimorphism: split the transition to male and female
-compute_transition_state(t::Dimorphic, e::AbstractEstimator, pars, ls::LifeStages, state) =
-    Dimorphic(compute_transition_state(t.a, e, pars, ls[basetypeof(t.a)()], state), 
-              compute_transition_state(t.b, e, pars, ls[basetypeof(t.b)()], state))
-compute_transition_state(t::Dimorphic, e::AbstractEstimator, pars, ls::LifeStages, state::Dimorphic) =
-    Dimorphic(compute_transition_state(t.a, e, pars, ls[basetypeof(state.a)()], state.a), 
-              compute_transition_state(t.b, e, pars, ls[basetypeof(state.b)()], state.b))
-compute_transition_state(t::AbstractTransition, e::AbstractEstimator, pars, ls, state::Dimorphic) =
-    Dimorphic(compute_transition_state(t, e, pars, ls, state.a), compute_transition_state(e, t, pars, ls, state.b))
-compute_transition_state(sex::Female, e::AbstractEstimator, pars, ls::LifeStages, state) = 
-    Female(compute_transition_state(sex.val, e, pars, ls, state))
-function compute_transition_state(t::Male, e::AbstractEstimator, pars, ls::LifeStages, state)
+compute_transition_state(d::Dimorphic, e::AbstractEstimator, pars, ts::Transitions, state) =
+    Dimorphic(compute_transition_state(d.a, e, pars, ts[basetypeof(d.a)()], state), 
+              compute_transition_state(d.b, e, pars, ts[basetypeof(d.b)()], state))
+compute_transition_state(d::Dimorphic, e::AbstractEstimator, pars, ts::Transitions, state::Dimorphic) =
+    Dimorphic(compute_transition_state(d.a, e, pars, ts[basetypeof(state.a)()], state.a), 
+              compute_transition_state(d.b, e, pars, ts[basetypeof(state.b)()], state.b))
+compute_transition_state(t::AbstractTransition, e::AbstractEstimator, pars, ts::Transitions, state::Dimorphic) =
+    Dimorphic(compute_transition_state(t, e, pars, ts, state.a), compute_transition_state(e, t, pars, ts, state.b))
+compute_transition_state(sex::Female, e::AbstractEstimator, pars, ts::Transitions, state) = 
+    Female(compute_transition_state(sex.val, e, pars, ts, state))
+function compute_transition_state(t::Male, e::AbstractEstimator, pars, ts::Transitions, state)
     pars_male = merge(pars, pars.male)
-    return Male(compute_transition_state(t.val, e, pars_male, ls, state))
+    return Male(compute_transition_state(t.val, e, pars_male, ts, state))
 end
 # This is the actual transition state code!
-function compute_transition_state(at::Birth, e::AbstractEstimator, pars, ls::LifeStages, state)
+function compute_transition_state(at::Birth, e::AbstractEstimator, pars, ::Transitions, state)
     (; L_m, del_M, d_V, k_M, w, f) = pars
 
     τ, l, info = compute_scaled_mean(Since(Conception()), at, pars, f)
@@ -46,7 +46,7 @@ function compute_transition_state(at::Birth, e::AbstractEstimator, pars, ls::Lif
     # TODO generalise for multiple temperatures
     Birth((; l, L, Lw, Ww, τ, a))
 end
-function compute_transition_state(at::Puberty, e::AbstractEstimator, pars, ls::LifeStages, state)
+function compute_transition_state(at::Puberty, e::AbstractEstimator, pars, ::Transitions, state)
     (; L_m, del_M, d_V, k_M, w, l_T, g, f) = pars
 
     # Calculate necessary parameters
@@ -69,7 +69,7 @@ function compute_transition_state(at::Puberty, e::AbstractEstimator, pars, ls::L
     a = τ / k_M # TODO is this correct
     return Puberty((; l, L, Lw, Ww, τ, t, a))
 end
-function compute_transition_state(at::Ultimate, e::AbstractEstimator, pars, ls::LifeStages, state)
+function compute_transition_state(at::Ultimate, e::AbstractEstimator, pars, trans::Transitions, state)
     (; f, l_T, L_m, del_M, d_V, w) = pars
     l = f - l_T                    # -, scaled ultimate length
     L = L_m * l                    # cm, ultimate structural length at f
@@ -79,7 +79,7 @@ function compute_transition_state(at::Ultimate, e::AbstractEstimator, pars, ls::
     # τ, l, info = compute_scaled_mean(Age(), at, e, pars, f)
     # a = τ / k_M
     # TODO: why was a calculated this way fot Ultimate
-    l_b = ls[Birth()].l
+    l_b = trans[Birth()].l
     a = compute_lifespan(e, pars, l_b)
     return Ultimate((; l, L, Lw, Ww, a))
 end

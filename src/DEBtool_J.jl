@@ -13,10 +13,12 @@ using ModelParameters.Flatten
 using StaticArrays
 using DataInterpolations
 
-export StandardEstimator, DEBNelderMead, DEBMultimodalEvolutionaryAlgorithm
+import ModelParameters.ConstructionBase
+
+export Estimator, DEBNelderMead, DEBMultimodalEvolutionaryAlgorithm
 export DEBOrganism
-export Arrhenius1parTemperatureResponse, Arrhenius3parTemperatureResponse, Arrhenius5parTemperatureResponse
-export LifeStages, Dimorphic
+export ArrheniusResponse, LowTorporResponse, HighTorporResponse, LowAndHighTorporResponse
+export Life, LifeStages, Transitions, Dimorphic
 export Birth, Puberty, Maturity, Ultimate
 export Embryo, Juvenile, Adult
 export Female, Male
@@ -81,8 +83,8 @@ include("new/compute/transition_state.jl")
 # include("animal/get_lb.jl")
 # include("animal/get_lb2.jl")
 # include("animal/get_lp.jl")
-include("animal/get_tb.jl")
-include("animal/get_tp.jl")
+# include("animal/get_tb.jl")
+# include("animal/get_tp.jl")
 # include("animal/get_tpm.jl")
 # include("animal/get_ue0.jl")
 # include("animal/get_tm_s.jl")

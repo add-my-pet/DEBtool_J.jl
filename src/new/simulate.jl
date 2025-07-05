@@ -28,13 +28,13 @@
 # at mean values of temperature and food. computed using the DEBtool functions
 # was get_indDyn_mod
 function simulate(model, par, environment; solver=Tsit5(), abstol=1e-9, reltol=1e-9)
+    par = stripparams(par)
     # TODO: more generic way to do this
-    (; temperatures, functional_responses) = environment.data
     par = merge(par, compound_parameters(model, par))
     (; k_M, p_Am, f) = par
 
-    tr = model.temperatureresponse
-    # TC = tempcorr(tr, par, mean(temperatures.val))
+    # tr = model.temperatureresponse
+    # TC = tempcorr(tr, par, mean(environment.temperatures))
     # TODO: renaming this parameter after scaling is not great practice
     # as it now means a different thing. We could use another name after scaling.
     # If the equations it is passed to can work either way maybe its ok?
@@ -42,22 +42,15 @@ function simulate(model, par, environment; solver=Tsit5(), abstol=1e-9, reltol=1
     # (; τ_m) = compute_scaled_mean(Age(), Death(), model, sca_par)
     # a_m = τ_m / k_M / TC # d, mean life span
 
-    times = environment.times # set simulation time
-    temp_corrections = tempcorr(tr, par, temperatures)
-    temp_correction = CubicSpline(temp_corrections, times.val)
-    functional_response = CubicSpline(functional_responses.val, times.val)
-    interpolators = (; temp_correction, functional_response)
-
     l_b, info = compute_length(Birth(), par)
     (; UE0) = initial_scaled_reserve(model.mode, par, l_b)
     E_0 = UE0 * p_Am # J, energy in egg
     # TODO explain why 1e-4
     ELHR0 = @SVector[ustrip(u"J", E_0), 1e-4, 0.0, 0.0] # initial conditions at fertilization
-    simulate_inner(model.mode, model, par, environment.times.val, interpolators, temp_corrections, functional_responses.val, ELHR0, solver; abstol, reltol)
+    simulate_inner(model.mode, model, par, environment, ELHR0, solver; abstol, reltol)
 end
 function simulate_inner(
-    mode::Union{typeof(std()),typeof(sbp())},
-    model, par, times, interpolators, temp_corrections, functional_responses, ELHR0, solver; kw...
+    mode::Union{typeof(std()),typeof(sbp())}, model, par, environment, ELHR0, solver; kw...
 )
     # birth_state = compute_scaled_mean(Since(Conception()), Birth(), par, par.f) # -, scaled ages and lengths
     # puberty_state = compute_scaled_mean(Since(Conception()), Puberty(), par, birth_state) # -, scaled ages and lengths
@@ -78,14 +71,13 @@ function simulate_inner(
         any(<(H), all_E_H(mode, par))
     end
     callback = ContinuousCallback(_below_H, terminate!)
-    ode_par = (; model, par, interpolators, temp_corrections, functional_responses)
-    tspan = first(times), last(times)
+    ode_par = (; model, par, environment)
+    tspan = first(environment.times), last(environment.times)
     problem = ODEProblem(d_sim, ELHR0, tspan, ode_par)
     return solve(problem, solver; callback, kw...)
 end
 function simulate_inner(
-    mode::typeof(abj()),
-    # model, par, times, interpolators, temp_corrections, functional_responses, ELHR0, solver, condition; kw...
+    mode::typeof(abj()), model, par, environment, ELHR0, solver, condition; kw...
 )
     # pars_tj = [g k l_T v_Hb v_Hj v_Hp]
     # [tau_j, tau_p, tau_b, l_j, l_p, l_b, l_i, rho_j, rho_B, info] = get_tj(pars, f) # -, scaled ages and lengths
@@ -110,7 +102,7 @@ function simulate_inner(
     callback = ContinuousCallback(condition, terminate!)
     tspan = first(times), last(times)
 
-    ode_par = (; model, par, interpolators, temp_corrections, functional_responses)
+    ode_par = (; model, par, environment)
     # 1st call from fertilization to birth
     L_b = NaN
     s_M = 1.0
@@ -201,8 +193,7 @@ function simulate_inner(
     # aLWc = [a_bc; a_jc; a_pc; a_m; L_bc; L_jc; L_pc; L_ic; Ww_bc; Ww_jc; Ww_pc; Ww_ic];
 end
 function simulate_inner(
-    mode::typeof(asj()),
-    model, par, times, interpolators, temp_corrections, functional_responses, ELHR0, solver; kw...
+    mode::typeof(asj()), model, par, environment, ELHR0, solver; kw...
 )
     # pars_ts = [g, k, 0, v_Hb, v_Hs, v_Hj, v_Hp]
     # [tau_s, tau_j, tau_p, tau_b, l_s, l_j, l_p, l_b, l_i, rho_j, rho_B] = get_ts(pars_ts, f) # -, scaled ages and lengths
@@ -285,8 +276,7 @@ function simulate_inner(
     # aLWc = [a_bc; a_sc; a_jc; a_pc; a_m; L_bc; L_sc; L_jc; L_pc; L_ic; Ww_bc; Ww_sc; Ww_jc; Ww_pc; Ww_ic]
 end
 function simulate_inner(
-    mode::typeof(abp()),
-    model, par, times, interpolators, temp_corrections, functional_responses, ELHR0, solver; kw...
+    mode::typeof(abp()), model, par, environment, ELHR0, solver; kw...
 )
     # pars_tj = [g k l_T v_Hb v_Hp v_Hp+1e-6]
     # [tau_p, tau_pp, tau_b, l_p, l_pp, l_b, l_i, rho_j, rho_B] = get_tj(pars_tj, f) # -, scaled ages and lengths
@@ -344,65 +334,14 @@ function simulate_inner(
     # aLWc = [a_bc; a_pc; a_m; L_bc; L_pc; L_ic; Ww_bc; Ww_pc; Ww_ic]
 end
 
-# TODO integrate these transformations, if they are needed?
-# But maybe in a wrapper funciton around `simulate` as its also
-# good to just get the solution object as output
-# ELHR = sol.u
-
-# if isempty(te)
-#     te(1) = NaN
-#     te(2) = NaN
-#     ye = NaN * ones(2,4)
-#     @warn "birth not reached"
-# elseif length(te) == 1
-#     te(2) = NaN
-#     ye(2,:) = NaN * ones(1,4)
-#     @warn "puberty not reached"
-# end
-
-# a_b = te[1]
-# a_p = te[2] # ages at events b, p
-# L_b = ye[1, 2]
-# L_p = ye[2, 2]
-# Ww_b = ye[1, 2]^3 + ye[1, 1] * w_E/mu_E/d_E;
-# Ww_p = ye[2, 2]^3 + ye[2, 1] * w_E/mu_E/d_E;
-# L_i = Ww_i = NaN # not applicaple in dynamic environment
-# # calculate powers
-# # pars_pj = [p_Am, v, p_M, k_J, κ, kap_R, E_G, kap_G];
-# f_s = spline1(t,tf); TC_s = spline1(t,tTC)
-# pAMGD = powers(ELHR, f_s, pars, L_b, L_p) .* TC_s
-# JM = -(n_M \ n_O) * eta_O * pAMGD[:, [1 4 3]]'  # mol/d: J_C, J_H, J_O, J_N in rows
-
-# # observable quantities
-# # Lw = ELHR(:,2)/del_M;               # cm, physical length del_M is not packed in par
-# Ww = ELHR[:, 2] .^ 3 + ELHR[:, 1] * w_E / mu_E / d_E; # g, wet weight (reproduction buffer is not included)
-# # if any(strcmp(model, {'stf','stx'}))
-#     # N = repmat(NaN, size(Ww,1),1);   # for stf and stx models
-# # else
-# N = kap_R * ELHR[:, 4] / E_0; # #, cumulated number of eggs
-# # end
-# JX = (w_X / (kap_X * mu_X*d_X)) * pAMGD[:, 1] # g/d, food consumed
-# JO = - 32 * JM[3, :]'    # g O2/d,  O2 consumption
-# # pack output
-# # TODO what is all of this stuff
-# tELHR = (t, ELHR)
-# tWNXO = (t, Ww, N, JX, JO)
-# pAMGR = (pAMGD[:,1], pAMGD[:,2], pAMGD[:,3], pAMGD[:,4])
-# tpAMGRD = (t, pAMGD)
-# aLW = (; a_b, a_p, a_m, L_b, L_p, L_i, Ww_b, Ww_p, Ww_i)
-# aLWc = (; a_bc, a_pc, a_m, L_bc, L_pc, L_ic, Ww_bc, Ww_pc, Ww_ic)
-
-# return (; tELHR, tWNXO, tpAMGRD, aLW, aLWc)
-# end
-
 # d_sim
 # Define changes in state variables
 # t: time
 # ELHR: 4-vector with state variables
-#         E , J, reserve energy
-#         L , cm, structural length
-#         E_H , J , cumulated energy inversted into maturity (E_H in Kooijman 2010)
-#         E_R , J, reproduction buffer (E_R in Kooijman 2010)
+#         E, J, reserve energy
+#         L, cm, structural length
+#         E_H, J, cumulated energy inversted into maturity (E_H in Kooijman 2010)
+#         E_R, J, reproduction buffer (E_R in Kooijman 2010)
 #
 # Params
 # p_Am   J/d.cm^2, surface-area-specific maximum assimilation rate
@@ -415,7 +354,7 @@ end
 #
 # dELHR: 4-vector with change in E, L, H, R
 function d_sim(ELHR, p, t)
-    (; model, par, interpolators, temp_corrections, functional_responses) = p
+    (; model, par, environment) = p
     (; p_Am, v, p_M, k_J, kap, E_Hb, E_Hp) = par
 
     E_, L_, E_H_ = ELHR
@@ -424,8 +363,8 @@ function d_sim(ELHR, p, t)
     L = L_ * u"cm"
     E_H = E_H_ * u"J"
 
-    TC = interpolators.temp_correction(t) # C, temperature at t
-    f_t = interpolators.functional_response(t) # -, scaled functional response at t
+    TC = environment.interpolators.tempcorrections(t) # C, temperature at t
+    f_t = environment.interpolators.functionalresponses(t) # -, scaled functional response at t
     s_M = acceleration_factor(model.mode, par, L)
     pT_Am, vT, pT_M, kT_J = map(x -> x * TC, (p_Am, v, p_M, k_J)) # temp correction TODO: rates should already be grouped
     r = specific_growth_rate(model.mode, merge(par, (; vT, pT_M, s_M)), (E, L, E_H))
@@ -435,17 +374,18 @@ function d_sim(ELHR, p, t)
     pC = E * (s_M * vT / L - r) # J/d, mobilized energy flux
 
     # generate derivatives
-    # TODO: comment all the equations, not just the result
+    # Change in reserve E is the difference between assimmilated mobilized energy
     dE = pA - pC # J/d, change in energy in reserve
-    # TODO: what is this / 3
-    dL = r * L / 3 # cm^3/d, change in structural volume TODO: how volume when L is in cm.
-    # No investment in maturation after puberty
+    # Length L changes as the growth rate * the current length TODO: why / 3
+    dL = r * L / 3 # cm/d, change in length
+    # Maturitity H and reproduction R buffers receive (1 - κ) * mobilized flux, minus maturity maintenancy 
+    # There is no investment in maturation after puberty 
     dE_H = ((1 - kap) * pC - kT_J * E_H) * (E_H < E_Hp) # J/d, change in cumulated energy invested in maturation
-    # No investment in reproduction before puberty
+    # And no investment in reproduction before puberty
     dE_R = ((1 - kap) * pC - kT_J * E_Hp) * (E_H >= E_Hp) # J/d, change in reproduction buffer
 
     # Strip to days and pack as state variables
-    # TODO: strip to the units of `t`
+    # TODO: strip to the time units of `t` like ustrip("uJ" / units(t), x)
     return @SVector[ustrip(u"J/d", dE), ustrip(u"cm/d", dL), ustrip(u"J/d", dE_H), ustrip(u"J/d", dE_R)]
 end
 
@@ -470,9 +410,8 @@ end
 # -, multiplication factor for v and {p_Am}
 # TODO: do this without specifying L_s or L_b - just L and e.g. lifestages[Birth()].L
 # Then it would be generalised to any lifestage.
-acceleration_factor(::typeof(asj()), p, L) = p.accelerating ? L / p.L_s : p.s_M
-acceleration_factor(::typeof(abj()), p, L) = p.accelerating ? L / p.L_b : p.s_M
-acceleration_factor(::typeof(abp()), p, L) = p.accelerating ? L / p.L_b : p.s_M
+acceleration_factor(::Accelerated{<:IsoMorph,<:MaturityLevel}, p, L) = p.accelerating ? L / p.L_s : p.s_M
+acceleration_factor(::Accelerated{<:IsoMorph,<:Birth}, p, L) = p.accelerating ? L / p.L_b : p.s_M
 acceleration_factor(::Mode, pars, L) = 1.0 # Non-accelerating modes
 
 # Get all E_H variables to compare to E_H
