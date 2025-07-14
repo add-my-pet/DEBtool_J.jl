@@ -1,34 +1,50 @@
-# was get_tm_mod
+"""
+    compute_scaled_mean 
+
+# TODO better name like compute_scaled_mean_lifehistory
+
+was get_tm_mod
+
+Obtains scaled mean age at death and other transistions by integration survival prob over age. 
+Divide the result by the somatic maintenance rate coefficient to arrive at the mean age at death. 
+
+# Arguments
 #
-# Obtains scaled mean age at death by integration survival prob over age. 
-# Divide the result by the somatic maintenance rate coefficient to arrive at the mean age at death. 
-#
-# Input
-# * mod: character string with model (e.g. 'std', 'hex')
-# * p: vector with parameters: different for each model, or structure, like par in results_my_pet
-# * f: optional scalar with scaled reserve density at birth (default f = 1)
-# * h_B; optional vector with background hazards for each stage: e.g. for std model h_B0b, h_Bbp, h_Bpi (default: zero's)
-# * thinning: optional boolean with thinning being false/true (default: false)
-#
+- `model`: DEBOrganism
+- `par`
+
+# Keywords
+
+- `h_B`; optional vector with background hazards for each stage: e.g. for std model h_B0b, h_Bbp, h_Bpi (default: zero's)
+- `thinning`: optional boolean for thinning (default: false)
+
+# State variables used in simulation
+
+`q`:   scaled aging acceleration
+`h_A`: scaled hazard rate due to aging
+`S`:   survival prob
+`t`:   scaled cumulative survival
+
 # Output
-# * τ_m: scalar with scaled mean life span
-# * S: vector with survival probabilities at life history events 
-# * τ: vector with scaled ages at life history events 
-function compute_scaled_mean(time::Since{<:Birth}, at::Death, model, p; 
-    atol=1e-7, 
-    rtol=1e-7,
-    callback=ContinuousCallback(dead_for_sure, terminate!),
+
+- `S`: survival probabilities at life history events 
+- `τ`: scaled ages at life history events 
+"""
+function compute_scaled_mean_lifehistory(model, p; 
+    abstol=1e-7, 
+    reltol=1e-7,
+    callback=DiscreteCallback(dead_for_sure, terminate!),
     thinning=false,
     solver=Tsit5(),
-    h_B=zeros(length(model.lifestages)),
+    h_B=zeros(length(life(model))),
     kw...
 )
-    compute_scaled_mean_age_at_death(model.mode, model, p; 
-        callback, solver, atol, rtol, thinning, h_B, kw...
+    compute_scaled_mean_lifehistory(model.mode, model, p; 
+        callback, solver, abstol, reltol, thinning, h_B, kw...
     )
 end
 
-function compute_scaled_mean_age_at_death(
+function compute_scaled_mean_lifehistory(
     mode::Union{typeof(std()),typeof(stf()),typeof(sbp())}, model, p; 
     solver, thinning, h_B, kw...
 )
@@ -37,8 +53,8 @@ function compute_scaled_mean_age_at_death(
     # TODO: better handling of f/eb functional response at birth
     birth_state = compute_scaled_mean(Since(Conception()), Birth(), p, f) # -, scaled ages and lengths at birth
     puberty_state = compute_scaled_mean(Since(Conception()), Puberty(), merge(p, (; l_T=0.0)), birth_state) # -, scaled ages and lengths at puberty
-    τ_b, l_b = puberty_state.τ_b, puberty_state.l_p
-    τ_p, l_p = puberty_state.τ_b, puberty_state.l_p
+    τ_b, l_b = puberty_state.τ_b, puberty_state.l_b
+    τ_p, l_p = puberty_state.τ_p, puberty_state.l_p
 
     u0 = init_qhSt(q_b, h_Ab, S_b, τ_b)
     transitions = @SVector[zero(τ_p), τ_p - τ_b, 1e8oneunit(τ_p)]
@@ -47,17 +63,17 @@ function compute_scaled_mean_age_at_death(
     # is bad practice - we need different symbols for these
     pars = (; model, f, τ_p=τ_p - τ_b, l_b, g, s_G, h_a, h_B, thinning);
     problem = ODEProblem(_d_qhSt, u0, tspan, pars)
-    sol = solve(problem, solver)
+    sol = solve(problem, solver; kw...)
     qhSt = sol.(transitions)
 
     τ_m = qhSt[end][4]
     S_p = qhSt[2][3]
-    S = [S_b, S_p]
-    τ = [τ_b, τ_p]
-    return (; τ_m, S, τ)
+    S = (; b=S_b, p=S_p)
+    τ = (; b=τ_b, p=τ_p, m=τ_m)
+    return (; S, τ)
 end
 # Same as std because dget_qhSt dispatch is the only difference
-# function compute_scaled_mean_age_at_death(mode::typeof(sbp()), model, p; 
+# function compute_scaled_mean_lifehistory(mode::typeof(sbp()), model, p; 
 #     h_B=zeros(5), thinning=false
 # )
 #     (; g, k, v_Hb, v_Hp, h_a, s_G, f) = p
@@ -78,7 +94,7 @@ end
 #     return (; τ_m, S, τ)
 # end
 # Same as std if get_Sb_foetus and get_tp_foetus dispatch on mode in get_Sb and get_tp
-# function compute_scaled_mean_age_at_death(mode::typeof(stf()), model, p; h_B=zeros(5), thinning=false)
+# function compute_scaled_mean_lifehistory(mode::typeof(stf()), model, p; h_B=zeros(5), thinning=false)
 #     (; g, k, v_Hb, v_Hp, h_a, s_G, f) = p
 
 #     (; S_b, q_b, h_Ab, τ_b) = get_Sb_foetus([g k v_Hb h_a s_G h_B[1]], f);
@@ -97,7 +113,7 @@ end
 #     τ = [τ_b, τ_p]
 #     return (; τ_m, S, τ)
 # end
-function compute_scaled_mean_age_at_death(mode::typeof(stx()), model, p; 
+function compute_scaled_mean_lifehistory(mode::typeof(stx()), model, p; 
     solver, h_B, thinning, kw...
 )
     (; g, k, v_Hb, v_Hx, v_Hp, h_a, s_G, f) = p
@@ -117,11 +133,11 @@ function compute_scaled_mean_age_at_death(mode::typeof(stx()), model, p;
     τ_m = qhSt[end, 4]
     S_x = qhSt[2, 3]
     S_p = qhSt[3, 3]
-    S = [S_b, S_x, S_p]
-    τ = [τ_b, τ_x, τ_p]
-    return (; τ_m, S, τ)
+    S = (; b=S_b, x=S_x, p=S_p)
+    τ = (; b=τ_b, x=τ_x, p=τ_p, m=τ_m)  
+    return (; S, τ)
 end
-function compute_scaled_mean_age_at_death(mode::typeof(ssj()), model, p;
+function compute_scaled_mean_lifehistory(mode::typeof(ssj()), model, p;
     solver, h_B, thinning, kw...
 )
     (; g, k, v_Hb, v_Hs, v_Hp, t_sj, k_E, h_a, s_G, f) = p
@@ -151,7 +167,7 @@ function compute_scaled_mean_age_at_death(mode::typeof(ssj()), model, p;
     τ = [τ_b, τ_s, τ_j, τ_p]
     return (; τ_m, S, τ)
 end
-function compute_scaled_mean_age_at_death(mode::typeof(abj()), model, p;
+function compute_scaled_mean_lifehistory(mode::typeof(abj()), model, p;
     solver, h_B, thinning, kw...
 )
     (; g, k, v_Hb, v_Hj, v_Hp, h_a, s_G, f) = p
@@ -161,7 +177,7 @@ function compute_scaled_mean_age_at_death(mode::typeof(abj()), model, p;
     τ = [τ_b, τ_j, τ_p]
     return (; τ_m, S, τ)
 end
-function compute_scaled_mean_age_at_death(mode::typeof(asj()), model, p;
+function compute_scaled_mean_lifehistory(mode::typeof(asj()), model, p;
     solver, h_B, thinning, kw...
 )
     (; g, k, v_Hb, v_Hs, v_Hs, v_Hp, h_a, s_G, f) = p
@@ -185,7 +201,7 @@ function compute_scaled_mean_age_at_death(mode::typeof(asj()), model, p;
     τ = [τ_b, τ_s, τ_j, τ_p]
     return (; τ_m, S, τ)
 end
-function compute_scaled_mean_age_at_death(mode::typeof(abp()), model, p;
+function compute_scaled_mean_lifehistory(mode::typeof(abp()), model, p;
     solver, h_B, thinning, kw...
 )
     (; g, k, v_Hb, v_Hp, h_a, s_G, f) = p
@@ -207,7 +223,7 @@ function compute_scaled_mean_age_at_death(mode::typeof(abp()), model, p;
     τ = [τ_b, τ_j]
     return (; τ_m, S, τ)
 end
-function compute_scaled_mean_age_at_death(mode::typeof(hep()), model, p;
+function compute_scaled_mean_lifehistory(mode::typeof(hep()), model, p;
     solver, h_B, thinning, kw...
 )
     (; g, k, v_Hb, v_Hp, v_Rj, h_a, s_G, f) = p
@@ -225,7 +241,7 @@ function compute_scaled_mean_age_at_death(mode::typeof(hep()), model, p;
     τ = [τ_b, τ_p, τ_j]
     return (; τ_m, S, τ)
 end
-function compute_scaled_mean_age_at_death(mode::typeof(hax()), model, p;
+function compute_scaled_mean_lifehistory(mode::typeof(hax()), model, p;
     solver, h_B, thinning, kw...
 )
     (; g, k, v_Hb, v_Hp, v_Rj,v_He, kap, kap_V, h_a, s_G, f) = p
@@ -246,7 +262,7 @@ function compute_scaled_mean_age_at_death(mode::typeof(hax()), model, p;
     τ = [τ_b, τ_p, τ_j, τ_e]
     return (; τ_m, S, τ)
 end
-function compute_scaled_mean_age_at_death(mode::typeof(hex()), model, p;
+function compute_scaled_mean_lifehistory(mode::typeof(hex()), model, p;
     solver, h_B, thinning, kw...
 )
     (; g, k, v_Hb, v_He, s_j, kap, kap_V, h_a, s_G, f) = p
@@ -298,10 +314,7 @@ function d_output(; f, q, l, g, r, s_G, h_a, h_A, h_B, S, thinning)
 end
 
 
-function _d_qhSt(u, p, τ) 
-    u = 
-    d_qhSt(p.model.mode, u, p, τ)
-end
+_d_qhSt(u, p, τ) = d_qhSt(p.model.mode, u, p, τ)
 function d_qhSt(::Union{typeof(std()),typeof(stf())}, qhSt, pars, τ)
     (; f, τ_p, l_b, g, s_G, h_a, h_B, thinning) = pars
     (q, h_A, S) = qhSt

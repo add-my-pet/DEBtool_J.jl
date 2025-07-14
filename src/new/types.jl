@@ -44,39 +44,139 @@ end
 abstract type AbstractEnvironment end
 
 """
-    Environment <: AbstractEnvironment
+    ConstantEnvironment <: AbstractEnvironment
+
+An environment with fixed variables for all times.
+"""
+struct ConstantEnvironment{Ti,Te,TC,FR}
+    time::Ti
+    temperature::Te
+    tempcorrection::TC
+    functionalresponse::FR
+end
+function ConstantEnvironment(; 
+    time=(0.0, 365.0),
+    temperature=nothing,
+    functionalresponse=nothing,
+    temperatureresponse=nothing
+)
+    tempcorrection = if isnothing(temperatureresponse) || isnothing(temperature)
+        nothing
+    else
+        tempcorr(temperatureresponse, temperature)
+    end
+    return ConstantEnvironment(time, temperature, tempcorrection, functionalresponse)
+end
+
+getattime(e::ConstantEnvironment, x, t) = getproperty(e, x)  
+tspan(e::ConstantEnvironment) = first(e.time), last(e.time)
 
 
 """
+    Environment <: AbstractEnvironment
+
+    Environment(; 
+        times,
+        temperatures=nothing,
+        functionalresponses=nothing,
+        interpolation=CubicSpline, 
+        temperatureresponse=nothing
+    )
+
+An environment that varies over time.
+
+The results of `getattime(e::Environment, property, t)` are interpolated
+from the environmental data using the `interpolation` method.
+
+- `times`:
+- `temperatures`: temperatures for each time in `times`.
+- `functionalresponses`: functional responses for each time in `times`.
+- `interpolation`: a DataInterpolations.jl `AbstractInterpolation`.
+- `temperatureresponse`: a parametrised `AbstractTemperatureResponse` object.
+"""
 struct Environment{Ti,Te,TC,FR,I<:NamedTuple}
-    times::Ti
-    temperatures::Te
-    tempcorrections::TC
-    functionalresponses::FR
+    time::Ti
+    temperature::Te
+    tempcorrection::TC
+    functionalresponse::FR
     interpolators::I
 end
 function Environment(; 
-    times,
-    temperatures=nothing,
-    functionalresponses=nothing,
+    time,
+    temperature=nothing,
+    functionalresponse=nothing,
     interpolation=CubicSpline, 
     temperatureresponse=nothing
 )
-    tempcorrections = if isnothing(temperatureresponse) || isnothing(temperatures)
+    tempcorrection = if isnothing(temperatureresponse) || isnothing(temperature)
         nothing
     else
-        tempcorr(temperatureresponse, temperatures)
+        tempcorr(temperatureresponse, temperature)
     end
     interpolators = if isnothing(interpolation)
         nothing
     else
-        map((; temperatures, tempcorrections, functionalresponses)) do d
-            isnothing(d) ? nothing : interpolation(d, times)
+        map((; temperature, tempcorrection, functionalresponse)) do d
+            isnothing(d) ? nothing : interpolation(d, time)
         end
     end
-    return Environment(times, temperatures, tempcorrections, functionalresponses, interpolators)
+    return Environment(time, temperature, tempcorrection, functionalresponse, interpolators)
 end
 
+getattime(e::Environment, x::Symbol, t) = getproperty(e.interpolators, x)(t)
+tspan(e::Environment) = first(e.time), last(e.time)
+
+
+"""
+    InteractiveEnvironment <: AbstractEnvironment
+
+    InteractiveEnvironment(; 
+        times,
+        temperatures=nothing,
+        functionalresponses=nothing,
+        interpolation=CubicSpline, 
+        temperatureresponse=nothing
+    )
+
+An environment that varies over time.
+
+The results of `getattime(e::Environment, property, t)` are interpolated
+from the environmental data using the `interpolation` method.
+
+- `times`:
+- `temperatures`: temperatures for each time in `times`.
+- `functionalresponses`: functional responses for each time in `times`.
+- `interpolation`: a DataInterpolations.jl `AbstractInterpolation`.
+- `temperatureresponse`: a parametrised `AbstractTemperatureResponse` object.
+"""
+# struct InteractiveEnvironment{Ti,Te,TC,FR,I<:NamedTuple}
+#     time::Ti
+#     temperature::Te
+#     tempcorrection::TC
+#     functionalresponse::FR
+#     interpolators::I
+# end
+# function InteractiveEnvironment(; 
+#     time,
+#     temperature=nothing,
+#     functionalresponse=nothing,
+#     interpolation=CubicSpline, 
+#     temperatureresponse=nothing
+# )
+#     tempcorrection = if isnothing(temperatureresponse) || isnothing(temperature)
+#         nothing
+#     else
+#         tempcorr(temperatureresponse, temperature)
+#     end
+#     interpolators = if isnothing(interpolation)
+#         nothing
+#     else
+#         map((; temperature, tempcorrection, functionalresponse)) do d
+#             isnothing(d) ? nothing : interpolation(d, time)
+#         end
+#     end
+#     return InteractiveEnvironment(time, temperature, tempcorrection, functionalresponse, interpolators)
+# end
 
 """
     AbstractMorph
@@ -259,6 +359,9 @@ abstract type AbstractLifeSequence end
 Base.values(ls::AbstractLifeSequence) = ls.sequence
 Base.length(ls::AbstractLifeSequence) = Base.length(Base.values(ls))
 
+hastransition(t::AbstractTransition, model::AbstractLifeSequence) = 
+    !isnothing(model[t])
+
 @kwdef struct Life{S<:Tuple{Vararg{StageAndTransition}}} <: AbstractLifeSequence
     sequence::S
 end
@@ -289,13 +392,26 @@ end
 LifeStages(args::AbstractLifeStage...) = LifeStages(args)
 LifeStages() = LifeStages(())
 
+function Base.getindex(stages::Union{AbstractLifeSequence,Dimorphic,Sex}, stage)
+    out = _get(stages, stage)
+    isnothing(out) && throw(ArgumentError("No object found matching $(basetypeof(stage))"))
+    return out
+end
+function Base.get(stages::Union{AbstractLifeSequence,Dimorphic,Sex}, stage, default)
+    out = _get(stages, stage)
+    if isnothing(out) 
+        return default
+    else
+        return out
+    end
+end
 # LifeStage indexing
 # This allows us to get lifestage data by type
 # e.g. `lifestages[Birth()]`
-Base.@assume_effects :foldable function Base.getindex(stages::AbstractLifeSequence, stage::Int)
+Base.@assume_effects :foldable function _get(stages::AbstractLifeSequence, stage::Int)
     values(stages)[i]
 end
-Base.@assume_effects :foldable function Base.getindex(stages::AbstractLifeSequence, stage::Union{AbstractLifeStage,AbstractTransition,Sex,Dimorphic})
+Base.@assume_effects :foldable function _get(stages::AbstractLifeSequence, stage::Union{AbstractLifeStage,AbstractTransition,Sex,Dimorphic})
     # Get the stage in stages matching `stage`
     out = foldl(values(stages); init=nothing) do acc, x
         if isnothing(acc)
@@ -304,21 +420,14 @@ Base.@assume_effects :foldable function Base.getindex(stages::AbstractLifeSequen
             acc # found just return it
         end
     end
-    isnothing(out) && throw(ArgumentError("No object found matching $(basetypeof(stage))"))
     return out
 end
-Base.@assume_effects :foldable function Base.getindex(stages::T, sex::Sex{Nothing}) where T<:AbstractLifeSequence 
+Base.@assume_effects :foldable function _get(stages::T, sex::Sex{Nothing}) where T<:AbstractLifeSequence 
     map(values(stages)) do stage
         stage isa Dimorphic ? stage[sex] : stage
     end |> Base.typename(T).wrapper 
 end
-Base.@assume_effects :foldable function Base.getindex(x::Dimorphic, sex::Sex)
-    if x.a isa basetypeof(sex)
-        x.a
-    else
-        x.b isa basetypeof(sex) ? x.b : throw(ArgumentError("$sex not found in $x"))
-    end
-end
+_get(x, y) = _match(x, y)
 
 @inline function _match(x::Dimorphic, stage::Sex)
     m = _match(x.a, stage)
@@ -336,8 +445,13 @@ end
         m
     end
 end
-@inline _match(x::Sex, stage::Sex) =
-    x isa basetypeof(stage) ? _match(x.val, stage.val) : nothing
+@inline function _match(x::Sex, stage::Sex)
+    if x isa basetypeof(stage) 
+        isnothing(stage.val) ? x : _match(x.val, stage.val) 
+    else
+        nothing
+    end
+end
 @inline _match(x, stage) = x isa basetypeof(stage) ? x.val : nothing
 
 """
@@ -348,34 +462,6 @@ Lifespans are used in `reproduction`
 abstract type AbstractReproduction end
 
 struct StandardReproduction <: AbstractReproduction end
-
-"""
-    AbstractBehavior
-
-Abstract supertype for organism behaviors.
-
-Behaviors respond to physiological state and external stimuli,
-to either control *exposure* to the external stimuli, or modify
-physiological parameters to change the *effect* of the external stimuli.
-"""
-abstract type AbstractBehavior end
-
-"""
-    AbstractMetabolicBehavior
-
-Abstract supertype behaviors that modify metabolism based
-on inforation from the environment, such as diapause or hibernation.
-"""
-abstract type AbstractMetabolicBehavior <: AbstractBehavior end
-
-"""
-    AbstractMovementBehavior
-
-Abstract supertype behaviors that modify location based
-on inforation from the environment, such as moving up into
-cooler air or moving underground into a warmer/cooler burror.
-"""
-abstract type AbstractMovementBehavior <: AbstractBehavior end
 
 
 # Modes
@@ -455,6 +541,7 @@ mode(model::DEBOrganism) = model.mode
 life(model::DEBOrganism) = model.life
 temperatureresponse(model::DEBOrganism) = model.temperatureresponse
 reproduction(model::DEBOrganism) = model.reproduction
+has(t::AbstractTransition, o::DEBOrganism) = has(t, life(o)) 
 
 # Define organism constructors for model types
 std_organism(;
@@ -572,3 +659,116 @@ struct AtTemperature{T,X}
     x::X
 end
 
+"""
+    AbstractBehavior
+
+Abstract supertype for organism behaviors.
+
+Behaviors respond to physiological state and external stimuli,
+to either control *exposure* to the external stimuli, or modify
+physiological parameters to change the *effect* of the external stimuli.
+
+- Response to environmental information that leads to:
+    - Changes in metabolic parameters
+    - Changes in the environment or position within the environment
+"""
+abstract type AbstractBehavior end
+
+"""
+    AbstractMovementBehavior
+
+Abstract supertype behaviors that modify location based
+on inforation from the environment, such as moving up into
+cooler air or moving underground into a warmer/cooler burror.
+"""
+abstract type AbstractMovementBehavior <: AbstractBehavior end
+
+abstract type AbstractTemperatureRegulation end
+
+struct BurrowTemperatureRegulation{T} <: AbstractTemperatureRegulation
+    burrowat::T
+    emergeat::T
+end
+
+struct Panting{C}
+    capacity::C
+end
+
+abstract type AbstractBiophysics end
+        
+struct Fur{T} <: AbstractBiophysics 
+    thickness::T
+end
+struct WetSkin{W} <: AbstractBiophysics 
+    wetness::W
+end
+
+abstract type ActivityPeriod end
+
+struct Diurnal <: ActivityPeriod end
+struct Norturnal <: ActivityPeriod end
+struct Crepuscular <: ActivityPeriod end
+"""
+    ResponsiveActivity <: ActivityPeriod
+
+    ResponsiveActivity(isactive)
+
+# Arguments
+
+- `isactive` a `Function` or functor that recieves a `ModelParEnvironment`
+    object with the current system state, and decides whether to be "active"
+    or "innactive".
+"""
+struct ResponsiveActivity{F} <: ActivityPeriod 
+    isactive::F
+end
+
+
+abstract type AbstractShape end
+
+struct Plate{S}
+    stretch::S
+end
+struct Cylinder{S}
+    stretch::S
+end
+struct Ellipse{S}
+    stretch::S
+end
+struct Lizard end
+struct Frog end
+
+
+abstract type AbstractMophology end
+
+struct Morphology
+    subcutaneousfat
+    fat
+    bareskinfraction
+    eyefraction
+    venstralsurfacefraction
+    substratecontact
+    groundskyfraction
+end
+
+struct Skin
+    reflectance
+    emmisivity
+    wetness
+end
+
+struct Pelt
+    reflectance
+    emmisivity
+    depth
+    maxdepth
+    compresseddepth
+    density
+    hairconductivity
+    piloerectionfactor
+end
+
+struct DorsalVentralPelt{D<:Pelt,V<:Pelt}
+    dorsal::D
+    ventral::V
+end

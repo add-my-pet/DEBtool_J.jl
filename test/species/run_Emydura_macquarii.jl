@@ -5,6 +5,7 @@ using Test
 using Flatten
 using Unitful
 using DataInterpolations
+using ModelParameters: strip
 
 srcpath = dirname(pathof(DEBtool_J))
 speciespath = realpath(joinpath(srcpath, "../test/species"))
@@ -12,7 +13,7 @@ species = "Emydura_macquarii"
 ntpar = include(joinpath(speciespath, "pars_init_" * species * ".jl")) 
 par = StaticModel(ntpar) # create a 'Model' out of the Pars struct
 # compute temperature correction factors
-temperatureresponse = ArrheniusResponse(; ntpar[(:T_ref, :T_A)]...)
+temperatureresponse = strip(ArrheniusResponse(; ntpar[(:T_ref, :T_A)]...))
 model = std_organism(;
     temperatureresponse,
     life = Life(
@@ -26,7 +27,6 @@ estimator = Estimator(;
     max_step_number = 5000,
     max_fun_evals = 5000,
 )
-
 speciesdata = include(joinpath(speciespath, "mydata_" * species * ".jl")) # load the mydata file
 @time parout, nsteps, info, fval = estimate(estimator, model, par, speciesdata);
 
@@ -54,24 +54,54 @@ speciesdata = include(joinpath(speciespath, "mydata_" * species * ".jl")) # load
     println()
 end
 
+environment = ConstantEnvironment(; 
+    time=(0.0, 1000.0),
+    temperature=u"K"(22.0u"°C"),
+    functionalresponse=1.0,
+    temperatureresponse,
+) 
 environment = Environment(; 
-    times=[0.0, 300.0, 600, 900.0, 1200.0],
-    temperatures=u"K".([19.0, 5.0, 22.0, 10.0, -5.0]u"°C"),
-    functionalresponses=[1.0, 0.8, 1.0, 0.5, 0.0],
+    time=[0.0, 300.0, 600, 900.0, 1200.0, 2000.0],
+    temperature=u"K".([10.0, 15.0, 22.0, 10.0, 10.0, 20.0]u"°C"),
+    functionalresponse=[1.0, 0.8, 1.0, 0.9, 0.7, 1.0],
     temperatureresponse,
     interpolation=QuadraticInterpolation,
 ) 
-@time sol = simulate(model, par, environment)
+@time sol = simulate(model, parout, environment; tspan=(0.0, 1000.0))
 
-# using Plots
-# Plots.plot(sol)
+# Interactive plots
 
-# using GLMakie
-# Makie.plot(sol)
+using GLMakie
+using MakieDraw
 
-# @time simulate(model, stripparams(par), environment);
+MakieModel((; model, par=parent(parout))) do layout, obs
+    sol = lift(obs) do (; model, par)
+        simulate(model, par, environment)
+    end
+    # Define an axis to plot into
+    ax1 = Axis(layout[1:5, 1])
+    # And plot a heatmap of the output of `f`
+    plot!(ax1, sol)
+    # Plot the environment 
+    if environment isa Environment
+        time = environment.interpolators.temperature.t
+        temp = environment.interpolators.temperature.u
+        fr = environment.interpolators.functionalresponse.u
+        ax2 = Axis(layout[6, 1])
+        ax3 = Axis(layout[7, 1])
+        # DataCanvas(time, temp; color=:red, axis=ax2, figure=layout.parent.parent, scatter_kw=(; label="Temperature"))
+        # DataCanvas(time, fr; color=:green, axis=ax3, figure=layout.parent.parent, scatter_kw=(; label="FR"))
+        scatterlines!(ax2, time, temp; color=:red, label="Temperature")
+        scatterlines!(ax3, time, fr; color=:green, label="Functional respoonse")
+        axislegend(ax2)
+        axislegend(ax3)
+    end
+end
+
+# @time simulate(model, strip(par), environment);
 # using ProfileView
 # @profview 1 + 2
+# @profview simulate(model, parout, environment)
 # sim(model, par, environment, n) = for i in 1:n simulate(model, stripparams(par), environment); end
 # @time sim(model, par, environment, 500)
 

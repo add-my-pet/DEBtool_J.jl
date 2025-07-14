@@ -24,7 +24,7 @@ export Embryo, Juvenile, Adult
 export Female, Male
 export AtTemperature
 export Data, Univariate, Times, Temperatures, Lengths, FunctionalResponses, Food
-export AbstractEnvironment, Environment
+export AbstractEnvironment, Environment, ConstantEnvironment
 export Standard, FoetalDevelopment, FoetalDevelopmentX, GrowthCeasesAtPuberty, Accelerated, Hemimetabolous, Holometabolous
 export std, stf, stx, sbp, abj, abp, asj, hep, hex, hax
 export std_organism, stf_organism, stx_organism, sbp_organism, 

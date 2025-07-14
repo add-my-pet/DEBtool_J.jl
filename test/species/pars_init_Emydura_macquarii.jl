@@ -17,16 +17,16 @@ par = (;
     del_M = Param(0.61719, units=nothing, label="shape coefficient"),
 
     # Not estimated
-    p_T = 0.0u"J/d/cm^2", # Param(0.0, units=u"J/d/cm^2", label="{p_T}, surf-spec somatic maint"),
-    T_A = 8000.0u"K", # Param(8000.0, units=u"K", label="Arrhenius temperature"),
-    kap_R = 0.95, # Param(0.95, units=nothing, label="reproduction efficiency"),
-    f = 1.0, # Param(1.0, units=nothing, label="scaled functional response for 0-var data"),
-    s_G = 0.0001, # Param(0.0001, units=nothing, label="Gompertz stress coefficient"),
+    p_T = Const(0.0, units=u"J/d/cm^2", label="{p_T}, surf-spec somatic maint"),
+    T_A = Const(8000.0, units=u"K", label="Arrhenius temperature"),
+    kap_R = Const(0.95, units=nothing, label="reproduction efficiency"),
+    f = Const(1.0, units=nothing, label="scaled functional response for 0-var data"),
+    s_G = Const(0.0001, units=nothing, label="Gompertz stress coefficient"),
 
     # Not used at all
-    # F_m = 6.5u"l/d/cm^2", # Param(6.5, units=u"l/d/cm^2", label="{F_m}, max spec searching rate"),
-    # kap_X = 0.8, # Param(0.8, units=nothing, label="digestion efficiency of food to reserve"),
-    # kap_P = 0.1, # Param(0.1, units=nothing, label="faecation efficiency of food to faeces"),
+    # F_m = Const(6.5, units=u"l/d/cm^2", label="{F_m}, max spec searching rate"),
+    # kap_X = Const(0.8, units=nothing, label="digestion efficiency of food to reserve"),
+    # kap_P = Const(0.1, units=nothing, label="faecation efficiency of food to faeces"),
 
     # TODO these should be objects in the model
     DEFAULT_CHEMICAL_PARAMETERS...,
@@ -37,8 +37,8 @@ par = (;
     DEFAULT_CHEMICAL_INDICES_FOR_MINERALS...,
 
     # other parameters
-    #T_AL = Param(50000.0, units=u"K", label="low temp boundary"),
-    #T_AH = Param(50000.0, units=u"K", label="high temp boundary"),
-    #T_L = Param(0 + 273.15, units=u"K", label="low Arrhenius temperature"),
-    #T_H = Param(54.5 + 273.15, units=u"K", label="high Arrhenius temperature"),
+    #T_AL = Const(50000.0, units=u"K", label="low temp boundary"),
+    #T_AH = Const(50000.0, units=u"K", label="high temp boundary"),
+    #T_L = Const(0 + 273.15, units=u"K", label="low Arrhenius temperature"),
+    #T_H = Const(54.5 + 273.15, units=u"K", label="high Arrhenius temperature"),
 )
