@@ -1,4 +1,6 @@
 nothing
+using Revise
+using Infiltrator
 using DEBtool_J
 using ModelParameters
 using Unitful
@@ -8,7 +10,7 @@ using Test
 srcpath = dirname(pathof(DEBtool_J))
 speciespath = realpath(joinpath(srcpath, "../test/species"))
 
-species = "Emydura_macquarii"
+species = "Gadus_glacialis"
 
 include(joinpath(speciespath, "predict_" * species * ".jl"))
 (; par, metapar) = let # Let block so we only import the last variable into scope
@@ -26,7 +28,7 @@ options = DEBtool_J.EstimOptions(;
     max_fun_evals = 5000,
     pars_init_method = 2, 
     results_output = 3, 
-    method = "nm",
+    method = "nm",    
     calibration,
 ) 
 
@@ -42,7 +44,6 @@ varname = "par"
 par_matlab = read(file, varname)
 close(file)
 
-# TODO clean this up 
 par_free = Dict(
     string(k) => v for (k, v) in sort(collect(pairs(parout.free)); by=first)
 )

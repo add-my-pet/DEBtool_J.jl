@@ -173,6 +173,7 @@ function petregr_f(predict, func, par, data, auxData, weights, filternm, options
     v_test = zeros(size(v, 1))
     #prdData = (;$petnm = outPseudoData)
     f = call_func(q, data, auxData)[1]#eval(call_func)[1]
+    @show nm f st
     PmeanP = struct2vector(f, nm, st)
     P = PmeanP[1]
     meanP = PmeanP[2]
