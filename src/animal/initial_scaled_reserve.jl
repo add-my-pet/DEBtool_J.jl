@@ -49,7 +49,7 @@ function initial_scaled_reserve(f, p, Lb0)
         lb, info[i] = get_lb(q, f[i], lb0[i])
         ## try get_lb1 or get_lb2 for higher accuracy
         Lb[i] = lb * v / kM / g
-        uE0 = get_ue0(q, f[i], lb)
+        uE0 = get_ue0(q, f[i], lb)[1]
         U0[i] = uE0 * v^2 / g^2 / kM^3
     end
 
