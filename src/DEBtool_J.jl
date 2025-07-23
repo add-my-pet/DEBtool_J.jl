@@ -12,11 +12,13 @@ using Roots
 using ModelParameters.Flatten
 using StaticArrays
 using DataInterpolations
+using ComponentArrays
 
 import ModelParameters.ConstructionBase
 
 export Estimator, DEBNelderMead, DEBMultimodalEvolutionaryAlgorithm
 export DEBOrganism
+export ModelParEnv
 export ArrheniusResponse, LowTorporResponse, HighTorporResponse, LowAndHighTorporResponse
 export Life, LifeStages, Transitions, Dimorphic
 export Birth, Puberty, Maturity, Ultimate
@@ -41,6 +43,8 @@ export DEFAULT_CHEMICAL_PARAMETERS,
     DEFAULT_CHEMICAL_INDICES_FOR_WATER_ORGANICS
 
 include("new/const.jl")
+include("new/behavior.jl")
+include("new/environment.jl")
 include("new/types.jl")
 include("new/temperature.jl")
 include("new/init.jl")

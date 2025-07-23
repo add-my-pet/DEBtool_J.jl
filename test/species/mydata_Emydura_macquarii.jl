@@ -58,10 +58,10 @@ tLt = @SVector[
 data = (;
     age=(
         Birth(78.0u"d"),
-        Birth(AtTemperature(Unitful.K(30.0Unitful.°C), 48.0u"d")),
+        Birth(AtTemperature(u"K"(30.0u"°C"), 48.0u"d")),
         Female(Ultimate(20.9 * 365.0u"d")),
     ),
-    # TODO what does time mean as different to age
+    # TODO what does time mean as different to age - scaled time?
     time=(
         Female(Puberty(10.0 * 365.0u"d")),
         Male(Puberty(5.5 * 365.0u"d")),
@@ -80,7 +80,7 @@ data = (;
         Female(Ultimate(4000.0u"g")),
         Male(Ultimate(3673.0u"g")),
     ),
-    reproduction=Female(Ultimate(AtTemperature(Unitful.K(22.0Unitful.°C), 36.0 / 365.0u"d"))),
+    reproduction=Female(Ultimate(AtTemperature(u"K"(22.0u"°C"), 36.0 / 365.0u"d"))),
     univariate=(; lengths=Univariate(Times(tLt), Lengths(tL))),
 )
 
@@ -91,6 +91,6 @@ pseudo = addpseudodata(; data=(k=0.3,), weights=(k_J=0.0, k=0.1))
 weights = DEBtool_J.setweights(data);
 weights = merge(weights, (; univariate=(; lengths=2 .* weights.univariate.lengths), pseudo=pseudo.weights))
 data = merge(data, (; pseudo=pseudo.data))
-temp = Unitful.K(22.0Unitful.°C)
+temp = u"K"(22.0u"°C")
 
 (; data, temp, weights)

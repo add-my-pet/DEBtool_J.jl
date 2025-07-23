@@ -38,8 +38,8 @@ end
 function compute_transition_state(at::Birth, e::AbstractEstimator, pars, ::Transitions, state)
     (; L_m, del_M, d_V, k_M, w, f) = pars
 
-    τ, l, info = compute_scaled_mean(Since(Conception()), at, pars, f)
-    L = L_m * l                        # cm, structural length at birth at f
+    (; τ, l, info) = compute_scaled_mean(Since(Conception()), at, pars, f)
+    L = L_m * l                       # cm, structural length at birth at f
     Lw = L / del_M
     Ww = wet_weight(at, L, d_V, f, w)
     a = τ / k_M # TODO is this correct
@@ -76,9 +76,6 @@ function compute_transition_state(at::Ultimate, e::AbstractEstimator, pars, tran
     # TODO make these calculations optional based on data?. 
     Lw = L / del_M                 # cm, ultimate plastron length
     Ww = wet_weight(at, L, d_V, f, w)
-    # τ, l, info = compute_scaled_mean(Age(), at, e, pars, f)
-    # a = τ / k_M
-    # TODO: why was a calculated this way fot Ultimate
     l_b = trans[Birth()].l
     a = compute_lifespan(e, pars, l_b)
     return Ultimate((; l, L, Lw, Ww, a))

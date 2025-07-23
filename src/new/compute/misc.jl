@@ -2,7 +2,7 @@ function compute_lifespan(e::AbstractEstimator, pars, l_b)
     (; h_a, k_M) = pars
     # TODO this merge is awful fix and explain ha/h_a
     pars_tm = merge(pars, (; ha=h_a / k_M^2))  # compose parameter vector at T_ref
-    (; t_m) = compute_scaled_mean(Age(), Ultimate(), e, pars_tm, l_b) # -, scaled mean life span at T_ref
+    (; t_m) = compute_scaled_mean(Since(Birth()), Ultimate(), e, pars_tm, l_b) # -, scaled mean life span at T_ref
     am = t_m / k_M
     return am
 end

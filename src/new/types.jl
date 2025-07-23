@@ -41,143 +41,6 @@ struct Multivariate{I<:Sequence,D<:Tuple{<:Sequence,Vararg}} <: Data
     dependents::D
 end
 
-abstract type AbstractEnvironment end
-
-"""
-    ConstantEnvironment <: AbstractEnvironment
-
-An environment with fixed variables for all times.
-"""
-struct ConstantEnvironment{Ti,Te,TC,FR}
-    time::Ti
-    temperature::Te
-    tempcorrection::TC
-    functionalresponse::FR
-end
-function ConstantEnvironment(; 
-    time=(0.0, 365.0),
-    temperature=nothing,
-    functionalresponse=nothing,
-    temperatureresponse=nothing
-)
-    tempcorrection = if isnothing(temperatureresponse) || isnothing(temperature)
-        nothing
-    else
-        tempcorr(temperatureresponse, temperature)
-    end
-    return ConstantEnvironment(time, temperature, tempcorrection, functionalresponse)
-end
-
-getattime(e::ConstantEnvironment, x, t) = getproperty(e, x)  
-tspan(e::ConstantEnvironment) = first(e.time), last(e.time)
-
-
-"""
-    Environment <: AbstractEnvironment
-
-    Environment(; 
-        times,
-        temperatures=nothing,
-        functionalresponses=nothing,
-        interpolation=CubicSpline, 
-        temperatureresponse=nothing
-    )
-
-An environment that varies over time.
-
-The results of `getattime(e::Environment, property, t)` are interpolated
-from the environmental data using the `interpolation` method.
-
-- `times`:
-- `temperatures`: temperatures for each time in `times`.
-- `functionalresponses`: functional responses for each time in `times`.
-- `interpolation`: a DataInterpolations.jl `AbstractInterpolation`.
-- `temperatureresponse`: a parametrised `AbstractTemperatureResponse` object.
-"""
-struct Environment{Ti,Te,TC,FR,I<:NamedTuple}
-    time::Ti
-    temperature::Te
-    tempcorrection::TC
-    functionalresponse::FR
-    interpolators::I
-end
-function Environment(; 
-    time,
-    temperature=nothing,
-    functionalresponse=nothing,
-    interpolation=CubicSpline, 
-    temperatureresponse=nothing
-)
-    tempcorrection = if isnothing(temperatureresponse) || isnothing(temperature)
-        nothing
-    else
-        tempcorr(temperatureresponse, temperature)
-    end
-    interpolators = if isnothing(interpolation)
-        nothing
-    else
-        map((; temperature, tempcorrection, functionalresponse)) do d
-            isnothing(d) ? nothing : interpolation(d, time)
-        end
-    end
-    return Environment(time, temperature, tempcorrection, functionalresponse, interpolators)
-end
-
-getattime(e::Environment, x::Symbol, t) = getproperty(e.interpolators, x)(t)
-tspan(e::Environment) = first(e.time), last(e.time)
-
-
-"""
-    InteractiveEnvironment <: AbstractEnvironment
-
-    InteractiveEnvironment(; 
-        times,
-        temperatures=nothing,
-        functionalresponses=nothing,
-        interpolation=CubicSpline, 
-        temperatureresponse=nothing
-    )
-
-An environment that varies over time.
-
-The results of `getattime(e::Environment, property, t)` are interpolated
-from the environmental data using the `interpolation` method.
-
-- `times`:
-- `temperatures`: temperatures for each time in `times`.
-- `functionalresponses`: functional responses for each time in `times`.
-- `interpolation`: a DataInterpolations.jl `AbstractInterpolation`.
-- `temperatureresponse`: a parametrised `AbstractTemperatureResponse` object.
-"""
-# struct InteractiveEnvironment{Ti,Te,TC,FR,I<:NamedTuple}
-#     time::Ti
-#     temperature::Te
-#     tempcorrection::TC
-#     functionalresponse::FR
-#     interpolators::I
-# end
-# function InteractiveEnvironment(; 
-#     time,
-#     temperature=nothing,
-#     functionalresponse=nothing,
-#     interpolation=CubicSpline, 
-#     temperatureresponse=nothing
-# )
-#     tempcorrection = if isnothing(temperatureresponse) || isnothing(temperature)
-#         nothing
-#     else
-#         tempcorr(temperatureresponse, temperature)
-#     end
-#     interpolators = if isnothing(interpolation)
-#         nothing
-#     else
-#         map((; temperature, tempcorrection, functionalresponse)) do d
-#             isnothing(d) ? nothing : interpolation(d, time)
-#         end
-#     end
-#     return InteractiveEnvironment(time, temperature, tempcorrection, functionalresponse, interpolators)
-# end
-
 """
     AbstractMorph
 
@@ -363,15 +226,13 @@ hastransition(t::AbstractTransition, model::AbstractLifeSequence) =
     !isnothing(model[t])
 
 @kwdef struct Life{S<:Tuple{Vararg{StageAndTransition}}} <: AbstractLifeSequence
-    sequence::S
+    sequence::S = ()
 end
 Life(args::StageAndTransition...) = Life(args)
-Life() = Life(())
 @kwdef struct Transitions{S<:Tuple{Vararg{Union{<:AbstractTransition,<:Dimorphic,<:Sex}}}} <: AbstractLifeSequence
-    sequence::S
+    sequence::S = ()
 end
 Transitions(args::Union{Dimorphic,Sex,AbstractTransition}...) = Transitions(args)
-Transitions() = Transitions(())
 
 """
     LifeStages <: AbstractLifeSequence
@@ -387,10 +248,9 @@ Crucially, getindex works by lifestage:
 `life[Male(Puberty())]` may be required for `Dimorphic` transitions.
 """
 @kwdef struct LifeStages{S<:Tuple{Vararg{AbstractLifeStage}}} <: AbstractLifeSequence
-    sequence::S
+    sequence::S = ()
 end
 LifeStages(args::AbstractLifeStage...) = LifeStages(args)
-LifeStages() = LifeStages(())
 
 function Base.getindex(stages::Union{AbstractLifeSequence,Dimorphic,Sex}, stage)
     out = _get(stages, stage)
@@ -651,79 +511,10 @@ struct At{E<:AbstractEvent}
 end
 At{T}() where T = At(T())
 
-# Age is a convenience const for Since{Birth}
-const Age = Since{Birth}
-
 struct AtTemperature{T,X}
     t::T
     x::X
 end
-
-"""
-    AbstractBehavior
-
-Abstract supertype for organism behaviors.
-
-Behaviors respond to physiological state and external stimuli,
-to either control *exposure* to the external stimuli, or modify
-physiological parameters to change the *effect* of the external stimuli.
-
-- Response to environmental information that leads to:
-    - Changes in metabolic parameters
-    - Changes in the environment or position within the environment
-"""
-abstract type AbstractBehavior end
-
-"""
-    AbstractMovementBehavior
-
-Abstract supertype behaviors that modify location based
-on inforation from the environment, such as moving up into
-cooler air or moving underground into a warmer/cooler burror.
-"""
-abstract type AbstractMovementBehavior <: AbstractBehavior end
-
-abstract type AbstractTemperatureRegulation end
-
-struct BurrowTemperatureRegulation{T} <: AbstractTemperatureRegulation
-    burrowat::T
-    emergeat::T
-end
-
-struct Panting{C}
-    capacity::C
-end
-
-abstract type AbstractBiophysics end
-        
-struct Fur{T} <: AbstractBiophysics 
-    thickness::T
-end
-struct WetSkin{W} <: AbstractBiophysics 
-    wetness::W
-end
-
-abstract type ActivityPeriod end
-
-struct Diurnal <: ActivityPeriod end
-struct Norturnal <: ActivityPeriod end
-struct Crepuscular <: ActivityPeriod end
-"""
-    ResponsiveActivity <: ActivityPeriod
-
-    ResponsiveActivity(isactive)
-
-# Arguments
-
-- `isactive` a `Function` or functor that recieves a `ModelParEnvironment`
-    object with the current system state, and decides whether to be "active"
-    or "innactive".
-"""
-struct ResponsiveActivity{F} <: ActivityPeriod 
-    isactive::F
-end
-
-
 abstract type AbstractShape end
 
 struct Plate{S}

@@ -1,190 +1,146 @@
-struct ModelParEnvironment{M,P,E}
-    model::M
+# This file holds simulation code adapted from amptool
+# Its written so there is only one simulation function and one timestep function,
+# model differences are/will be handled with different callbacks, initialisation and acceleration functions
+
+@kwdef struct MetabolismBehaviorEnvironment{M,B,E,P}
+    metabolism::M 
+    behavior::B = NullBehavior()
+    environment::E = ConstantEnvironment()
     par::P
-    environment::E
+end
+function rebuild(mbe::MetabolismBehaviorEnvironment; 
+    model=mbe.metabolism, behavior=mbe.behavior, environment=mbe.environment, par=mbe.par
+)
+    MetabolismBehaviorEnvironment(metabolism, behavior, environment, par)
 end
 
-rebuild(mpe::ModelParEnvironment; model=mpe.model, par=mpe.par, environment=mpe.environment) = 
-    ModelParEnvironment(model, par, environment)
+@kwdef struct MetabolismEnvironment{M,E,P}
+    metabolism::M 
+    environment::E = ConstantEnvironment()
+    par::P
+end
+function rebuild(mbe::MetabolismEnvironment; 
+    model=mbe.metabolism, environment=mbe.environment, par=mbe.par
+)
+    MetabolismBehaviorEnvironment(metabolism, environment, par)
+end
 
 """
+    StateReconstructor(f, template)
+
+Integrates with DifferentialEquations.jl to allow nested and types state
+without fuss or the need for ComponentArrays.jl. 
+
+StateReconstructor instead using Flatten.jl to reconstruct the template object
+from an iterator, such as the `u` state from DiffEq.
+
+"""
+struct StateReconstructor{F,T,U}
+    f::F
+    template::T
+    time_units::U
+end
+function (sr::StateReconstructor)(u::AbstractArray{T}, p, t) where T
+    res = sr.f(Flatten.reconstruct(sr.template, u, T), p, t)
+    converted = map(Flatten.flatten(res, Number), Flatten.flatten(sr.template, Number)) do r, t 
+        convert(typeof(t), r * sr.time_units)
+    end
+    return SVector(Flatten.flatten(converted, T))
+end
+
+Base.values(sr::StateReconstructor) = Flatten.flatten(sr.template, AbstractFloat)
+Base.collect(sr::StateReconstructor) = collect(values(sr))
+Base.Array(sr::StateReconstructor) = collect(sr)
+
+StaticArrays.SVector(sr::StateReconstructor) = SVector(values(sr))
+StaticArrays.SArray(sr::StateReconstructor) = SVector(values(sr))
+
+"""
+    simulate(mbe::MetabolismBehaviorEnvironment)
 
 Simulates life trajectory, returning an OrdinaryDiffEQ.jl output.
 
-# Input
+# Arguments
 
-- `model`: a `DEBOrganism` model
-- `par`: a `NamedTuple` of parameters
-- `environment`: an `AbstractEnvironment` object. 
+- `mbe`: a `ModelBehaviorEnvironment` object
 
-Output
+# Keywords
 
-at mean values of temperature and food. computed using the DEBtool functions
+- `solver` OrdinaryDiffEq solver, `Tsit5()` by default. 
+- `abstol` absolute tolerance, 1e-9 by default 
+- `reltol` relative tolerance, 1e-9 by default 
+- `tspan` timespan tuple, taken from the range of environment data by default.
 
-was get_indDyn_mod
+was get_indDyn_mod in amptool
 """
-function simulate(model, par, environment; 
-    solver=Tsit5(), abstol=1e-9, reltol=1e-9, tspan=tspan(environment),
+function simulate(mbe::MetabolismBehaviorEnvironment; 
+    solver=Tsit5(), abstol=1e-9, reltol=1e-9, tspan=tspan(mbe.environment),
 )
+    (; metabolism, behavior, environment, par) = mbe
     # Reomove any ModelParameters Model or Param wrappers
     par = stripparams(par)
     # Add compound parameters to pars
     # TODO: more generic way to do this
-    par = merge(par, compound_parameters(model, par))
+    par = merge(par, compound_parameters(metabolism, par))
+
+    mbe = MetabolismBehaviorEnvironment(metabolism, behavior, environment, par)
     # Initiale state
-    mpe = ModelParEnvironment(model, par, environment)
-    u = simulation_init(mpe)
-    # Run simulation for the specific model mode
-    return simulate(model.mode, mpe, u; solver, abstol, reltol, tspan)
-end
-# Model types mostly differe in their `callback` function,
-# or how events occur and are handled during the lifecycle
-function simulate(
-    mode::Mode, mpe::ModelParEnvironment, u; solver, tspan, kw...
-)
+    state_structure = initialise_state(mbe)
+    f = StateReconstructor(d_sim, state_structure, u"d")
+    u0 = SVector(f)
     # Define the mode-specific callback function. This controls 
     # how the solver handles specific lifecycle events.
-    callback = simulation_callback(mode, mpe)
+    callback = simulation_callback(mbe)
     # Define the ODE to solve with function, initial state, 
     # timespan and parameters
-    problem = ODEProblem(d_sim, u, tspan, mpe)
+    problem = ODEProblem(f, u0, tspan, mbe)
     # solve the ODE, and return the solution object
-    return solve(problem, solver; callback, kw...)
-end
-function simulate(
-    mode::typeof(abj()), mpe::ModelParEnvironment, ELHR0; solver, tspan, kw...
-)
-    callback = ContinuousCallback(condition, terminate!)
-    # 1st call from fertilization to birth
-    L_b = NaN
-    s_M = 1.0
-    accelerating = false
-    ode_par_1 = rebuild(mpe, par=merge(mpe.par, (; L_b, s_M, accelerating)))
-    tspan_1 = (te, tspan[end])
-    u_1 = ELHR0
-    isterminal = @SVector[true, false, false]
-    problem = ODEProblem(_d_ELHR, u_1, tspan_1, ode_par_1)
-    sol_1 = solve(problem, solver; callback, kw...)
-
-    # 2nd call from birth to metamorphosis
-    u_2 = sol_1.u[end] .+ 1e-8
-    L_b = sol_1.ye[2]
-    s_M = NaN
-    t_2 = sol.what
-    accelerating = true
-    ode_par_2 = merge(ode_par, (; par=merge(par, (; L_b, S_M, accelerating))))
-    isterminal = @SVector[false, true, false]
-    problem = ODEProblem(_d_ELHR, u_2, tspan_2, ode_par_2)
-    sol_b = solve(problem, solver; callback, kw...)
-
-    # 3nd call from metamorphosis to the end of simulation
-    L_j = sol_2.ye[2]
-    u_3 = sol_2.u[end] .+ 1e-8
-    t_3 = sol.what
-    isterminal = @SVector[false, false, false]
-    s_M = L_j / L_b
-    # s_M = L_j / L_s
-    L_b = NaN
-    accelerating = false
-    ode_par_c = merge(ode_par, (; par= merge(par, (; L_b, s_M, accelerating))))
-    tspan_c = (t_c, tspan[end])
-    problem = ODEProblem(_d_ELHR, u_c, tspan_c, ode_par_c)
-    sol_c = solve(problem, solver; callback, kw...)
-    # TODO: join solves, or combine with changes as events
-end
-function simulate(
-    mode::typeof(asj()), mpe::ModelParEnvironment, ELHR0; solver, kw...
-)
-    s_M = 1.0
-    isterminal = [0, 1, 0, 0]
-    # [t1, ELHR1, te, ye, ie] = ode45(dget_ELHR_asj, tspan, ELHR0, options, pars_asj, tTC, tf, NaN, s_M, isterminal);
-    # if isempty(te)
-    #     te[1] = NaN
-    #     te[2] = NaN
-    #     ye = NaN * ones(2, 4)
-    #     @warn "birth is not reached"
-    # elseif length(te) == 1
-    #     te[2] = NaN
-    #     ye[2, :] = NaN * ones(1, 4)
-    #     @warn "start of accel is not reached"
-    # end
-    # a_b = te[1]
-    # Ww_b = ye[1, 2]^3 + ye[1, 1] * w_E/mu_E/d_E # age (d), struc length (cm), weight (g) at birth
-    # a_s = te[2]
-    L_b = ye[1, 2]
-    L_s = ye[2, 2]
-    # Ww_s = ye[2, 2]^3 + ye[2, 1] * w_E/mu_E/d_E # age (d), struc length (cm), weight (g) at start of accel
-    # 2nd call from start of acceleration to metamorphosis (end of acceleration)
-    isterminal = [0, 0, 1, 0]
-    # [t2, ELHR2, te, ye, ie] = ode45(dget_ELHR_asj, [te[2], tspan[end]], ye(2, :)+1e-8, options, pars_asj, tTC, tf, L_s, NaN, isterminal)
-    # t2[1] = []
-    ELHR2[1, :] = []
-    # if isempty(te)
-    #     te = NaN
-    #     ye = NaN * ones(1,4)
-    #     @warn "metamorphosis is not reached"
-    # end
-    # a_j = te
-    # Ww_j = ye[2]^3 + ye(1) * w_E/mu_E/d_E # age (d), struc length (cm), weight (g) at metamorphosis
-    # 3nd call from metamorphosis to the end of simulation
-    L_j = ye[2]
-    s_M = L_j / L_s
-    isterminal = [0, 0, 0, 0]
-    # [t3, ELHR3, te, ye, ie] = ode45(@dget_ELHR_asj, [te, tspan[end]], ye+1e-8, options, pars_asj, tTC, tf, NaN, s_M, isterminal);
-    # t3[1] = []
-    ELHR3[1, :] = []
-    # if isempty(te)
-    #     te = NaN
-    #     ye[:] = NaN * ones(1, 4)
-    #     @warn "puberty is not reached"
-    # end
-    # a_p = te
-    L_p = ye[2]
-    # Ww_p = ye[2]^3 + ye[1] * w_E/mu_E/d_E # age (d), struc length (cm), weight (g) at puberty
-    # catenate matrices
-    t = [t1; t2; t3]
-    ELHR = [ELHR1; ELHR2; ELHR3]
-end
-function simulate(
-    mode::typeof(abp()), mpe::ModelParEnvironment, ELHR0; solver, kw...
-)
-    # options = odeset('Events', @stage_events_abp, 'AbsTol', 1e-9, 'RelTol',1e-9);
-    # 1st call from fertilization to birth
-    s_M = 1.0
-    isterminal = [1, 0]
-    # [t1, ELHR1, te, ye, ie] = ode45(d_ELHR, tspan, ELHR0, options, pars_abp, tTC, tf, NaN, s_M, isterminal);
-    # if isempty(te)
-    #     te = NaN; ye = NaN * ones(1,4)
-    #     @warn "birth is not reached"
-    # end
-    # a_b = te
-    L_b = ye(2)
-    # Ww_b = ye(2)^3 + ye(1) * w_E/mu_E/d_E # age (d), struc length (cm), weight (g) at birth
-    # 2nd call from birth to the end of simulation
-    isterminal = [0, 0]
-    # [t2, ELHR2, te, ye, ie] = ode45(d_ELHR, (te, tspan[end]), ye+1e-8, options, pars_abp, tTC, tf, L_b, NaN, isterminal)
-    # t2[1] = []
-    # ELHR2[1, :] = []
-    # if isempty(te)
-    #     te = NaN; ye = NaN * ones(1, 4)
-    #     @warn "puberty is not reached"
-    # end
-    # a_p = te
-    L_p = ye[2]
-    # Ww_p = ye[2]^3 + ye[1] * w_E/mu_E/d_E # age (d), struc length (cm), weight (g) at puberty
-    # catenate matrices
-    # t = [t1, t2]
-    # TODO: remove start of each
-    ELHR = [ELHR1, ELHR2]
+    return solve(problem, solver; callback, abstol, reltol)
 end
 
-function simulation_init((; model, par)::ModelParEnvironment{<:DEBOrganism})
+function initialise_state(mbe::MetabolismBehaviorEnvironment)
+    metabolism = initialise_state(mbe.metabolism, mbe)
+    behavior = initialise_state(mbe.behavior, mbe)
+    environment = initialise_state(mbe.environment, mbe)
+    return (; metabolism, behavior, environment)
+end
+function initialise_state(o::DEBOrganism, mbe::MetabolismBehaviorEnvironment)
+    (; par) = mbe
     l_b, info = compute_length(Birth(), par)
-    (; UE0) = initial_scaled_reserve(model.mode, par, l_b)
+    (; UE0) = initial_scaled_reserve(o.mode, par, l_b)
     E_0 = UE0 * par.p_Am # J, energy in egg
-    # TODO explain why 1e-4
-    return @SVector[ustrip(u"J", E_0), 1e-4, 0.0, 0.0] # initial conditions at fertilization
+
+    return (; E=E_0, L=l_b * u"cm", E_H=0.0u"J", E_R=0.0u"J") # initial conditions at fertilization
 end
+function initialise_state(::NullBehavior, mbe::MetabolismBehaviorEnvironment)
+    (;) 
+end
+function initialise_state(::AbstractBehavior, ::MetabolismBehaviorEnvironment)
+    return NamedTuple()
+end
+function initialise_state(::AbstractEnvironment, ::MetabolismBehaviorEnvironment)
+    return NamedTuple()
+end
+
+# Integrate environment, behavior and metabolism
+function d_sim(s, mbe::MetabolismBehaviorEnvironment, t)
+    environment = d_sim(s.environment, mbe.environment, mbe, t)
+    behavior, inner_environment = d_sim(s.behavior, mbe.behavior, mbe, t)
+    me = MetabolismEnvironment(mbe.metabolism, inner_environment, mbe.par)
+    metabolism = d_sim(s.metabolism, mbe.metabolism, me, t)
+    return (; metabolism, behavior, environment)
+end
+function d_sim(state, b::NullBehavior, mbe::MetabolismBehaviorEnvironment, t)
+    # Select environmental parameters for the metabolism to experience
+    # By default we just return the temperature correction and functional response
+    state = (;)
+    inner_environment = ConstantEnvironment(;
+        tempcorrection = getattime(mbe.environment, :tempcorrection, t), # C, temperature at t
+        functionalresponse = getattime(mbe.environment, :functionalresponse, t), # -, scaled functional response at t
+    )
+    return state, inner_environment
+end
+d_sim(state, b::AbstractEnvironment, mbe::MetabolismBehaviorEnvironment, t) = state
 
 # d_sim
 # Define changes in state variables
@@ -205,21 +161,18 @@ end
 # E_G    J/cm^3, volume-specific costs of structure
 #
 # dELHR: 4-vector with change in E, L, H, R
-function d_sim(ELHR, mpe::ModelParEnvironment{<:DEBOrganism}, t)
-    (; model, par, environment) = mpe
+function d_sim(state, o::DEBOrganism, me::MetabolismEnvironment, t)
+    (; metabolism, environment, par) = me
     (; p_Am, v, p_M, k_J, kap, E_Hb, E_Hp) = par
-
-    E_, L_, E_H_ = ELHR
-    # Add units
-    E = E_ * u"J"
-    L = L_ * u"cm"
-    E_H = E_H_ * u"J"
-
+    (; E, L, E_H) = state
     TC = getattime(environment, :tempcorrection, t) # C, temperature at t
     f_t = getattime(environment, :functionalresponse, t) # -, scaled functional response at t
-    s_M = acceleration_factor(model.mode, par, L)
+
+    # Add units. TODO automate this from the init
+
+    s_M = acceleration_factor(metabolism.mode, par, L)
     pT_Am, vT, pT_M, kT_J = map(x -> x * TC, (p_Am, v, p_M, k_J)) # temp correction TODO: rates should already be grouped
-    r = specific_growth_rate(model.mode, merge(par, (; vT, pT_M, s_M)), (E, L, E_H))
+    r = specific_growth_rate(metabolism.mode, merge(par, (; vT, pT_M, s_M)), state)
 
     # TODO explain all the equations
     # Assimilation scales with length squared. No assimilation before birth
@@ -240,23 +193,33 @@ function d_sim(ELHR, mpe::ModelParEnvironment{<:DEBOrganism}, t)
 
     # Strip to days and pack as state variables
     # TODO: strip to the time units of `t` like ustrip("uJ" / units(t), x)
-    return @SVector[ustrip(u"J/d", dE), ustrip(u"cm/d", dL), ustrip(u"J/d", dE_H), ustrip(u"J/d", dE_R)]
+    return (E=dE, L=dL, E_H=dE_H, E_R=dE_R)
 end
 
+# TODO: move these somewhere general
+
+"""
+    specific_growth_rate(mode, par, state)
+
+Calculate the specific growth rate `r`
+
 # TODO: this should dispatch on a field of the model, not the mode
-function specific_growth_rate(mode::Union{typeof(sbp()), typeof(abp())}, par, ELH)
-    E_H = ELH[3]
-    if hasreached(Puberty(), par, E_H) 
-        0.0u"d^-1" # adults do not grow or shrink
-    else
-        specific_growth_rate(std(), par, state)
-    end
-end
-function specific_growth_rate(mode::Mode, par, (E, L, E_H))
+"""
+function specific_growth_rate(mode::Mode, par, state)
+    (; E, L, E_H) = state
     (; kap, kap_G, E_G, s_M, vT, pT_M) = par
     # TODO why is growth efficiency optional here
     kap_G_or_1 = (kap * E * s_M * vT < pT_M * L^4) ? kap_G : oneunit(kap_G) # section 4.1.5 comments to Kooy2010
     (E * s_M * vT / L - pT_M * L^3 / kap) / (E * s_M + kap_G_or_1 * E_G * L^3 / kap) # d^-1, specific growth rate
+end
+function specific_growth_rate(mode::Union{typeof(sbp()), typeof(abp())}, par, state)
+    if hasreached(Puberty(), par, state.E_H) 
+        # Afterpuberty adults in sbp/adp do not grow or shrink. So the growth rate is zero
+        0.0u"d^-1"
+    else
+        # Otherwise call the standard model specific growth rate
+        specific_growth_rate(std(), par, state)
+    end
 end
 
 hasreached(::Birth, p, maturity) = maturity >= p.E_Hb
@@ -269,26 +232,25 @@ acceleration_factor(::Accelerated{<:Isomorph,<:MaturityLevel}, p, L) = p.acceler
 acceleration_factor(::Accelerated{<:Isomorph,<:Birth}, p, L) = p.accelerating ? L / p.L_b : p.s_M
 acceleration_factor(::Mode, pars, L) = 1.0 # Non-accelerating modes
 
-# Get all E_H variables to compare to E_H
-all_E_H(::typeof(std()), p) = p.E_Hb, p.E_Hp
-# all_E_H(::typeof(stx()), p) = p.E_Hb, p.E_Hx, p.E_Hp
-all_E_H(::typeof(abj()), p) = p.E_Hb, p.E_Hj, p.E_Hp
-all_E_H(::typeof(asj()), p) = p.E_Hb, p.E_Hs, p.E_Hj, p.E_Hp
-all_E_H(::typeof(abp()), p) = p.E_Hb, p.E_Hp
-
-simulation_callback(mpe::ModelParEnvironment) = 
-    simulation_callback(mpe.model.mode, mpe)
+# Callbacks for metabolism, behavior and environment are combined
+function simulation_callback(mbe::MetabolismBehaviorEnvironment)
+    CallbackSet(
+        simulation_callback(mbe.environment),
+        simulation_callback(mbe.behavior),
+        simulation_callback(mbe.metabolism),
+    )
+end
+simulation_callback(o::AbstractEnvironment) = CallbackSet()
+simulation_callback(o::AbstractBehavior) = CallbackSet()
+simulation_callback(o::DEBOrganism) = simulation_callback(o.mode, o)
 function simulation_callback(
-    mode::Union{typeof(std()),typeof(sbp())} , mpe::ModelParEnvironment
+    mode::Union{typeof(std()),typeof(sbp())} , o::DEBOrganism
 )
-    @show callback_transitions(mpe.model)
-    callbacks = map(callback_transitions(mpe.model)) do tr
+    callbacks = map(callback_transitions(o)) do tr
         transition_callback(tr)
     end
     # Define a callback that simply forces accuracy around life-stage transitions
-    x = CallbackSet(callbacks...)
-    @show x
-    x
+    return CallbackSet(callbacks...)
 end
 
 function callback_transitions(model)
@@ -298,10 +260,12 @@ function callback_transitions(model)
 end
 
 transition_callback(::AbstractTransition, model) = 
-    ContinuousCallback(transition_callback(model), transition_action(model))
-
-transition_action(::AbstractTransition, model) = (integrator, i) -> nothing # action when event is found
+    ContinuousCallback(transition_event(model), transition_action(model))
 
 transition_event(::Birth, model) = (ELHR, t, integrator) -> ustrip(u"J", i.p.par.E_Hb) - ELHR[3]
 transition_event(::Puberty, model) = (ELHR, t, integrator) -> ustrip(u"J", i.p.par.E_Hp) - ELHR[3]
 transition_event(::Metamorphosis, model) = (ELHR, t, i) -> ustrip(u"J", i.p.par.E_Hj) - ELHR[3]
+
+# The default action is to do nothing
+# This will still force the solver to exactly calculate the transitions time
+transition_action(::AbstractTransition, model) = (integrator, i) -> (@show i; nothing) # action when event is found

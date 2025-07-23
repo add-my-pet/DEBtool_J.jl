@@ -1,52 +1,54 @@
 # TODO reorganise where these functions live
 
-# created 2000/08/16 by Bas Kooijman; modified 2011/04/10, 2017/07/24
+"""
+    incomplete_beta(x0, x1)
 
-## Syntax
-# f = <../beta0.m *beta0*> (x0,x1)
+Particular incomplete beta function integrates over the interval `x0 : x1`, 
+for the beta function `beta(4/3, 0)`:
 
-## Description
-#  particular incomplete beta function:
-#   B_x1(4/3,0) - B_x0(4/3,0) = \int_x0^x1 t^(4/3-1) (1-t)^(-1) dt
-#
-# Input
-#
-# * x0: scalar with lower boundary for integration
-# * x1: scalar with upper boundary for integratior
-#
-# Output
-#
-# * f: scalar with particular incomplete beta function
+```math
+B_x1(4/3, 0) - B_x0(4/3, 0) = \\int_x0^x1 t^(4/3-1) (1-t)^(-1) dt
+```
 
-## Remarks
-# See also <../lib/misc/beta_34_0 *beta_34_0*>
+Returns a scalar with particular incomplete beta function
+
+## Arguments
+
+- `x0`: scalar with lower boundary for integration
+- `x1`: scalar with upper boundary for integratior
+
+# Remarks
+See also <../lib/misc/beta_34_0 *beta_34_0*>
 
 ## Example of use
-# beta0(0.1, 0.2)
-function beta0(x0::Number, x1::Number)
-    f0 = _beta(x0)
-    f1 = _beta(x1)
-    f = f1 - f0
-    return f
+
+incomplete_beta(0.1, 0.2)
+"""
+function incomplete_beta(x0::Number, x1::Number)
+    f0 = incomplete_beta_side(x0)
+    f1 = incomplete_beta_side(x1)
+    return f1 - f0
 end
-function beta0_precalc_f1(x0::Number, f1::Number)
-    f0 = _beta(x0)
-    f = f1 - f0
-    return f
+
+# This is an optimisations of beta0 that precalculates f1 from x1
+function incomplete_beta_precalc(x0::Number, f1::Number)
+    f0 = incomplete_beta_side(x0)
+    return f1 - f0
 end
-# Precalculate part of _beta0
-function _beta(x1)
+
+# Calculate one argument of incomplete_beta
+function incomplete_beta_side(x1)
     a3 = sqrt(3)
     x13 = x1^(1 / 3)
     -3 * x13 + a3 * atan((oneunit(x13) + 2 * x13) / a3) - log(Complex(x13 - oneunit(x13))) + log(oneunit(x13) + x13 + x13^2) / 2
 end
 
-@noinline _warn_value_range(x0, x1) = @warn "beta0: argument values (" * num2str(x0) * "," * num2str(x1), ") outside (0,1) \n"
+@noinline _warn_value_range(x0, x1) = @warn "beta0: argument values (" * num2str(x0) * "," * num2str(x1), ") outside (0, 1) \n"
 
 
 ## was petregr_f
 # Finds parameter values for a pet that minimizes the lossfunction using Nelder Mead's simplex method using a filter
-# TODO: single objective/loss/filter function
+# TODO: single objective/loss/filter function, and replace this with Optimisation.jl or similar
 function optimize!(objective, filter, loss, estimator::Estimator{DEBNelderMead}, qvec::Vector)
     info = true # initiate info setting
     n_par = length(qvec)

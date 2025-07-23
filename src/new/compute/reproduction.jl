@@ -56,15 +56,15 @@ function compute_reproduction_rate(e::AbstractEstimator, mode::StandardReproduct
 
     lb = ls[Birth()].l
     lp = ls[Female(Puberty())].l
-    Lb = lb * L_m
-    Lp = lp * L_m # structural length at birth, puberty
+    L_b = lb * L_m
+    L_p = lp * L_m # structural length at birth, puberty
 
-    (; UE0, Lb, info) = initial_scaled_reserve(model.mode, p, lb)
+    (; UE0, L_b, info) = initial_scaled_reserve(model.mode, p, lb)
     SC = f * L .^ 3 .* (g ./ L + (1 + L_T ./ L) / L_m) / (f + g)
     SR = (1 - kap) * SC - k_J * U_Hp
-    R = (L >= Lp) .* kap_R .* SR ./ UE0 # set reprod rate of juveniles to zero
+    R = (L >= L_p) .* kap_R .* SR ./ UE0 # set reprod rate of juveniles to zero
 
-    return (; R, UE0, Lb, Lp, info)
+    return (; R, UE0, L_b, L_p, info)
 end
 
 # Subfunctions
