@@ -33,32 +33,32 @@
 function addpseudodata(; data::NamedTuple=(;), weights::NamedTuple=(;))
     pseudodata = (;
         v = 0.02u"cm/d",
-        kap = 0.8,
-        kap_R = 0.95,
+        κ = 0.8,
+        κ_R = 0.95,
         p_M = 18u"J/d/cm^3",
         k_J = 0.002u"d^-1",
-        kap_G = 0.8,
+        κ_G = 0.8,
         k = 0.3
     )
 
     label = (;
         v = "energy conductance",
-        kap = "allocation fraction to soma",
-        kap_R = "reproduction efficiency",
+        κ = "allocation fraction to soma",
+        κ_R = "reproduction efficiency",
         p_M = "vol-spec som maint",
         k_J = "maturity maint rate coefficient",
-        kap_G = "growth efficiency",
+        κ_G = "growth efficiency",
         k = "maintenance ratio"
     )
 
     # set weights
     pseudoweights = (;
         v = 0.1,
-        kap = 0.1,
-        kap_R = 0.1,
+        κ = 0.1,
+        κ_R = 0.1,
         p_M = 0.1,
         k_J = 0.1,
-        kap_G = 0.1 * 200, # more weight to kap_G
+        κ_G = 0.1 * 200, # more weight to κ_G
         k = 0.1
     )
 
@@ -66,9 +66,9 @@ function addpseudodata(; data::NamedTuple=(;), weights::NamedTuple=(;))
     #   psdWeight.v     = 10^(-4) * psdWeight.v;
     #   psdWeight.p_M   = 10^(-4) * psdWeight.p_M;
     #   psdWeight.k_J   = 10^(-4) * psdWeight.k_J;
-    #   psdWeight.kap_R = 10^(-4) * psdWeight.kap_R;
-    #   psdWeight.kap   = 10^(-4) * psdWeight.kap;
-    #   psdWeight.kap_G = 10^(-4) * psdWeight.kap_G;
+    #   psdWeight.κ_R = 10^(-4) * psdWeight.κ_R;
+    #   psdWeight.κ   = 10^(-4) * psdWeight.κ;
+    #   psdWeight.κ_G = 10^(-4) * psdWeight.κ_G;
     # end
     
     data = merge(pseudodata, data)

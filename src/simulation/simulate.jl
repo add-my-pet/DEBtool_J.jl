@@ -156,14 +156,14 @@ d_sim(state, b::AbstractEnvironment, mbe::MetabolismBehaviorEnvironment, t) = st
 # v      cm/d, energy conductance
 # p_M    J/d.cm^3, somatic maint
 # k_J    1/d, maturity maint rate coeff
-# kap    -, fraction allocated to growth + som maint
-# kap_G  -, growth efficiency
+# κ    -, fraction allocated to growth + som maint
+# κ_G  -, growth efficiency
 # E_G    J/cm^3, volume-specific costs of structure
 #
 # dELHR: 4-vector with change in E, L, H, R
 function d_sim(state, o::DEBOrganism, me::MetabolismEnvironment, t)
     (; metabolism, environment, par) = me
-    (; p_Am, v, p_M, k_J, kap, E_Hb, E_Hp) = par
+    (; p_Am, v, p_M, k_J, κ, E_Hb, E_Hp) = par
     (; E, L, E_H) = state
     TC = getattime(environment, :tempcorrection, t) # C, temperature at t
     f_t = getattime(environment, :functionalresponse, t) # -, scaled functional response at t
@@ -187,9 +187,9 @@ function d_sim(state, o::DEBOrganism, me::MetabolismEnvironment, t)
     dL = r * L / 3 # cm/d, change in length
     # Maturitity H and reproduction R buffers receive (1 - κ) * mobilized flux, minus maturity maintenancy 
     # There is no investment in maturation after puberty 
-    dE_H = ((1 - kap) * pC - kT_J * E_H) * !hasreached(Puberty(), par, E_H) # J/d, change in cumulated energy invested in maturation
+    dE_H = ((1 - κ) * pC - kT_J * E_H) * !hasreached(Puberty(), par, E_H) # J/d, change in cumulated energy invested in maturation
     # And no investment in reproduction before puberty
-    dE_R = ((1 - kap) * pC - kT_J * E_Hp) * hasreached(Puberty(), par, E_H) # J/d, change in reproduction buffer
+    dE_R = ((1 - κ) * pC - kT_J * E_Hp) * hasreached(Puberty(), par, E_H) # J/d, change in reproduction buffer
 
     # Strip to days and pack as state variables
     # TODO: strip to the time units of `t` like ustrip("uJ" / units(t), x)
@@ -207,10 +207,10 @@ Calculate the specific growth rate `r`
 """
 function specific_growth_rate(mode::Mode, par, state)
     (; E, L, E_H) = state
-    (; kap, kap_G, E_G, s_M, vT, pT_M) = par
+    (; κ, κ_G, E_G, s_M, vT, pT_M) = par
     # TODO why is growth efficiency optional here
-    kap_G_or_1 = (kap * E * s_M * vT < pT_M * L^4) ? kap_G : oneunit(kap_G) # section 4.1.5 comments to Kooy2010
-    (E * s_M * vT / L - pT_M * L^3 / kap) / (E * s_M + kap_G_or_1 * E_G * L^3 / kap) # d^-1, specific growth rate
+    κ_G_or_1 = (κ * E * s_M * vT < pT_M * L^4) ? κ_G : oneunit(κ_G) # section 4.1.5 comments to Kooy2010
+    (E * s_M * vT / L - pT_M * L^3 / κ) / (E * s_M + κ_G_or_1 * E_G * L^3 / κ) # d^-1, specific growth rate
 end
 function specific_growth_rate(mode::Union{typeof(sbp()), typeof(abp())}, par, state)
     if hasreached(Puberty(), par, state.E_H) 

@@ -7,7 +7,7 @@ par = (;
     z = Param(13.2002, units=nothing, label="zoom factor"),
     z_m = Param(12.8559, units=u"cm", label="zoom factor for male"),
     v = Param(0.060464, units=u"cm/d", label="energy conductance"),
-    kap = Param(0.7362, units=nothing, label="allocation fraction to soma"),
+    κ = Param(0.7362, units=nothing, label="allocation fraction to soma"),
     p_M = Param(16.4025, units=u"J/d/cm^3", label="[p_M], vol-spec somatic maint"),
     k_J = Param(0.00060219, units=u"1/d", label="maturity maint rate coefficient"),
     E_G = Param(7857.8605, units=u"J/cm^3", label="[E_G], spec cost for structure"),
@@ -20,14 +20,14 @@ par = (;
     # Not estimated
     p_T = Const(0.0, units=u"J/d/cm^2", label="{p_T}, surf-spec somatic maint"),
     T_A = Const(8000.0, units=u"K", label="Arrhenius temperature"),
-    kap_R = Const(0.95, units=nothing, label="reproduction efficiency"),
+    κ_R = Const(0.95, units=nothing, label="reproduction efficiency"),
     f = Const(1.0, units=nothing, label="scaled functional response for 0-var data"),
     s_G = Const(0.0001, units=nothing, label="Gompertz stress coefficient"),
 
     # Not used at all
     # F_m = Const(6.5, units=u"l/d/cm^2", label="{F_m}, max spec searching rate"),
-    # kap_X = Const(0.8, units=nothing, label="digestion efficiency of food to reserve"),
-    # kap_P = Const(0.1, units=nothing, label="faecation efficiency of food to faeces"),
+    # κ_X = Const(0.8, units=nothing, label="digestion efficiency of food to reserve"),
+    # κ_P = Const(0.1, units=nothing, label="faecation efficiency of food to faeces"),
 
     # TODO these should be objects in the model
     DEFAULT_CHEMICAL_PARAMETERS...,

@@ -5,10 +5,10 @@
 function filter_params(model::DEBOrganism, p::NamedTuple)
     positive_pars = (
         # TODO optionally check these
-        p.kap,
-        p.kap_R,
-        # p.kap_X,
-        # p.kap_P,
+        p.κ,
+        p.κ_R,
+        # p.κ_X,
+        # p.κ_P,
         p.z,
         # p.z_m,
         p.v,
@@ -20,7 +20,7 @@ function filter_params(model::DEBOrganism, p::NamedTuple)
         p.h_a,
         p.T_A,
     )
-    larger_than_one_pars = (p.kap, p.kap_R)#, p.kap_X, p.kap_P)
+    larger_than_one_pars = (p.κ, p.κ_R)#, p.κ_X, p.κ_P)
     # compute and unpack cpar (compound parameters)
     c = compound_parameters(model, p)
 
@@ -29,7 +29,7 @@ function filter_params(model::DEBOrganism, p::NamedTuple)
     p.E_Hb >= p.E_Hp && return false, MaturityLevelsNoIncrease
     p.f > 1 && return false, KappaGreaterThan1 # This seems wrong
     count(x -> x >= oneunit(x), larger_than_one_pars) > 0 && return false, KappaGreaterThan1
-    c.kap_G >= 1 && return false, GrowthEfficiencyGreaterThan1
+    c.κ_G >= 1 && return false, GrowthEfficiencyGreaterThan1
     c.k * c.v_Hp >= p.f * (p.f - c.l_T)^2 && return false, CantReachPuberty
 
     # TODO do this check elsewhere its expensive
@@ -82,7 +82,7 @@ The quantities that are computed concern, where relevant:
 - J_E_T: mol/d.cm^2, {J_ET}, surface-spec somatic  maint costs
 - j_E_M: mol/d.mol, mass-spec somatic  maint costs
 - j_E_J: mol/d.mol, mass-spec maturity maint costs
-- kap_G: -, growth efficiency
+- κ_G: -, growth efficiency
 - E_V: J/cm^3, [E_V], volume-specific energy of structure
 - K: c-mol X/l, half-saturation coefficient
 - M_H*, U_H*, V_H*, v_H*, u_H*: scaled maturities computed from all unscaled ones: E_H*
@@ -92,7 +92,7 @@ function compound_parameters(model::DEBOrganism, p::NamedTuple)
     p_Am = if hasproperty(p, :p_Am)
         p.p_Am
     else
-        p.z * p.p_M / p.kap * u"cm"   # J/d.cm^2, {p_Am} spec assimilation flux; the expression for p_Am is multiplied also by L_m^ref = 1 cm, for units to match. 
+        p.z * p.p_M / p.κ * u"cm"   # J/d.cm^2, {p_Am} spec assimilation flux; the expression for p_Am is multiplied also by L_m^ref = 1 cm, for units to match. 
     end
 
     #   X      V      E      P
@@ -129,7 +129,7 @@ function compound_parameters(model::DEBOrganism, p::NamedTuple)
     k = p.k_J / k_M            # -, maintenance ratio
     E_m = p_Am / p.v             # J/cm^3, [E_m], reserve capacity 
     m_Em = y_E_V * E_m / p.E_G   # mol/mol, reserve capacity
-    g = p.E_G / p.kap / E_m      # -, energy investment ratio
+    g = p.E_G / p.κ / E_m      # -, energy investment ratio
     L_m = p.v / k_M / g           # cm, maximum length
     L_T = p.p_T / p.p_M           # cm, heating length (also applies to osmotic work)
     l_T = L_T / L_m              # - , scaled heating length
@@ -141,14 +141,14 @@ function compound_parameters(model::DEBOrganism, p::NamedTuple)
     J_E_T = p.p_T / p.mu_E         # mol/d.cm^2, {J_ET}, surface-spec somatic  maint costs
     j_E_M = k_M * y_E_V            # mol/d.mol, mass-spec somatic  maint costs
     j_E_J = p.k_J * y_E_V          # mol/d.mol, mass-spec maturity maint costs
-    kap_G = p.mu_V * M_V / p.E_G   # -, growth efficiency
+    κ_G = p.mu_V * M_V / p.E_G   # -, growth efficiency
     E_V = p.d_V * p.mu_V / w_V     # J/cm^3, [E_V] volume-specific energy of structure
 
     compound_pars = merge(
         (; p_Am, n_O, n_M),
         (; w_X, w_V, w_E, w_P),
         (; M_V, y_V_E, y_E_V, k_M, k, E_m, m_Em, g, L_m, L_T, l_T, ome, w, J_E_Am),
-        (; J_E_M, J_E_T, j_E_M, j_E_J, kap_G, E_V),
+        (; J_E_M, J_E_T, j_E_M, j_E_J, κ_G, E_V),
     )
 
     # Optional parameters. TODO base these on model struture
@@ -159,21 +159,21 @@ function compound_parameters(model::DEBOrganism, p::NamedTuple)
     end
     compound_pars = merge(compound_pars, (; s_H))
 
-    if hasproperty(p, :kap_X)
-        y_E_X = p.kap_X * p.mu_X / p.mu_E  # mol/mol, yield of reserve on food
+    if hasproperty(p, :κ_X)
+        y_E_X = p.κ_X * p.mu_X / p.mu_E  # mol/mol, yield of reserve on food
         y_X_E = 1 / y_E_X                  # mol/mol, yield of food on reserve
-        p_Xm = p_Am / p.kap_X              # J/d.cm^2, max spec feeding power
+        p_Xm = p_Am / p.κ_X              # J/d.cm^2, max spec feeding power
         J_X_Am = y_X_E * J_E_Am            # mol/d.cm^2, {J_XAm}, max surface-spec feeding flux
         compound_pars = merge(compound_pars, (; y_E_X, y_X_E, p_Xm, J_X_Am))
     end
 
     # TODO needs a product struct
-    if hasproperty(p, :kap_P)
-        y_P_X = p.kap_P * p.mu_X / p.mu_P  # mol/mol, yield of faeces on food 
+    if hasproperty(p, :κ_P)
+        y_P_X = p.κ_P * p.mu_X / p.mu_P  # mol/mol, yield of faeces on food 
         y_X_P = 1 / y_P_X                  # mol/mol, yield of food on faeces
         compound_pars = merge(compound_pars, (; y_P_X, y_X_P))
 
-        if hasproperty(p, :kap_X)
+        if hasproperty(p, :κ_X)
             y_P_E = y_P_X / y_E_X          # mol/mol, yield of faeces on reserve
             #  Mass-power couplers
             eta_XA = y_X_E / p.mu_E        # mol/J, food-assim energy coupler
@@ -196,7 +196,7 @@ function compound_parameters(model::DEBOrganism, p::NamedTuple)
     end
 
     if hasproperty(p, :E_Rj)
-        v_Rj = p.kap / (1 - p.kap) * p.E_Rj / p.E_G
+        v_Rj = p.κ / (1 - p.κ) * p.E_Rj / p.E_G
         compound_pars = merge(compound_pars, (; v_Rj))
     end
 
@@ -223,7 +223,7 @@ end
             M_Hx_nt = NamedTuple{($(QuoteNode(Symbol(mat_H[i]))),)}((M_Hx,))
             U_Hx = getproperty(p, $(QuoteNode(Symbol("E_H" * stri)))) / p_Am
             U_Hx_nt = NamedTuple{($(QuoteNode(Symbol(mat_U[i]))),)}((U_Hx,))
-            V_Hx = getproperty(U_Hx_nt, $(QuoteNode(Symbol("U_H" * stri)))) / (1 - kap)
+            V_Hx = getproperty(U_Hx_nt, $(QuoteNode(Symbol("U_H" * stri)))) / (1 - κ)
             V_Hx_nt = NamedTuple{($(QuoteNode(Symbol(mat_V[i]))),)}((V_Hx,))
             v_Hx = getproperty(V_Hx_nt, $(QuoteNode(Symbol("V_H" * stri)))) * g^2 * k_M^3 / v^2
             v_Hx_nt = NamedTuple{($(QuoteNode(Symbol(mat_v[i]))),)}((v_Hx,))
@@ -234,13 +234,13 @@ end
 
         #compound_pars.(['M_H', stri]) = p.(['E_H', stri])/ p.mu_E;                 % mmol, maturity at level i
         #compound_pars.(['U_H', stri]) = p.(['E_H', stri])/ p_Am;                   % cm^2 d, scaled maturity at level i
-        #compound_pars.(['V_H', stri]) = compound_pars.(['U_H', stri])/ (1 - p.kap);         % cm^2 d, scaled maturity at level i
+        #compound_pars.(['V_H', stri]) = compound_pars.(['U_H', stri])/ (1 - p.κ);         % cm^2 d, scaled maturity at level i
         #compound_pars.(['v_H', stri]) = compound_pars.(['V_H', stri]) * g^2 * k_M^3/ p.v^2; % -, scaled maturity density at level i
         #compound_pars.(['u_H', stri]) = compound_pars.(['U_H', stri]) * g^2 * k_M^3/ p.v^2; % -, scaled maturity density at level i 
     end
     blocks = Expr(:block, blocks...)
     return quote
-        (; v, kap, mu_E) = p
+        (; v, κ, mu_E) = p
         (; g, p_Am, k_M) = compound_pars
         $blocks
         return compound_pars

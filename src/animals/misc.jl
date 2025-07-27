@@ -12,10 +12,10 @@ end
 function compute_male_params(model::DEBOrganism, par)
     # TODO better detection here
     if haskey(par, :z_m)
-        (; kap, z_m, p_M, w_E, w_V, v, E_G, k_M, kap, y_E_V, v_Hpm) = par
-        p_Am_m = z_m * p_M / kap           # J/d.cm^2, {p_Am} spec assimilation flux
+        (; κ, z_m, p_M, w_E, w_V, v, E_G, k_M, κ, y_E_V, v_Hpm) = par
+        p_Am_m = z_m * p_M / κ           # J/d.cm^2, {p_Am} spec assimilation flux
         E_m_m = p_Am_m / v                 # J/cm^3, reserve capacity [E_m]
-        g = E_G / (kap * E_m_m)            # -, energy investment ratio
+        g = E_G / (κ * E_m_m)            # -, energy investment ratio
         m_Em_m = y_E_V * E_m_m / E_G       # mol/mol, reserve capacity
         w = m_Em_m * w_E / w_V             # -, contribution of reserve to weight
         L_m = v / k_M / g                  # cm, max struct length

@@ -24,7 +24,8 @@ function compare_matlab(species::AbstractString, parout)
         par_julia = NamedTuple{parout[:fieldname]}(parout[:val])
         println()
         for k in keys(par_julia)
-            v1 = par_matlab[string(k)]
+            mk = first(string(k)) == 'κ' ? replace(string(k), "κ" => "kap") : string(k) 
+            v1 = par_matlab[mk]
             v2 = par_julia[k]
             is_equal = isapprox(v1, v2; atol=1e-4, rtol=1e-4)  # Tweak tolerance as needed
             print(rpad(k, 10), ": ", v1, " vs ", v2, " → ") 

@@ -1,6 +1,6 @@
 name = "DEBtool_J"
 uuid = "d5fad7a6-7dcb-4b67-a915-b798eba7e781"
-authors = ["Bas Kooijman, Goncalo Marques, Starrlight Augustine, Dina Lika, Michael Kearney"]
+authors = ["Rafael Schouten", "Bas Kooijman, Goncalo Marques, Starrlight Augustine, Dina Lika, Michael Kearney"]
 version = "0.1.0"
 
 [deps]

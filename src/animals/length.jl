@@ -15,8 +15,8 @@
 # The theory behind get_lb, get_tb and get_ue0 is discussed in 
 #    <http://www.bio.vu.nl/thb/research/bib/Kooy2009b.html Kooy2009b>.
 # Solves y(x_b) = y_b  for lb with explicit solution for y(x)
-#   y(x) = x e_H/(1-kap) = x g u_H/ l^3
-#   and y_b = x_b g u_H^b/ ((1-kap)l_b^3)
+#   y(x) = x e_H/(1-κ) = x g u_H/ l^3
+#   and y_b = x_b g u_H^b/ ((1-κ)l_b^3)
 #   d/dx y = r(x) - y s(x);
 #   with solution y(x) = v(x) \int r(x)/ v(x) dx
 #   and v(x) = exp(- \int s(x) dx).
@@ -28,9 +28,9 @@
 # In case of no convergence, <get_lb2.html *get_lb2*> is run automatically as backup.
 # Consider the application of <get_lb_foetus.html *get_lb_foetus*> for an alternative initial value.
 function compute_length(at::Birth, p::NamedTuple; eb::Number=1.0)
-    (; g, k, v_Hb) = p   # g = [E_G] * v/ kap * {p_Am}, energy investment ratio
+    (; g, k, v_Hb) = p   # g = [E_G] * v/ κ * {p_Am}, energy investment ratio
     # k = k_J/ k_M, ratio of maturity and somatic maintenance rate coeff
-    # v_H^b = U_H^b g^2 kM^3/ (1 - kap) v^2; U_H^b = M_H^b/ {J_EAm}
+    # v_H^b = U_H^b g^2 kM^3/ (1 - κ) v^2; U_H^b = M_H^b/ {J_EAm}
 
     info = true
 
@@ -42,7 +42,6 @@ function compute_length(at::Birth, p::NamedTuple; eb::Number=1.0)
     # if isempty(lb0)
     lb = v_Hb^(1 / 3) # exact solution for k = 1     
 
-    @show k
     n = 1000 + round(1000 * max(zero(k), k - oneunit(k)))
     xb = g / (g + eb)
     xb3 = xb^(1 / 3)

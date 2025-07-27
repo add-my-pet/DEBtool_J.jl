@@ -244,8 +244,8 @@ Divide the result by the somatic maintenance rate coefficient to arrive at the m
 # function scaled_mean_lifehistory(mode::typeof(hax()), model, p;
 #     solver, h_B, thinning, kw...
 # )
-#     (; g, k, v_Hb, v_Hp, v_Rj,v_He, kap, kap_V, h_a, s_G, f) = p
-#     (; τ_j, τ_e, τ_p, τ_b, l_j, l_e, l_p, l_b, l_i, ρ_j) = get_tj_hax((; g, k, v_Hb, v_Hp, v_Rj, v_He, kap, kap_V, f))
+#     (; g, k, v_Hb, v_Hp, v_Rj,v_He, κ, κ_V, h_a, s_G, f) = p
+#     (; τ_j, τ_e, τ_p, τ_b, l_j, l_e, l_p, l_b, l_i, ρ_j) = get_tj_hax((; g, k, v_Hb, v_Hp, v_Rj, v_He, κ, κ_V, f))
 
 #     u0 = SVector((0.0, 0.0, 1.0, 0.0))
 #     transitions = @SVector[zero(τ_e), τ_e - τ_j, 1e8oneunit(τ_e)]
@@ -265,8 +265,8 @@ Divide the result by the somatic maintenance rate coefficient to arrive at the m
 # function scaled_mean_lifehistory(mode::typeof(hex()), model, p;
 #     solver, h_B, thinning, kw...
 # )
-#     (; g, k, v_Hb, v_He, s_j, kap, kap_V, h_a, s_G, f) = p
-#     (; τ_j, τ_e, τ_b, l_j, l_e, l_b, ρ_j) = get_tj_hex((; g, k, v_Hb, v_He, s_j, kap, kap_V, f));
+#     (; g, k, v_Hb, v_He, s_j, κ, κ_V, h_a, s_G, f) = p
+#     (; τ_j, τ_e, τ_b, l_j, l_e, l_b, ρ_j) = get_tj_hex((; g, k, v_Hb, v_He, s_j, κ, κ_V, f));
 
 #     u0 = SVector((0.0, 0.0, 1.0, 0.0))
 #     transitions = @SVector[zero(τ_e), τ_e - τ_j, 1e8oneunit(τ_e)]
