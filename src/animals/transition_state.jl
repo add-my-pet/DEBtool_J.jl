@@ -36,26 +36,26 @@ function compute_transition_state(t::Male, e::AbstractEstimator, pars, ts::Trans
 end
 # This is the actual transition state code!
 function compute_transition_state(at::Birth, e::AbstractEstimator, pars, ::Transitions, previous)
-    (; L_m, del_M, d_V, k_M, w, f) = pars
+    (; L_m, del_M, d_V, k_M, ω, f) = pars
 
     (; τ, l, info) = scaled_age(at, pars, f)
     L = L_m * l                       # cm, structural length at birth at f
     Lw = L / del_M
-    Ww = wet_weight(at, L, d_V, f, w)
+    Ww = wet_weight(at, L, d_V, f, ω)
     a = τ / k_M # TODO is this correct
     Birth((; l, L, Lw, Ww, τ, a))
 end
 function compute_transition_state(at::Weaning, e::AbstractEstimator, pars, ::Transitions, previous)
-    (; L_m, del_M, d_V, k_M, w, f) = pars
+    (; L_m, del_M, d_V, k_M, ω, f) = pars
 
     L = L_m * l                       # cm, structural length at birth at f
     Lw = L / del_M
-    Ww = wet_weight(at, L, d_V, f, w)
+    Ww = wet_weight(at, L, d_V, f, ω)
     a = τ / k_M # TODO is this correct
     Weaning((; l, L, Lw, Ww, τ, a))
 end
 function compute_transition_state(at::Puberty, e::AbstractEstimator, pars, ::Transitions, previous)
-    (; L_m, del_M, d_V, k_M, w, l_T, g, f) = pars
+    (; L_m, del_M, d_V, k_M, ω, l_T, g, f) = pars
 
     # TODO lean this up
     ρ_B = 1 / (3 * (1 + f / g))
@@ -73,17 +73,17 @@ function compute_transition_state(at::Puberty, e::AbstractEstimator, pars, ::Tra
     t = (τ - previous.val.τ) / k_M    # d, time since birth at puberty
     L = L_m * l                       # cm, structural length at puberty
     Lw = L / del_M                    # cm, plastron length at puberty
-    Ww = wet_weight(at, L, d_V, f, w)
+    Ww = wet_weight(at, L, d_V, f, ω)
     a = τ / k_M # TODO is this correct
     return Puberty((; l, L, Lw, Ww, τ, t, a))
 end
 function compute_transition_state(at::Ultimate, e::AbstractEstimator, pars, trans::Transitions, previous)
-    (; f, l_T, L_m, del_M, d_V, w) = pars
+    (; f, l_T, L_m, del_M, d_V, ω) = pars
     l = f - l_T                    # -, scaled ultimate length
     L = L_m * l                    # cm, ultimate structural length at f
     # TODO make these calculations optional based on data?. 
     Lw = L / del_M                 # cm, ultimate plastron length
-    Ww = wet_weight(at, L, d_V, f, w)
+    Ww = wet_weight(at, L, d_V, f, ω)
     l_b = trans[Birth()].l
     a = compute_lifespan(e, pars, l_b)
     return Ultimate((; l, L, Lw, Ww, a))
@@ -192,7 +192,7 @@ function compute_transition_state(e::AbstractEstimator, o::DEBOrganism{<:Standar
         t = (τ - tau_b) / k_M             # d, time since birth at puberty
         L = L_m * l                       # cm, structural length at puberty
         Lw = L / del_M                    # cm, plastron length at puberty
-        Ww = wet_weight(at, L, d_V, f, w)
+        Ww = wet_weight(at, L, d_V, f, ω)
         a = τ / k_M # TODO is this correct
         rebuild(t, (; l, L, Lw, Ww, τ, a))
     end

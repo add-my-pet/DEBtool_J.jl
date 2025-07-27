@@ -17,9 +17,9 @@ function compute_male_params(model::DEBOrganism, par)
         E_m_m = p_Am_m / v                 # J/cm^3, reserve capacity [E_m]
         g = E_G / (κ * E_m_m)            # -, energy investment ratio
         m_Em_m = y_E_V * E_m_m / E_G       # mol/mol, reserve capacity
-        w = m_Em_m * w_E / w_V             # -, contribution of reserve to weight
+        ω = m_Em_m * w_E / w_V             # -, contribution of reserve to weight
         L_m = v / k_M / g                  # cm, max struct length
-        return (; w, g, L_m, v_Hp=v_Hpm)
+        return (; ω, g, L_m, v_Hp=v_Hpm)
     else
         (;) 
     end

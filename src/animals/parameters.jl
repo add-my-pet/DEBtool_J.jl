@@ -67,8 +67,7 @@ The quantities that are computed concern, where relevant:
 - L_m: cm, maximum length
 - L_T: cm, heating length (also applies to osmotic work)
 - l_T: - , scaled heating length
-- w: -, omega, contribution of ash free dry mass of reserve to total ash free dry biomass
-- ome: -, omega, contribution of ash free dry mass of reserve to total ash free dry biomass
+- ω: -, omega, contribution of ash free dry mass of reserve to total ash free dry biomass
 - J_E_Am: mol/d.cm^2, {J_EAm}, max surface-spec assimilation flux
 - y_E_X: mol/mol, yield of reserve on food
 - y_X_E: mol/mol, yield of food on reserve
@@ -133,8 +132,7 @@ function compound_parameters(model::DEBOrganism, p::NamedTuple)
     L_m = p.v / k_M / g           # cm, maximum length
     L_T = p.p_T / p.p_M           # cm, heating length (also applies to osmotic work)
     l_T = L_T / L_m              # - , scaled heating length
-    ome = m_Em * w_E * p.d_V / p.d_E / w_V # -, \omega, contribution of ash free dry mass of reserve to total ash free dry biomass
-    w = ome                   # -, just for consistency with the past
+    ω = m_Em * w_E * p.d_V / p.d_E / w_V # -, \omega, contribution of ash free dry mass of reserve to total ash free dry biomass
     J_E_Am = p_Am / p.mu_E          # mol/d.cm^2, {J_EAm}, max surface-spec assimilation flux
 
     J_E_M = p.p_M / p.mu_E         # mol/d.cm^3, [J_EM], volume-spec somatic  maint costs
@@ -144,11 +142,11 @@ function compound_parameters(model::DEBOrganism, p::NamedTuple)
     κ_G = p.mu_V * M_V / p.E_G   # -, growth efficiency
     E_V = p.d_V * p.mu_V / w_V     # J/cm^3, [E_V] volume-specific energy of structure
 
-    compound_pars = merge(
-        (; p_Am, n_O, n_M),
-        (; w_X, w_V, w_E, w_P),
-        (; M_V, y_V_E, y_E_V, k_M, k, E_m, m_Em, g, L_m, L_T, l_T, ome, w, J_E_Am),
-        (; J_E_M, J_E_T, j_E_M, j_E_J, κ_G, E_V),
+    compound_pars = (;
+        p_Am, n_O, n_M,
+        w_X, w_V, w_E, w_P,
+        M_V, y_V_E, y_E_V, k_M, k, E_m, m_Em, g, L_m, L_T, l_T, ω, J_E_Am,
+        J_E_M, J_E_T, j_E_M, j_E_J, κ_G, E_V,
     )
 
     # Optional parameters. TODO base these on model struture
