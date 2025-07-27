@@ -1,3 +1,3 @@
 using DEBtool_J, Test
 
-include("species/run_Emydura_macquarii.jl")
+include("species/Emydura_macquarii/run_Emydura_macquarii.jl")
