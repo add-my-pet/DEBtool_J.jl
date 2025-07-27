@@ -33,7 +33,7 @@ function [prdData, info] = predict_Oryctolagus_cuniculus(par, data, auxData)
   Ww_i = L_i^3 * (1 + f * w);       % g, ultimate wet weight 
  
   % reproduction
-  pars_R = [kap; kap_R; g; k_J; k_M; L_T; v; U_Hb; U_Hp]; % compose parameter vector at T
+  pars_R = [κ; κ_R; g; k_J; k_M; L_T; v; U_Hb; U_Hp]; % compose parameter vector at T
   RT_i = TC * reprod_rate_foetus(L_i, f, pars_R);         % #/d, ultimate reproduction rate at T
 
   % life span
