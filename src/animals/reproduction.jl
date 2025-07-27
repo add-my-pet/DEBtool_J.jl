@@ -45,7 +45,7 @@
 # unpack parameters; parameter sequence, cf get_pars_r
 compute_reproduction_rate(e::AbstractEstimator, o::DEBOrganism, p::NamedTuple, ls::Transitions) =
     compute_reproduction_rate(o.life[1][1], e, o, p, ls)
-function compute_reproduction_rate(::Embryo, e::AbstractEstimator, model::DEBOrganism, p::NamedTuple, ls::Transitions)
+function compute_reproduction_rate(stage::Embryo, e::AbstractEstimator, model::DEBOrganism, p::NamedTuple, ls::Transitions)
     (; kap, kap_R, g, f, k_J, k_M, L_T, v, U_Hb, U_Hp) = p
 
     L = ls[Female(Ultimate())].L

@@ -220,7 +220,7 @@ end
 # This allows us to get lifestage data by type
 # e.g. `lifestages[Birth()]`
 Base.@assume_effects :foldable function _get(stages::AbstractLifeSequence, stage::Int)
-    values(stages)[i]
+    values(stages)[stage]
 end
 Base.@assume_effects :foldable function _get(stages::AbstractLifeSequence, stage::Union{AbstractLifeStage,AbstractTransition,Sex,Dimorphic})
     # Get the stage in stages matching `stage`

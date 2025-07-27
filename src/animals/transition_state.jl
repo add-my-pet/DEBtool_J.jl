@@ -94,7 +94,7 @@ wet_weight(::Union{Sex,AbstractTransition}, L, d_V, f, ω) =
 
 
 # Just use an ode for the whole thing
-function compute_transition_state(e::AbstractEstimator, o::DEBOrganism{<:Standard}, pars) =
+function compute_transition_state(e::AbstractEstimator, o::DEBOrganism{<:StandardFoetal}, pars)
     # created 2019/02/04 by Bas Kooijman, modified 2023/08/26
 
     ## Syntax
@@ -153,15 +153,15 @@ function compute_transition_state(e::AbstractEstimator, o::DEBOrganism{<:Standar
 
     f_0b = 1; # embryo development is independent of nutritional state of the mother
     
-    options = odeset('Events', @event_b, 'AbsTol',1e-8, 'RelTol',1e-8);   
+    # options = odeset('Events', @event_b, 'AbsTol',1e-8, 'RelTol',1e-8);   
 
-    [~, ~, tau_b, vl_b] = ode45(@dget_lb, [0, 1e10], [1e-20, 1e-20], options, f_0b, s_F, g, k, v_Hb)
+    # [~, ~, tau_b, vl_b] = ode45(@dget_lb, [0, 1e10], [1e-20, 1e-20], options, f_0b, s_F, g, k, v_Hb)
     l_b = vl_b(1,2);
     vel_b = [v_Hb, f_0b, l_b]
 
     # juvenile & adult
-    options = odeset('Events', event_xp, abstol=1e-9, reltol=1e-9) 
-    [tau, vel, tau_xp, vel_xp] = ode45(dget_lx, [-1e-10, tau], vel_b, options, info_tau, f, g, k, l_T, v_Hx, v_Hp);
+    # options = odeset('Events', event_xp, abstol=1e-9, reltol=1e-9) 
+    # [tau, vel, tau_xp, vel_xp] = ode45(dget_lx, [-1e-10, tau], vel_b, options, info_tau, f, g, k, l_T, v_Hx, v_Hp);
 
     if isempty(tau_xp) 
         tau_x = []; tau_p = []; l_x = []; l_p = [];
