@@ -21,24 +21,24 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, data, temp)
     end
 
     predictions = (
-        age = _temp_correct_predictions(x -> x.a, tr, par, transitions, data.age, TC),
-        time = _temp_correct_predictions(x -> x.t, tr, par, transitions, data.time, TC),
+        timesinceconception = _temp_correct_predictions(x -> x.a, tr, par, transitions, data.timesinceconception, TC),
+        timesincebirth = _temp_correct_predictions(x -> x.t, tr, par, transitions, data.timesincebirth, TC),
         length = map(x -> transitions[x].Lw, data.length),
         wetweigth = map(x -> transitions[x].Ww, data.wetweight),
     )
     ages = _temp_correct_predictions(x -> x.a, tr, par, transitions, (Birth(), Female(Puberty()), Female(Ultimate())), TC)
     tspan = (0.0, ustrip(u"d", last(ages)))
 
-    environment = ConstantEnvironment(;
-        time=tspan,
-        functionalresponse=par.f,
-        tempcorrection=TC,
-    ) 
-    mpe = DEBtool_J.MetabolismBehaviorEnvironment(; metabolism=model, environment, par)
-    sol = simulate(mpe; tspan)
-    vals = map(a -> sol(ustrip(u"d", a)), ages)
+    # environment = ConstantEnvironment(;
+    #     time=tspan,
+    #     functionalresponse=par.f,
+    #     tempcorrection=TC,
+    # ) 
+    # mpe = DEBtool_J.MetabolismBehaviorEnvironment(; metabolism=model, environment, par)
+    # sol = simulate(mpe; tspan)
+    # vals = map(a -> sol(ustrip(u"d", a)), ages)
     # Birth length is the same
-    @assert sol[1][2] * par.L_m / par.del_M ≈ predictions.length[1] 
+    # @assert sol[1][2] * par.L_m / par.del_M ≈ predictions.length[1] 
     # @show predictions.length[4] 
     # @show last(vals)[2] * par.L_m / par.del_M
     # @show sol[end][2] * par.L_m / par.del_M

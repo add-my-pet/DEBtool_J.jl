@@ -94,7 +94,7 @@ tW_m = [ # time (d), body weight (g)
 
 ## set data
 # zero-variate data
-data = Data(
+data = (;
     timesincebirth=(
         Weaning(56.0u"d"),
         Puberty(239.0u"d"),
@@ -110,7 +110,8 @@ data = Data(
     univariate = (
         Univariate(SVector(tW_m[:, 1]u"d"), WetWeights(SVector(tW_m[:, 2]u"g"))),
         Univariate(SVector(tW_f[:, 1]u"d"), WetWeights(SVector(tW_f[:, 2]u"g"))),
-    )
+    ),
+    pseudo=nothing,
 )
 
 ## set weights for all real data

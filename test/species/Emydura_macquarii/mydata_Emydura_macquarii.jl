@@ -1,4 +1,4 @@
-using StaticArrays
+using StaticArrays, ConstructionBase
 
 # Convert the matrix tL1 into a named tuple with units assigned to each column
 tL = @SVector[
@@ -56,13 +56,13 @@ tLt = @SVector[
 ] * 365u"d"
 
 data = (;
-    age=(
+    timesinceconception=(
         Birth(78.0u"d"),
         Birth(AtTemperature(u"K"(30.0u"°C"), 48.0u"d")),
         Female(Ultimate(20.9 * 365.0u"d")),
     ),
     # TODO what does time mean as different to age - scaled time?
-    time=(
+    timesincebirth=(
         Female(Puberty(10.0 * 365.0u"d")),
         Male(Puberty(5.5 * 365.0u"d")),
     ),
@@ -82,6 +82,7 @@ data = (;
     ),
     reproduction=Female(Ultimate(AtTemperature(u"K"(22.0u"°C"), 36.0 / 365.0u"d"))),
     univariate=(; lengths=Univariate(Times(tLt), Lengths(tL))),
+    pseudo=nothing,
 )
 
 # set pseudodata and respective weights

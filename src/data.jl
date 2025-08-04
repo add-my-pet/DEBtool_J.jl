@@ -11,6 +11,9 @@ abstract type AbstractEstimationData end
     pseudo::P = nothing
 end
 
+# TODO better describe, maybe rename this more specifically
+abstract type Data end
+
 """
     Sequence <: Data
 
