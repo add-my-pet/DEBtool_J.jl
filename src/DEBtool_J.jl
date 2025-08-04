@@ -20,7 +20,7 @@ export Estimator, DEBNelderMead, DEBMultimodalEvolutionaryAlgorithm
 export DEBOrganism
 export ModelParEnv
 export ArrheniusResponse, LowTorporResponse, HighTorporResponse, LowAndHighTorporResponse
-export Life, LifeStages, Transitions, Dimorphic
+export LifeCycle, LifeStages, Transitions, Dimorphic
 export Conception, Birth, Weaning, Puberty, Maturity, Ultimate
 export Embryo, Juvenile, Adult
 export Gestation

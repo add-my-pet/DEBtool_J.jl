@@ -46,7 +46,7 @@ par = (;
 
 organism = std_organism(;
     temperatureresponse = strip(ArrheniusResponse(; par[(:T_ref, :T_A)]...)),
-    life = Life(
+    lifecycle = LifeCycle(
         Embryo() => Birth(),
         Juvenile() => Dimorphic(Female(Puberty()), Male(Puberty())),
         Adult() => Dimorphic(Female(Ultimate()), Male(Ultimate())),

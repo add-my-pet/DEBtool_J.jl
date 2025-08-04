@@ -58,7 +58,7 @@ StaticArrays.SArray(sr::StateReconstructor) = SVector(values(sr))
 """
     simulate(mbe::MetabolismBehaviorEnvironment)
 
-Simulates life trajectory, returning an OrdinaryDiffEQ.jl output.
+Simulates lifecycle trajectory, returning an OrdinaryDiffEQ.jl output.
 
 # Arguments
 
@@ -255,7 +255,7 @@ end
 
 function callback_transitions(model)
     reduce((Birth(), Weaning(), Puberty(), Metamorphosis()); init=()) do acc, transition
-        isnothing(get(life(model), transition, nothing)) ? acc : (acc..., transition)
+        isnothing(get(lifecycle(model), transition, nothing)) ? acc : (acc..., transition)
     end
 end
 

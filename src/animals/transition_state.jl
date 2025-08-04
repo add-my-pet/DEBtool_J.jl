@@ -7,11 +7,11 @@
 # Reduce over all lifestages computing basic variables
 # The output state of each transition is used as input state for the next
 compute_transition_state(e::AbstractEstimator, o::DEBOrganism{<:Standard}, pars) =
-    compute_transition_state(e, life(o), pars)
-function compute_transition_state(e::AbstractEstimator, life::Life, pars)
-    init = (nothing => Init(),)
+    compute_transition_state(e, lifecycle(o), pars)
+function compute_transition_state(e::AbstractEstimator, lifecycle::LifeCycle, pars)
+    init = (nothing => Conception(),)
     # Reduce over all transitions, where each uses the state of the previous
-    states = foldl(values(life); init) do transition_states, (lifestage, transition)
+    states = foldl(values(lifecycle); init) do transition_states, (lifestage, transition)
         prevstate = last(transition_states)
         transition_state = compute_transition_state(transition, e, pars, Transitions(Base.tail(transition_states)), prevstate)
         (transition_states..., transition_state)

@@ -22,13 +22,13 @@ abstract type AbstractFeeding end
 
 Specifies that an `AbstractLifeStage` feeds.
 """
-struct Feeding end
+struct Feeding <: AbstractFeeding end
 """
     NoFeeding <: AbstractFeeding
 
 Specifies that an `AbstractLifeStage` does not feed.
 """
-struct NoFeeding end
+struct NoFeeding <: AbstractFeeding end
 
 """
     AbstractLifeStage

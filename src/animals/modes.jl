@@ -139,7 +139,7 @@ hex_organism(::Val{N};
     lifecycle=LifeCycle(
         Embryo() => Birth(),
         ntuple(Val{N}()) do n
-            Instar{n}() => Moult{n}(),
+            Instar{n}() => Moult{n}()
         end...,
         Juvenile() => Metamorphosis(),
         Imago(NonFeeding()) => Ultimate(),
