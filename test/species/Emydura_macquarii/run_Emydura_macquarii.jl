@@ -1,3 +1,4 @@
+using DEBtool_J
 srcpath = dirname(pathof(DEBtool_J))
 include(joinpath(srcpath, "../test/test_utils.jl"))
 
@@ -27,16 +28,16 @@ environment = ConstantEnvironment(;
 #     temperatureresponse,
 #     interpolation=QuadraticInterpolation,
 # ) 
-mpe = DEBtool_J.MetabolismBehaviorEnvironment(; metabolism, environment, par=parent(parout))
+# mpe = DEBtool_J.MetabolismBehaviorEnvironment(; metabolism, environment, par=parent(parout))
 # using ProfileView
 # @profview sol = simulate(mpe; tspan=(0.0, 7000.0))
-p = stripparams(parout)
-p = merge(p, DEBtool_J.compound_parameters(metabolism, p))
-plot(map(x -> x[2], sol.u) .* p.L_m / p.del_M)
-sol
+# p = stripparams(parout)
+# p = merge(p, DEBtool_J.compound_parameters(metabolism, p))
+# plot(map(x -> x[2], sol.u) .* p.L_m / p.del_M)
+# sol
 
-using GLMakie
-plot(mpe)
+# using GLMakie
+# plot(mpe)
 
 # using ProfileView
 # @profview 1 + 2

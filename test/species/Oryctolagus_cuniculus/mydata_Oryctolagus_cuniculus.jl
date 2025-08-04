@@ -45,9 +45,9 @@ data = (;
 
 # set pseudodata and respective weights
 # TODO why is k=0.3 etc here
-pseudo = addpseudodata(; data=(t_0=0.0u"d",), weights=(t_0=0.1,))
+pseudo = defaultpseudodata(; data=(t_0=0.0u"d",), weights=(t_0=0.1,))
 # set weights for all real data
-weights = DEBtool_J.setweights(data);
+weights = defaultweights(data);
 weights = merge(weights, (; pseudo=pseudo.weights))
 data = merge(data, (; pseudo=pseudo.data))
 temp = u"K"(22.0u"°C")

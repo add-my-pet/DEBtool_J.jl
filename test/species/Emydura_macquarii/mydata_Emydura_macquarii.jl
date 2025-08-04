@@ -86,11 +86,11 @@ data = (;
 
 # set pseudodata and respective weights
 # TODO why is k=0.3 etc here
-pseudo = addpseudodata(; data=(k=0.3,), weights=(k_J=0.0, k=0.1))
+pseudo = defaultpseudodata(; data=(k=0.3,), weights=(k_J=0.0, k=0.1))
 # set weights for all real data
-weights = DEBtool_J.setweights(data);
-weights = merge(weights, (; univariate=(; lengths=2 .* weights.univariate.lengths), pseudo=pseudo.weights))
-data = merge(data, (; pseudo=pseudo.data))
+weights = defaultweights(data)
+weights = ConstructionBase.setproperties(data, (; univariate=(; lengths=2 .* weights.univariate.lengths), pseudo=pseudo.weights))
+data = ConstructionBase.setproperties(data, (; pseudo=pseudo.data))
 temp = u"K"(22.0u"°C")
 
 (; data, temp, weights)

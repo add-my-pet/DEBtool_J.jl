@@ -3,11 +3,11 @@
 par = (;
     z = Param(7.7474;           units = nothing,     label = "zoom factor"), 
     F_m = Const(6.5;            units = u"l/d/cm^2", label = "{F_m}, max spec searching rate"), 
-    κ_X = Const(0.8;          units = nothing,     label = "digestion efficiency of food to reserve"), 
-    κ_P = Const(0.1;          units = nothing,     label = "faecation efficiency of food to faeces"), 
+    κ_X = Const(0.8;            units = nothing,     label = "digestion efficiency of food to reserve"), 
+    κ_P = Const(0.1;            units = nothing,     label = "faecation efficiency of food to faeces"), 
     v = Param(0.044457;         units = u"cm/d",     label = "energy conductance"), 
-    κ = Param(0.43063;        units = nothing,     label = "allocation fraction to soma"), 
-    κ_R = Const(0.95;         units = nothing,     label = "reproduction efficiency"), 
+    κ = Param(0.43063;          units = nothing,     label = "allocation fraction to soma"), 
+    κ_R = Const(0.95;           units = nothing,     label = "reproduction efficiency"), 
     p_M = Param(141.5511;       units = u"J/d/cm^3", label = "[p_M], vol-spec somatic maint"), 
     p_T = Const(0.0;            units = u"J/d/cm^2", label = "{p_T}, surf-spec somatic maint"), 
     k_J = Const(0.002;          units = u"1/d",      label = "maturity maint rate coefficient"), 
@@ -24,13 +24,6 @@ par = (;
     del_M = Param(0.18433;      units = nothing,     label = "shape coefficient"), 
     f = Const(1.0;              units = nothing,     label = "scaled functional response for 0-var data"), 
     f_tW = Const(1.0;           units = nothing,     label = "scaled functional response for tW data"), 
-    # Defaults. TODO clean these up
-    DEFAULT_CHEMICAL_PARAMETERS...,
-    DEFAULT_CHEMICAL_POTENTIALS...,
-    DEFAULT_CHEMICAL_INDICES_FOR_WATER_ORGANICS...,
-    DEFAULT_CHEMICAL_POTENTIAL_OF_MINERALS...,
-    DEFAULT_CHEMICAL_INDICES_FOR_WATER_ORGANICS...,
-    DEFAULT_CHEMICAL_INDICES_FOR_MINERALS...,
 )
 
 organism = stx_organism(;

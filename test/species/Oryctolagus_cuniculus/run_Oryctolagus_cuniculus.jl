@@ -1,3 +1,4 @@
+using DEBtool_J
 srcpath = dirname(pathof(DEBtool_J))
 include(joinpath(srcpath, "../test/test_utils.jl"))
 
