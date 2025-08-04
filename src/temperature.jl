@@ -18,8 +18,8 @@ end
 @kwdef struct HighTorporResponse{TR,TA,TH,TAH} <: AbstractTemperatureResponse
     T_ref::TR
     T_A::TA
-    T_L::TH
-    T_AL::TAH
+    T_H::TH
+    T_AH::TAH
 end
 
 struct LowAndHighTorporResponse{TR,TA,TL,TAL,TH,TAH} <: AbstractTemperatureResponse
@@ -31,9 +31,14 @@ struct LowAndHighTorporResponse{TR,TA,TL,TAL,TH,TAH} <: AbstractTemperatureRespo
     T_AH::TAH
 end
 
+check_temp(tr::ArrheniusResponse, T) = true
+check_temp(tr::LowTorporResponse, T) = tr.T_H >= T
+check_temp(tr::HighTorporResponse, T) = tr.T_L <= T
+check_temp(tr::LowAndHighTorporResponse, T) = tr.T_L <= T && tr.T_H >= T
+
 # TODO add this check somehow, but not in the inner constructor
-_check_T(T_ref, T_L, T_H) = 
-    T_L > T_ref || T_H < T_ref && error("from temp_corr: invalid parameter combination, T_L > T_ref and/or T_H < T_ref")
+# _check_T(T_ref, T_L, T_H) = 
+    # T_L > T_ref || T_H < T_ref && error("from temp_corr: invalid parameter combination, T_L > T_ref and /or T_H < T_ref")
 
 # Move parameters from pars NameTuple into temperature model objects
 # Eventually parameters should just be defined as objects from the start,

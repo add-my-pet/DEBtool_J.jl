@@ -1,5 +1,5 @@
-function predict(e::AbstractEstimator, model::DEBOrganism, par, speciesdata) # predict
-    (; data, temp) = speciesdata
+function predict(e::AbstractEstimator, model::DEBOrganism, par, data, temp)
+
     compound_par = compound_parameters(model, par)
     d_V = 1Unitful.u"g/cm^3"               # cm, physical length at birth at f
 

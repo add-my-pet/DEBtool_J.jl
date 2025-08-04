@@ -1,4 +1,15 @@
-abstract type Data end
+abstract type AbstractEstimationData end
+
+@kwdef struct EstimationData{TSC,TSB,L,WW,G,R,U,P} <: AbstractEstimationData
+    timesinceconception::TSC = nothing
+    timesincebirth::TSB = nothing
+    length::L = nothing
+    wetweight::WW = nothing
+    reproduction::R = nothing
+    gestation::G = nothing
+    univariate::U = nothing
+    pseudo::P = nothing
+end
 
 """
     Sequence <: Data

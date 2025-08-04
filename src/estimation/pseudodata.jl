@@ -30,7 +30,8 @@
 
 # global loss_function
 # set pseudodata
-function addpseudodata(; data::NamedTuple=(;), weights::NamedTuple=(;))
+# was addpseudodata
+function defaultpseudodata(; data::NamedTuple=(;), weights::NamedTuple=(;))
     pseudodata = (;
         v = 0.02u"cm/d",
         κ = 0.8,
