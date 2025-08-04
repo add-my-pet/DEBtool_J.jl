@@ -94,7 +94,7 @@ tW_m = [ # time (d), body weight (g)
 
 ## set data
 # zero-variate data
-data = (;
+data = EstimationData(;
     timesincebirth=(
         Weaning(56.0u"d"),
         Puberty(239.0u"d"),
@@ -111,11 +111,10 @@ data = (;
         Univariate(SVector(tW_m[:, 1]u"d"), WetWeights(SVector(tW_m[:, 2]u"g"))),
         Univariate(SVector(tW_f[:, 1]u"d"), WetWeights(SVector(tW_f[:, 2]u"g"))),
     ),
-    pseudo=nothing,
 )
 
 ## set weights for all real data
-weights = setweights(data)
+weights = defaultweights(data)
 weights = merge(weights, (;
     tW_f = 5 .* weights.tW_f,
     tW_m = 5 .* weights.tW_m,
@@ -123,6 +122,6 @@ weights = merge(weights, (;
 ))
 
 ## set pseudodata and respective weights
-pseudo = generatepseudodata(data, units, label, weights)
+# TODO pseudo = defaultpseudodata(data, units, label, weights)
 weights = ConstructionBase.setproperties(data, (; univariate=(; lengths=2 .* weights.univariate.lengths), pseudo=pseudo.weights))
 data = ConstructionBase.setproperties(data, (; pseudo=pseudo.data))

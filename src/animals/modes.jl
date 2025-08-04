@@ -76,9 +76,8 @@ end
 mode(model::DEBOrganism) = model.mode
 lifecycle(model::DEBOrganism) = model.lifecycle
 temperatureresponse(model::DEBOrganism) = model.temperatureresponse
-reproduction(model::DEBOrganism) = model.reproduction
 has(o::DEBOrganism, t::Union{AbstractTransition,AbstractLifeStage,Sex}) = has(lifecycle(o), t) 
-reproduction(model::DEBOrganism) = model.reproduction
+# reproduction(model::DEBOrganism) = model.reproduction
 # chemicalcomposition(model::DEBOrganism) = model.chemicalcomposition
 # structures(model::DEBOrganism) = model.structures
 # reserves(model::DEBOrganism) = model.reserves

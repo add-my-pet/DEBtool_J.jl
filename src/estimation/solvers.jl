@@ -261,7 +261,7 @@ end
 
 const SELECT = Union{Number,AbstractArray,AtTemperature,Univariate}
 
-function _combine(xs::Union{Tuple,NamedTuple}, refs::NamedTuple)
+function _combine(xs::EstimationData, refs::EstimationData)
     map(Flatten.flatten(xs, SELECT), Flatten.flatten(refs, SELECT)) do x, ref
         _combine(x, ref)
     end |> Flatten.flatten
@@ -276,7 +276,7 @@ _combine(x::SVector, ref::Univariate) = _combine(x, only(Flatten.flatten(ref.dep
 _combine(x::SVector, ref::AtTemperature) = _combine(x, ref.x)
 _combine(x::Number, ref::AtTemperature) = _combine(x, ref.x)
 
-function _mean(xs::NamedTuple, refs::NamedTuple)
+function _mean(xs::EstimationData, refs::EstimationData)
     map(Flatten.flatten(xs, SELECT), Flatten.flatten(refs, SELECT)) do x, ref
         _mean(x, ref)
     end |> Flatten.flatten

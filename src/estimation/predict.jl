@@ -24,7 +24,7 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, data, temp)
         timesinceconception = _temp_correct_predictions(x -> x.a, tr, par, transitions, data.timesinceconception, TC),
         timesincebirth = _temp_correct_predictions(x -> x.t, tr, par, transitions, data.timesincebirth, TC),
         length = map(x -> transitions[x].Lw, data.length),
-        wetweigth = map(x -> transitions[x].Ww, data.wetweight),
+        wetweight = map(x -> transitions[x].Ww, data.wetweight),
     )
     ages = _temp_correct_predictions(x -> x.a, tr, par, transitions, (Birth(), Female(Puberty()), Female(Ultimate())), TC)
     tspan = (0.0, ustrip(u"d", last(ages)))
@@ -43,7 +43,7 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, data, temp)
     # @show last(vals)[2] * par.L_m / par.del_M
     # @show sol[end][2] * par.L_m / par.del_M
     # Only calculate reproduction when needed
-    if haskey(data, :reproduction)
+    if !isnothing(data.reproduction)
         (; R) = compute_reproduction_rate(e, model, par, transitions)
         r_at_t = Flatten.flatten(data.reproduction, AtTemperature)
         RT = if isempty(r_at_t)
@@ -54,13 +54,14 @@ function predict(e::AbstractEstimator, model::DEBOrganism, par, data, temp)
         end
         predictions = merge(predictions, (; reproduction=RT))
     end
-    if haskey(data, :univariate)
+    if !isnothing(data.univariate)
         # uni-variate data
         univariate = map(data.univariate) do u
             compute_univariate(e, model, u, par, transitions, TC)
         end
         predictions = merge(predictions, (; univariate))
     end
+    predictions = EstimationData(; predictions...)
 
     info = true # TODO get this from solves
     return (; predictions, info)

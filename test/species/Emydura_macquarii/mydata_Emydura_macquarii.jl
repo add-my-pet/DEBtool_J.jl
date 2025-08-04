@@ -55,7 +55,7 @@ tLt = @SVector[
     3.934
 ] * 365u"d"
 
-data = (;
+data = EstimationData(;
     timesinceconception=(
         Birth(78.0u"d"),
         Birth(AtTemperature(u"K"(30.0u"°C"), 48.0u"d")),
@@ -90,7 +90,7 @@ data = (;
 pseudo = defaultpseudodata(; data=(k=0.3,), weights=(k_J=0.0, k=0.1))
 # set weights for all real data
 weights = defaultweights(data)
-weights = ConstructionBase.setproperties(data, (; univariate=(; lengths=2 .* weights.univariate.lengths), pseudo=pseudo.weights))
+weights = ConstructionBase.setproperties(weights, (; univariate=(; lengths=2 .* weights.univariate.lengths), pseudo=pseudo.weights))
 data = ConstructionBase.setproperties(data, (; pseudo=pseudo.data))
 temp = u"K"(22.0u"°C")
 

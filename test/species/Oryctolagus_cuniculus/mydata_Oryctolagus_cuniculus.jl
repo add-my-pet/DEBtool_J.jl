@@ -21,7 +21,7 @@ wetweights = (
 )
 
 # TODO does this need the field names, they could be wrappers
-data = (;
+data = EstimationData(;
     timesinceconception=(
         Birth(78.0u"d"),
         Ultimate(20.9 * 365.0u"d"),
@@ -30,7 +30,6 @@ data = (;
         Weaning(26.0u"d"),
         Puberty(730.0u"d"),
     ),
-    time=(Gestation(30.0u"d"),),
     length=(
         Ultimate(42.0u"cm"),
     ),
@@ -39,6 +38,7 @@ data = (;
         Puberty(214.0u"g"),
         Ultimate(3900.0u"g"),
     ),
+    gestation=(Gestation(30.0u"d"),),
     reproduction=Female(Ultimate(AtTemperature(u"K"(39.0u"°C"), 5*4.3 / 365.0u"d"))),
     univariate=(; wetweights),
 )
@@ -48,8 +48,8 @@ data = (;
 pseudo = defaultpseudodata(; data=(t_0=0.0u"d",), weights=(t_0=0.1,))
 # set weights for all real data
 weights = defaultweights(data);
-weights = merge(weights, (; pseudo=pseudo.weights))
-data = merge(data, (; pseudo=pseudo.data))
+weights = ConstructionBase.setproperties(weights, (; univariate=(; lengths=2 .* weights.univariate.lengths), pseudo=pseudo.weights))
+data = ConstructionBase.setproperties(data, (; pseudo=pseudo.data))
 temp = u"K"(22.0u"°C")
 
 (; data, temp, weights)

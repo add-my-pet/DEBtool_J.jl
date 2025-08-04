@@ -100,13 +100,13 @@ end
 
 ## Example of use
 # prdData = predict_pseudodata(par, data, prdData)
-function predict_pseudodata(model, par, data, prdData)
-    if haskey(data, :pseudo)
+function predict_pseudodata(model, par, data::EstimationData, predicted::EstimationData)
+    if !isnothing(data.pseudo)
         compound_pars = merge(compound_parameters(model, par), par)
         common_keys = _common_keys(data.pseudo, compound_pars)
-        prdData = merge(prdData, (; pseudo=merge(data.pseudo, compound_pars[common_keys])))
+        predicted = ConstructionBase.setproperties(predicted, (; pseudo=merge(data.pseudo, compound_pars[common_keys])))
     end
-    return prdData
+    return predicted
 end
 
 @generated function _common_keys(::NamedTuple{K1}, ::NamedTuple{K2}) where {K1,K2}
