@@ -1,5 +1,8 @@
 # Modes
 
+# TODO: these act as markers for the life sequence,
+# and are used in function dispatch. 
+# Its not clear if they will be needed in the long term in this form.
 abstract type Mode end
 # std
 struct Standard <: Mode end
@@ -63,7 +66,7 @@ reproduction and other organism traits and structure.
 """
 @kwdef struct DEBOrganism{M<:Mode,L<:AbstractLifeSequence,TR<:AbstractTemperatureResponse}
     mode::M
-    life::L
+    lifecycle::L # TODO make this lifecycle ?
     temperatureresponse::TR
     # structures::M
     # reserves::E
@@ -71,97 +74,77 @@ reproduction and other organism traits and structure.
 end
 
 mode(model::DEBOrganism) = model.mode
-life(model::DEBOrganism) = model.life
+lifecycle(model::DEBOrganism) = model.lifecycle
 temperatureresponse(model::DEBOrganism) = model.temperatureresponse
 reproduction(model::DEBOrganism) = model.reproduction
-has(t::AbstractTransition, o::DEBOrganism) = has(t, life(o)) 
+has(o::DEBOrganism, t::Union{AbstractTransition,AbstractLifeStage,Sex}) = has(lifecycle(o), t) 
+# chemicalcomposition(model::DEBOrganism) = model.chemicalcomposition
+# structures(model::DEBOrganism) = model.structures
+# reserves(model::DEBOrganism) = model.reserves
 
 # Define organism constructors for model types
 std_organism(;
     temperatureresponse = Arrhenius1parTemperatureResponse(),
-    life=Life(
+    lifecycle=LifeCycle(
         Embryo() => Birth(),
         Juvenile() => Puberty(),
         Adult() => Ultimate(),
     ),
     kw...
-) = DEBOrganism(; life, temperatureresponse, kw..., mode=std())
+) = DEBOrganism(; lifecycle, temperatureresponse, kw..., mode=std())
 stf_organism(;
     temperatureresponse = Arrhenius1parTemperatureResponse(),
-    life=Life(
+    lifecycle=LifeCycle(
         Foetus() => Birth(),
         Juvenile() => Puberty(),
         Adult() => Ultimate(),
     ),
     kw...
-) = DEBOrganism(; life, temperatureresponse, kw..., mode=stf())
+) = DEBOrganism(; lifecycle, temperatureresponse, kw..., mode=stf())
 stx_organism(;
     temperatureresponse = Arrhenius1parTemperatureResponse(),
-    life=Life(
+    lifecycle=LifeCycle(
         Foetus() => Birth(),
         Baby() => Weaning(),
         Juvenile() => Puberty(),
         Adult() => Ultimate(),
     ),
     kw...
-) = DEBOrganism(; life, temperatureresponse, kw..., mode=stx())
+) = DEBOrganism(; lifecycle, temperatureresponse, kw..., mode=stx())
 ssj_organism(;
     temperatureresponse = Arrhenius1parTemperatureResponse(),
-    life=Life(
+    lifecycle=LifeCycle(
         Embryo() => Birth(),
         Juvenile(NonFeeding()) => Puberty(),
         Adult() => Ultimate(),
     ),
     kw...
-) = DEBOrganism(; life, temperatureresponse, kw..., mode=std())
+) = DEBOrganism(; lifecycle, temperatureresponse, kw..., mode=std())
 sbp_organism(; 
     temperatureresponse = Arrhenius1parTemperatureResponse(),
-    life=Life(
+    lifecycle=LifeCycle(
         Embryo() => Birth(),
         Juvenile() => Puberty(),
         Adult(NonFeeding()) => Ultimate(),
     ),
     kw...
-) = DEBOrganism(; life, temperatureresponse, kw..., mode=stx())
-# TODO: define life
+) = DEBOrganism(; lifecycle, temperatureresponse, kw..., mode=stx())
+# TODO: define lifecycle
 abj_organism(; kw...) = DEBOrganism(; kw..., mode=abj())
 abp_organism(; kw...) = DEBOrganism(; kw..., mode=abp())
 asj_organism(; kw...) = DEBOrganism(; kw..., mode=asj())
 hax_organism(; kw...) = DEBOrganism(; kw..., mode=hax())
-hex_organism(; kw...) = DEBOrganism(; kw..., mode=hex())
+hex_organism(N::Int; kw...) = hex_organism(Val{N}(); kw...)
+hex_organism(::Val{N}; 
+    lifecycle=LifeCycle(
+        Embryo() => Birth(),
+        ntuple(Val{N}()) do n
+            Instar{n}() => Moult{n}(),
+        end...,
+        Juvenile() => Metamorphosis(),
+        Imago(NonFeeding()) => Ultimate(),
+    ),
+    kw...
+) where N = DEBOrganism(; kw..., mode=hex())
 hep_organism(; kw...) = DEBOrganism(; kw..., mode=hep())
 
-
-# chemicalcomposition(model::DEBOrganism) = model.chemicalcomposition
-
-# Gets chemical indices and chemical potential of N-waste from phylum, class
-
-# abstract type Element end
-
-# struct C <: Element end
-# struct H <: Element end
-# struct O <: Element end
-# struct N <: Element end
-# struct P <: Element end
-
-# # State
-# struct Structure{E<:Tuple}
-#     elements::E
-# end
-
-# # Waste type
-
-# abstract type AbstractNitrogenWaste end
-
-# # Do these make sense?
-# struct Ammonoletic <: AbstractNitrogenWaste end
-# struct Ureotelic <: AbstractNitrogenWaste end
-# struct Uricotelic <: AbstractNitrogenWaste end
-# struct CustomNWaste{Ch,HN,ON,NN,N,Am} <: AbstractNitrogenWaste
-#     n_CN::CN
-#     n_HN::HN
-#     n_ON::ON
-#     n_NN::NN
-#     mu_N::N
-#     ammonia::Am
-# end

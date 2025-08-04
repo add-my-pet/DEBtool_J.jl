@@ -26,7 +26,7 @@ export Embryo, Juvenile, Adult
 export Gestation
 export Female, Male
 export AtTemperature
-export Data, Univariate, Times, Temperatures, Lengths, FunctionalResponses, Food, DryWeights, WetWeights
+export EstimationData, Univariate, Times, Temperatures, Lengths, FunctionalResponses, Food, DryWeights, WetWeights
 export AbstractEnvironment, Environment, ConstantEnvironment
 export Standard, FoetalDevelopment, FoetalDevelopmentX, GrowthCeasesAtPuberty, Accelerated, Hemimetabolous, Holometabolous
 export std, stf, stx, sbp, abj, abp, asj, hep, hex, hax
@@ -34,7 +34,7 @@ export std_organism, stf_organism, stx_organism, sbp_organism,
     abj_organism, abp_organism, asj_organism, 
     hep_organism, hex_organism, hax_organism
 
-export estimate, simulate, addpseudodata, setweights
+export estimate, simulate, defaultpseudodata, defaultweights
 
 # TODO make these types
 export DEFAULT_CHEMICAL_PARAMETERS,

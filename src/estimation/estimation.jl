@@ -78,7 +78,7 @@ The standard DEBtool parameter estimator.
     verbose::Bool = true
 end
 
-function estimate(estimator::Estimator, model, par, speciesdata)
+function estimate(estimator::Estimator, model, par, speciesdata::NamedTuple)
     (; data, weights) = speciesdata
 
     # Precalculate data means and weights
@@ -89,11 +89,11 @@ end
 
 # Function barrier so local functions are type stable
 function _estimate_inner(e::Estimator, model, par::P, speciesdata, meandatavec, weightsvec) where P
-    (; data) = speciesdata
+    (; data, temp) = speciesdata
 
     function objective(parvec)
         par1 = stripparams(ModelParameters.update(par, parvec)::P)
-        (; predictions, info) = predict(e, model, par1, speciesdata)
+        (; predictions, info) = predict(e, model, par1, data, temp)
         prdData1 = predict_pseudodata(model, par1, data, predictions)
         return prdData1, info
     end

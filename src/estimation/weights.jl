@@ -13,9 +13,9 @@
 # Output: 
 #
 # * weight : structure with added weights from data 
-setweights(data) = Flatten.modify(generateweight, data, SELECT)
+defaultweights(data) = Flatten.modify(_defaultweight, data, SELECT)
 
-function generateweight(d::AbstractArray)
+function _defaultweight(d::AbstractArray)
     nvar = size(d, 2)
     if nvar == 1 # uni- or bi-variate data
         N = size(d, 1)
@@ -27,6 +27,6 @@ function generateweight(d::AbstractArray)
         # weight = merge(weight, (nm[i] => ones(N, nvar, npage) / N / nvar / npage,))
     end
 end
-generateweight(d::Univariate) = generateweight(d.dependent.val)
-generateweight(d::AtTemperature) = generateweight(d.x)
-generateweight(d::Number) = 1.0
+_defaultweight(d::Univariate) = _defaultweight(d.dependent.val)
+_defaultweight(d::AtTemperature) = _defaultweight(d.x)
+_defaultweight(d::Number) = 1.0

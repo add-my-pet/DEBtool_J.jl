@@ -17,7 +17,17 @@ struct NoGrowth <: AbstractMorph end
 Abstract supertype for feeding modes.
 """
 abstract type AbstractFeeding end
+"""
+    Feeding <: AbstractFeeding
+
+Specifies that an `AbstractLifeStage` feeds.
+"""
 struct Feeding end
+"""
+    NoFeeding <: AbstractFeeding
+
+Specifies that an `AbstractLifeStage` does not feed.
+"""
 struct NoFeeding end
 
 """
@@ -25,18 +35,35 @@ struct NoFeeding end
 
 Abstract supertype for organism life stages.
 """
-abstract type AbstractLifeStage{M,F} end
+abstract type AbstractLifeStage{M<:AbstractMorph,F<:AbstractFeeding} end
 
 # Get morph and lifestage singletons from type parameters
 morph(::AbstractLifeStage{M}) where M = M()
 feeding(::AbstractLifeStage{<:Any,F}) where F = F()
 
-# Defin lifestages that must be feeding
+"""
+    AbstractLifeStageFeeding <: AbstractLifeStage
+   
+Supertype for lifes tages that always feed.
+"""
 abstract type AbstractLifeStageFeeding{M} <: AbstractLifeStage{M,Feeding} end
-(::Type{T})() where T<:AbstractLifeStageFeeding = T(Feeding())
-(::Type{T})() where T<:AbstractLifeStageFeeding{M} where M  = T(M())
+(::Type{T})() where T<:AbstractLifeStageFeeding = T(Isomorph())
+(::Type{T})() where T<:AbstractLifeStageFeeding{M} where M<:AbstractMorph = T(M())
 
-# Defin lifestages with optional feeding
+"""
+    AbstractLifeStageFeeding <: AbstractLifeStage
+   
+Supertype for lifestages that never feed, such as `Pupa`.
+"""
+abstract type AbstractLifeStageNoFeeding{M} <: AbstractLifeStage{M,NoFeeding} end
+(::Type{T})() where T<:AbstractLifeStageNoFeeding = T(Isomorph())
+(::Type{T})() where T<:AbstractLifeStageNoFeeding{M} where M<:AbstractMorph = T(M())
+
+"""
+    AbstractLifeStageOptionalFeeding <: AbstractLifeStage
+   
+Supertype for lifes tages that may or may not feed.
+"""
 abstract type AbstractLifeStageOptionalFeeding{M,F} <: AbstractLifeStage{M,F} end
 # Default is Isomorph() Feeding()
 (::Type{T})() where T<:AbstractLifeStageOptionalFeeding= T(Isomorph(), Feeding())
@@ -49,35 +76,82 @@ abstract type AbstractLifeStageOptionalFeeding{M,F} <: AbstractLifeStage{M,F} en
 # Allow any order
 (::Type{T})(feeding::AbstractFeeding, morph::AbstractMorph) where T<:AbstractLifeStageOptionalFeeding = T(morph, feeding)
 
+
+# Used for most species
+"""
+    Embryo <: AbstractLifeStageFeeding
+    Embryo(; morph)
+   
+Life stage before birth.
+"""
 struct Embryo{M} <: AbstractLifeStageFeeding{M}
     morph::M
 end
+# Used for mammals with support from mother... 
+# but maybe another term should be used??
 struct Foetus{M} <: AbstractLifeStageFeeding{M}
     morph::M
 end
+"""
+    Baby <: AbstractLifeStageFeeding
+    Baby(; morph)
+   
+First life stage after birth, that depends on mother for food.
+"""
 struct Baby{M} <: AbstractLifeStageFeeding{M}
     morph::M
 end
+"""
+    Juvenile <: AbstractLifeStageFeeding
+    Juvenile(; morph, feeding)
+   
+First life stage that finds its own food. 
+May be after either `Birth` or `Weaning`.
+"""
 struct Juvenile{M,F} <: AbstractLifeStageOptionalFeeding{M,F}
     morph::M
     feeding::F
 end
+"""
+    Adult <: AbstractLifeStageOptionalFeeding
+    Adult(; morph, feeding)
+   
+Life stage after `Puberty`. May or may not feed, 
+depending on `feeding` keyword as `Feeding()` or `NoFeeding()`.
+"""
 struct Adult{M,F} <: AbstractLifeStageOptionalFeeding{M,F}
     morph::M
     feeding::F
 end
-struct Pupa{M,F} <: AbstractLifeStageOptionalFeeding{M,F}
+"""
+    Pupa <: AbstractLifeStageNoFeeding
+    Pupa(; morph, feeding)
+   
+Non-feeding life stage of an insect before `Emergence` as an `Imago`.
+"""
+struct Pupa{M,F} <: AbstractLifeStageNoFeeding{M}
     morph::M
-    feeding::F
 end
 struct Imago{M,F} <: AbstractLifeStageOptionalFeeding{M,F}
     morph::M
     feeding::F
 end
-
-# TODO put this in a better place?
-struct Gestation{M} <: AbstractLifeStage{M,Feeding}
+"""
+    Instar{N} <: AbstractLifeStageFeeding
+    Instar{N}(; morph)
+   
+A numbered lifestage for insect instars.
+"""
+struct Instar{N,M} <: AbstractLifeStageFeeding{M}
     morph::M
+end
+Instar{N}(; morph::M=Isomorph()) where {N,M} = Instar{N,M}(morph)
+
+basetypeof(::Instar{N}) where N = Instar{N}
+
+# TODO put this in a better place
+struct Gestation{T}
+    val::T
 end
 
 """
@@ -87,55 +161,108 @@ Abstract supertype for all life events
 """
 abstract type AbstractEvent end
 
+"""
+    Since(event::AbstractEvent)
+
+A wrapper type to specify the time since an `AbstractEvent`
+"""
 struct Since{E<:AbstractEvent}
     event::E
 end
 Since{T}() where T = Since(T())
 
-struct At{E<:AbstractEvent}
-    event::E
-end
-At{T}() where T = At(T())
-
 """
-    AbstractTransition
+    AbstractTransition <: AbstractEvent
 
 Abstract supertype for events that are transitions between life stages.
 """
 abstract type AbstractTransition{T} <: AbstractEvent end
-(::Type{T})() where T<:AbstractTransition = T(nothing)
+(::Type{Tr})() where Tr<:AbstractTransition = Tr(nothing)
 
-struct Init{T} <: AbstractTransition{T}
-    val::T
-end
+"""
+    Conception <: AbstractTransition
+
+Fertilisation. TODO: should this be `Fertilisation` instead?
+"""
 struct Conception{T} <: AbstractTransition{T}
     val::T
 end
+"""
+    Birth <: AbstractTransition
+
+Transition from `Embryo` or `Foetus` in an egg or inside
+the mothers body to a `Baby`, `Juvenile`, `Instar`.
+"""
 struct Birth{T} <: AbstractTransition{T}
     val::T
 end
 struct MaturityLevel{T} <: AbstractTransition{T}
     val::T
 end
+"""
+    Weaning <: AbstractTransition
+
+Transition from a `Baby` with direct support by the 
+mother to foraging for food directly.
+"""
 struct Weaning{T} <: AbstractTransition{T}
     val::T
 end
+"""
+    Puberty <: AbstractTransition
+
+Transition from `Juvenile` to sexually mature `Adult`.
+"""
 struct Puberty{T} <: AbstractTransition{T}
     val::T
 end
+"""
+    Metamorphosis <: AbstractTransition
+
+A transition of morphological change, often during puberty (??)
+"""
 struct Metamorphosis{T} <: AbstractTransition{T}
     val::T
 end
+# What is this for...
 struct Maturity{T} <: AbstractTransition{T}
     val::T
 end
-# TODO are these the same? the language is mixed
+"""
+    Ultimate <: AbstractTransition
+
+Transition to ultimate size - no growth occurs after this transition
+but it may not be synomymous with `Death`, which may occur before
+or afterwards.
+"""
 struct Ultimate{T} <: AbstractTransition{T}
     val::T
 end
+# TODO is this a transition... its more probabilistic?
 struct Death{T} <: AbstractTransition{T}
     val::T
 end
+"""
+    Emergence <: AbstractTransition
+
+    Emergence([val])
+
+Emergence of insects from `Pupa` to become an `Imago`.
+"""
+struct Emergence{T} <: AbstractTransition{T}
+    val::T
+end
+"""
+    Moult{N} <: AbstractTransition
+
+    Mount{N}([val])
+
+Numbered moulting transition between insects `Instar`s.
+"""
+struct Moult{N,T} <: AbstractTransition{T}
+    val::T
+end
+Moult{N}() where N = Moult{N,Nothing}(nothing)
 
 """
     Sex
@@ -145,9 +272,23 @@ Abstract supertype for sexes.
 abstract type Sex{T} end
 (::Type{T})() where T<:Sex = T(nothing)
 
+"""
+    Male <: Sex
+
+    Male([val])
+
+A wrapper that specifies values related to a male organism.
+"""
 struct Male{T} <: Sex{T}
     val::T
 end
+"""
+    Female <: Sex
+
+    Female([val])
+
+A wrapper that specifies values related to a female organism.
+"""
 struct Female{T} <: Sex{T}
     val::T
 end
@@ -168,18 +309,48 @@ end
 const StageAndTransition = Pair{<:AbstractLifeStage,<:Union{<:AbstractTransition,<:Dimorphic,<:Sex}}
 
 
+"""
+    AbstractLifeSequence
+
+Supertype for all sequences of life stages or transitions.
+"""
 abstract type AbstractLifeSequence end
 
 Base.values(ls::AbstractLifeSequence) = ls.sequence
 Base.length(ls::AbstractLifeSequence) = Base.length(Base.values(ls))
 
-hastransition(t::AbstractTransition, model::AbstractLifeSequence) = 
-    !isnothing(model[t])
+"""
+    has(s::AbstractLifeSequence, x::Union{AbstractTransition,AbstractLifeStage,Sex})
 
-@kwdef struct Life{S<:Tuple{Vararg{StageAndTransition}}} <: AbstractLifeSequence
+Returns `true` if transition or life-stage `x` occurs in sequence `s`, otherwise `false`.
+"""
+has(model::AbstractLifeSequence, x::Union{AbstractTransition,AbstractLifeStage,Sex}) = 
+    !isnothing(model[x])
+
+"""
+    LifeCycle <: AbstractLifeSequence
+
+    LifeCycle(sequence::Tuple)
+
+Holds an ordered tuple of stages and transition pairs.
+
+Crucially, `getindex` works by lifestage:
+
+`life[Puberty()]` will return the object wrapped by the `Puberty` transition.
+`life[Male(Puberty())]` may be required for `Dimorphic` transitions.
+"""
+@kwdef struct LifeCycle{S<:Tuple{Vararg{StageAndTransition}}} <: AbstractLifeSequence
     sequence::S = ()
 end
-Life(args::StageAndTransition...) = Life(args)
+LifeCycle(args::StageAndTransition...) = LifeCycle(args)
+
+"""
+    Transitions <: AbstractLifeSequence
+
+    Transitions(sequence::Tuple)
+
+Holds an ordered tuple of `AbstractTransition`s.
+"""
 @kwdef struct Transitions{S<:Tuple{Vararg{Union{<:AbstractTransition,<:Dimorphic,<:Sex}}}} <: AbstractLifeSequence
     sequence::S = ()
 end
@@ -188,15 +359,7 @@ Transitions(args::Union{Dimorphic,Sex,AbstractTransition}...) = Transitions(args
 """
     LifeStages <: AbstractLifeSequence
 
-A wrapper that holds a sequence of `AbstractLifeStage` and `AbstractTransition` pairs.
-
-Its still not clear if we need to specify both life stage and transition, 
-or if we can just use one or the other.
-
-Crucially, getindex works by lifestage:
-
-`life[Puberty()]` will return the object wrapped by the `Puberty` transition.
-`life[Male(Puberty())]` may be required for `Dimorphic` transitions.
+Holds a sequence of `AbstractLifeStage`.
 """
 @kwdef struct LifeStages{S<:Tuple{Vararg{AbstractLifeStage}}} <: AbstractLifeSequence
     sequence::S = ()
