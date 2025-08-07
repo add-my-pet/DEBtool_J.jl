@@ -368,8 +368,12 @@ LifeStages(args::AbstractLifeStage...) = LifeStages(args)
 
 function Base.getindex(stages::Union{AbstractLifeSequence,Dimorphic,Sex}, stage)
     out = _get(stages, stage)
-    isnothing(out) && throw(ArgumentError("No object found matching $(basetypeof(stage))"))
-    return out
+    isnothing(out) || return out
+    if stage isa Female 
+        out = _get(stages, stage.val)
+        isnothing(out) || return out
+    end
+    throw(ArgumentError("No object found matching $(basetypeof(stage))"))
 end
 function Base.get(stages::Union{AbstractLifeSequence,Dimorphic,Sex}, stage, default)
     out = _get(stages, stage)
@@ -385,7 +389,22 @@ end
 Base.@assume_effects :foldable function _get(stages::AbstractLifeSequence, stage::Int)
     values(stages)[stage]
 end
-Base.@assume_effects :foldable function _get(stages::AbstractLifeSequence, stage::Union{AbstractLifeStage,AbstractTransition,Sex,Dimorphic})
+Base.@assume_effects :foldable function _get(stages::AbstractLifeSequence, stage::Union{AbstractLifeStage,AbstractTransition})
+    # Get the stage in stages matching `stage`
+    out = foldl(values(stages); init=nothing) do acc, x
+        if isnothing(acc)
+            _match(x, stage)
+        else
+            acc # found just return it
+        end
+    end
+    if isnothing(out)
+        return _get(stages, Female(stage))
+    else
+        return out
+    end
+end
+Base.@assume_effects :foldable function _get(stages::AbstractLifeSequence, stage::Union{Sex,Dimorphic})
     # Get the stage in stages matching `stage`
     out = foldl(values(stages); init=nothing) do acc, x
         if isnothing(acc)

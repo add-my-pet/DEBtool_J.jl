@@ -99,8 +99,8 @@ data = EstimationData(;
         Weaning(56.0u"d"),
         Puberty(239.0u"d"),
         Male(Puberty(304.0u"d")),
-    )
-    lifespan = 30*365u"d",
+    ),
+    # TODO lifespan = 30*365u"d",
     wetweight=(
         Birth(97.5u"g"),
         Ultimate(3900.0u"g"),
@@ -108,20 +108,24 @@ data = EstimationData(;
     reproduction = 4/365u"d^-1",
     gestation = 65.0u"d",
     univariate = (
-        Univariate(SVector(tW_m[:, 1]u"d"), WetWeights(SVector(tW_m[:, 2]u"g"))),
-        Univariate(SVector(tW_f[:, 1]u"d"), WetWeights(SVector(tW_f[:, 2]u"g"))),
+        Univariate(Times(SVector{size(tW_m, 1)}(tW_m[:, 1]u"d")), WetWeights(SVector{size(tW_m, 1)}(tW_m[:, 2]u"g"))),
+        Univariate(Times(SVector{size(tW_f, 1)}(tW_f[:, 1]u"d")), WetWeights(SVector{size(tW_f, 1)}(tW_f[:, 2]u"g"))),
     ),
 )
 
 ## set weights for all real data
 weights = defaultweights(data)
-weights = merge(weights, (;
-    tW_f = 5 .* weights.tW_f,
-    tW_m = 5 .* weights.tW_m,
-    tp = 5 .* weights.tp,
-))
+# weights = ConstructionBase.setproperties(weights, (;
+    # tW_f = 5 .* tW_f,
+    # tW_m = 5 .* tW_m,
+    # TODO tp = 5 .* weights.tp,
+# ))
 
 ## set pseudodata and respective weights
 # TODO pseudo = defaultpseudodata(data, units, label, weights)
-weights = ConstructionBase.setproperties(data, (; univariate=(; lengths=2 .* weights.univariate.lengths), pseudo=pseudo.weights))
+pseudo = defaultpseudodata()
+weights = ConstructionBase.setproperties(weights, pseudo=pseudo.weights)
 data = ConstructionBase.setproperties(data, (; pseudo=pseudo.data))
+temp = u"K"(38.1u"°C")
+
+(; data, temp, weights)

@@ -1,5 +1,4 @@
 # uni-variate data
-# t-L data
 tL = [ # head body length (cm), time (d)
     3.891	26.621
     7.440	21.319
@@ -147,13 +146,13 @@ tW = [ # time (d), body weight (g)
     121.572	4135.614
 ]
 
-data = (;
+data = EstimationData(;
     timesincebirth = (
         Weaning(48u"d"), #    label.tx = 'time since birth at weaning'; bibkey.tx = 'AnAge';   
         Puberty(304u"d"), #    label.tp = 'time since birth at puberty';   bibkey.tp = 'AnAge';
     ),
-    timesineconception = (
-        Ultimate(21.3*365u"d")
+    timesinceconception = (
+        Ultimate(21.3*365u"d"),
     ),
     length = (
         Birth(14.5u"cm"),
@@ -165,19 +164,22 @@ data = (;
         Ultimate(7500.0u"g"),
     ),
     gestation = 52u"d",
-    reproduction = 5/365.0u"/d",
+    reproduction = 5/365.0u"d^-1",
     univariate = (
-        Univariate(Time(SVector(tL[:, 1]u"d"), Length(SVector(tL[:, 2]u"cm")))),
-        Univariate(Time(SVector(tW[:, 1]u"d"), WetWeight(SVector(tW[:, 2]u"g")))),
+        Univariate(Times(SVector{size(tL, 1)}(tL[:, 1]u"d")), Lengths(SVector{size(tL, 1)}(tL[:, 2]u"cm"))),
+        Univariate(Times(SVector{size(tW, 1)}(tW[:, 1]u"d")), WetWeights(SVector{size(tW, 1)}(tW[:, 2]u"g"))),
     ),
 )
-  
-# set weights for all real data
-weights = setweights(data, );
 
 # set pseudodata and respective weights
-[data, units, label, weights] = addpseudodata(data, units, label, weights);
-data.psd.t_0 = 0.0u"d"
-weights.pseudo.t_0 = 3.0
+# TODO addpseudodata(data, units, label, weights);
+# data.psd.t_0 = 0.0u"d"
+# weights.pseudo.t_0 = 3.0
 
+weights = defaultweights(data)
+pseudo = defaultpseudodata()
+weights = merge(weights, (; pseudo=pseudo.weights))
+data = merge(data, (; pseudo=pseudo.data))
 temp = u"K"(38.7u"°C")
+
+(; data, weights, temp)

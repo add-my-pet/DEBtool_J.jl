@@ -2,7 +2,7 @@
 
 @enum Flag Pass=0 SomeNegativeOrZero=1 KappaGreaterThan1=2 GrowthEfficiencyGreaterThan1=3 MaturityLevelsDontIncrease=4 CantReachPuberty=5 CantReachBirth=6 SomeNegative=7
 
-function filter_params(model::DEBOrganism, p::NamedTuple)
+function filter_params(model::DEBAnimal, p::NamedTuple)
     positive_pars = (
         # TODO optionally check these
         p.κ,
@@ -87,7 +87,7 @@ The quantities that are computed concern, where relevant:
 - M_H*, U_H*, V_H*, v_H*, u_H*: scaled maturities computed from all unscaled ones: E_H*
 - s_H: -, maturity ratio E_Hb/ E_Hp
 """
-function compound_parameters(model::DEBOrganism, p::NamedTuple)
+function compound_parameters(model::DEBAnimal, p::NamedTuple)
     p_Am = if hasproperty(p, :p_Am)
         p.p_Am
     else
@@ -198,6 +198,34 @@ function compound_parameters(model::DEBOrganism, p::NamedTuple)
         compound_pars = merge(compound_pars, (; v_Rj))
     end
 
+    # TODO this is horrific
+    # if hasproperty(p, :del_M)
+    #     del_M = if isfield(par, 'E_Hj') # in case of acceleration
+    #         pars_tj = [g; k; l_T; v_Hb; v_Hj; v_Hp]; # compose parameter vector for get_tj
+    #         [t_j, t_p, t_b, l_j, l_p, l_b, l_i] = get_tj(pars_tj, 1);
+    #         if exist ('Lj', 'var') 
+    #             l_j * L_m/ Lj; # -, structural/ measured length at metam
+    #         elseif exist ('Li', 'var') 
+    #             l_i * L_m/ Li; # -, ultimate structural/ measured length 
+    #         elseif exist ('Lp', 'var')
+    #             l_p * L_m/ Lp; # -, structural/ measured length at puberty
+    #         elseif exist ('Lb', 'var')
+    #             l_b * L_m/ Lb; # -, structural/ measured length at birth
+    #         end
+    #     else
+    #         pars_tp = [g; k; l_T; v_Hb; v_Hp];                # compose parameter vector
+    #         [t_p, t_b, l_p, l_b] = get_tp(pars_tp, 1); # -, scaled length at birth at f
+    #         if hasproperty(p, :Li)
+    #             L_m/ Li; # -, ultimate structural/ measured length 
+    #         elseif hasproperty('Lp', 'var')
+    #             l_p * L_m/ Lp; # -, structural/ measured length at puberty
+    #         elseif hasproperty('Lb', 'var')
+    #             l_b * L_m/ Lb; # -, structural/ measured length at birth
+    #         end
+    #     end
+    #     compound_pars = merge(compound_pars, (; del_M))
+    # end
+
     return _add_pars(p, compound_pars)
 end
 
@@ -230,11 +258,11 @@ end
             compound_pars = merge(compound_pars, M_Hx_nt, U_Hx_nt, v_Hx_nt, u_Hx_nt)
         end
 
-        #compound_pars.(['M_H', stri]) = p.(['E_H', stri])/ p.mu_E;                 % mmol, maturity at level i
-        #compound_pars.(['U_H', stri]) = p.(['E_H', stri])/ p_Am;                   % cm^2 d, scaled maturity at level i
-        #compound_pars.(['V_H', stri]) = compound_pars.(['U_H', stri])/ (1 - p.κ);         % cm^2 d, scaled maturity at level i
-        #compound_pars.(['v_H', stri]) = compound_pars.(['V_H', stri]) * g^2 * k_M^3/ p.v^2; % -, scaled maturity density at level i
-        #compound_pars.(['u_H', stri]) = compound_pars.(['U_H', stri]) * g^2 * k_M^3/ p.v^2; % -, scaled maturity density at level i 
+        #compound_pars.(['M_H', stri]) = p.(['E_H', stri])/ p.mu_E;                 # mmol, maturity at level i
+        #compound_pars.(['U_H', stri]) = p.(['E_H', stri])/ p_Am;                   # cm^2 d, scaled maturity at level i
+        #compound_pars.(['V_H', stri]) = compound_pars.(['U_H', stri])/ (1 - p.κ);         # cm^2 d, scaled maturity at level i
+        #compound_pars.(['v_H', stri]) = compound_pars.(['V_H', stri]) * g^2 * k_M^3/ p.v^2; # -, scaled maturity density at level i
+        #compound_pars.(['u_H', stri]) = compound_pars.(['U_H', stri]) * g^2 * k_M^3/ p.v^2; # -, scaled maturity density at level i 
     end
     blocks = Expr(:block, blocks...)
     return quote

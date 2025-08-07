@@ -1,19 +1,19 @@
 using DEBtool_J
-
-srcpath = dirname(pathof(DEBtool_J))
-include(joinpath(srcpath, "../test/test_utils.jl"))
+include(joinpath(dirname(pathof(DEBtool_J)), "../test/test_utils.jl"))
 
 species = "Emydura_macquarii"
-(; organism, par, data) = load_species(species)
-
-# compute temperature correction factors
+(; data, par) = species_context = load_species(species);
 estimator = Estimator(;
     method = DEBNelderMead(),
     max_step_number = 5000,
     max_fun_evals = 5000,
 )
 
-@time parout, nsteps, info, fval = estimate(estimator, organism, par, data);
+# Let us mess with param and data constructors without breaking them
+@assert par[:val] == (13.2002, 12.8559, 0.060464, 0.7362, 16.4025, 0.00060219, 7857.8605, 13660.0, 1.168e7, 4.711e6, 1.211e-9, 0.61719)
+@assert data.weights.pseudo == (v = 0.1, κ = 0.1, κ_R = 0.1, p_M = 0.1, k_J = 0.0, κ_G = 20.0, k = 0.1)
+@assert map(ustrip, data.data.pseudo) == (v = 0.02, κ = 0.8, κ_R = 0.95, p_M = 18, k_J = 0.002, κ_G = 0.8, k = 0.3)
+@time parout, nsteps, info, fval = estimate(estimator, species_context)
 compare_matlab(species, parout)
 
 # tspan = (0.0, 8000.0)

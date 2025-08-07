@@ -1,9 +1,9 @@
-using StaticArrays
+using StaticArrays, ConstructionBase
 
 # uni-variate data
 
 # TODO make this more concise.
-# Maybe the Times/WethWeights wrappers can automatically make SVectors?
+# Maybe the Times/WetWeights wrappers can automatically make SVectors?
 # Maybe Times is implicit as the first argument?
 wetweights = (
     AtTemperature(u"K"(39u"°C"), 
@@ -48,7 +48,7 @@ data = EstimationData(;
 pseudo = defaultpseudodata(; data=(t_0=0.0u"d",), weights=(t_0=0.1,))
 # set weights for all real data
 weights = defaultweights(data);
-weights = ConstructionBase.setproperties(weights, (; univariate=(; lengths=2 .* weights.univariate.lengths), pseudo=pseudo.weights))
+weights = ConstructionBase.setproperties(weights, (; pseudo=pseudo.weights))
 data = ConstructionBase.setproperties(data, (; pseudo=pseudo.data))
 temp = u"K"(22.0u"°C")
 

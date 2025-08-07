@@ -1,38 +1,8 @@
 # Adds pseudodata information into inputed data structures 
-
-##
-#function [data, units, label, weight] = addpseudodata(data, units, label, weight)
-# created 2015/01/16 by Goncalo Marques and Bas Kooijman, 2018/08/26 Bas Kooijman
-
-## Syntax
-# [data, units, label, weight] = <../addpseudodata.m *addpseudodata*> (data, units, label, weight)
-
-## Description
-# Adds the pseudodata information and weights for purposes of the regression
-#
-# Inputs:
-#
-# * data : structure with data values 
-# * units : structure with data units 
-# * label : structure with data labels 
-# * weight : structure with data weights for a regression 
-#
-# Output: 
-#
-# * data : structure with data and pseudodata values 
-# * units : structure with data and pseudodata units 
-# * label : structure with data and pseudodata labels 
-# * weight : structure with data and pseudodata weights for a regression 
-
-## Example of use
-# [data, units, label, weight] = addpseudodata([], [], [], []);
-# Will create the four structures data, units, label and weight with pseudodata information
-
-# global loss_function
-# set pseudodata
 # was addpseudodata
-function defaultpseudodata(; data::NamedTuple=(;), weights::NamedTuple=(;))
-    pseudodata = (;
+function defaultpseudodata(custom::Union{NamedTuple,Nothing}=nothing)
+    # TODO explain and justify these
+    defaults = (;
         v = 0.02u"cm/d",
         κ = 0.8,
         κ_R = 0.95,
@@ -41,19 +11,22 @@ function defaultpseudodata(; data::NamedTuple=(;), weights::NamedTuple=(;))
         κ_G = 0.8,
         k = 0.3
     )
+    return isnothing(custom) ? defaults : merge(defaults, custom)
+end
 
-    label = (;
-        v = "energy conductance",
-        κ = "allocation fraction to soma",
-        κ_R = "reproduction efficiency",
-        p_M = "vol-spec som maint",
-        k_J = "maturity maint rate coefficient",
-        κ_G = "growth efficiency",
-        k = "maintenance ratio"
-    )
+    # label = (;
+    #     v = "energy conductance",
+    #     κ = "allocation fraction to soma",
+    #     κ_R = "reproduction efficiency",
+    #     p_M = "vol-spec som maint",
+    #     k_J = "maturity maint rate coefficient",
+    #     κ_G = "growth efficiency",
+    #     k = "maintenance ratio"
+    # )
 
-    # set weights
-    pseudoweights = (;
+function defaultpseudoweights(custom::Union{NamedTuple,Nothing})
+    # TODO explain and justify these
+    defaults = (;
         v = 0.1,
         κ = 0.1,
         κ_R = 0.1,
@@ -62,6 +35,8 @@ function defaultpseudodata(; data::NamedTuple=(;), weights::NamedTuple=(;))
         κ_G = 0.1 * 200, # more weight to κ_G
         k = 0.1
     )
+    return isnothing(custom) ? defaults : merge(defaults, custom)
+end
 
     # if strcmp(loss_function, 'su')
     #   psdWeight.v     = 10^(-4) * psdWeight.v;
@@ -72,11 +47,11 @@ function defaultpseudodata(; data::NamedTuple=(;), weights::NamedTuple=(;))
     #   psdWeight.κ_G = 10^(-4) * psdWeight.κ_G;
     # end
     
-    data = merge(pseudodata, data)
-    weights = merge(pseudoweights, weights)
+    # data = merge(pseudodata, data)
+    # weights = merge(pseudoweights, weights)
 
-    return (; data, label, weights)
-end
+    # return (; data, label, weights)
+# end
 
 # created 2015/02/04 by Goncalo Marques
 # modified 2015/07/29

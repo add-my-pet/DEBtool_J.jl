@@ -1,4 +1,8 @@
+phylum = "Chordata"
+class = "Reptilia" 
+
 par = (;
+    defaultchemistry(phylum, class)...,
     T_ref = Const(293.15; units=u"K", label = "Reference temperature"), 
 ## core primary     meters 
     T_A = Const(12545.34; units=u"K", label = "Arrhenius temperature"), 
@@ -35,19 +39,12 @@ par = (;
 #    s_3 = Param(1.6226; units=nothing, label = "stress at instar 1: L_3^2/ L_2^2"), 
 #    s_4 = Param(2.2073; units=nothing, label = "stress at instar 1: L_4^2/ L_3^2"), 
     t_0 = Const(1; units=u"d", label = "time of start development at 20 C"), 
-    # TODO these should be objects in the model
-    DEFAULT_CHEMICAL_PARAMETERS...,
-    DEFAULT_CHEMICAL_POTENTIALS...,
-    DEFAULT_CHEMICAL_INDICES_FOR_WATER_ORGANICS...,
-    DEFAULT_CHEMICAL_POTENTIAL_OF_MINERALS...,
-    DEFAULT_CHEMICAL_INDICES_FOR_WATER_ORGANICS...,
-    DEFAULT_CHEMICAL_INDICES_FOR_MINERALS...,
 
     d_V = Const(0.25; units=u"g/cm^3", label = "specific density of structure"), 
     d_E = Const(0.25; units=u"g/cm^3", label = "specific density of reserve"), 
 )
 
-organism = abp_organism(;
+organism = abp_animal(;
     temperatureresponse = strip(ArrheniusResponse(; par[(:T_ref, :T_A)]...)),
 )
 

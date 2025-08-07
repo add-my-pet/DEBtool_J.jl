@@ -43,9 +43,9 @@
 #  SC = f (g/ L + (1 + LT/L)/ Lm)/ (f + g); Lm = v/ (kM g)
 #
 # unpack parameters; parameter sequence, cf get_pars_r
-compute_reproduction_rate(e::AbstractEstimator, o::DEBOrganism, p::NamedTuple, ls::Transitions) =
+compute_reproduction_rate(e::AbstractEstimator, o::DEBAnimal, p::NamedTuple, ls::Transitions) =
     compute_reproduction_rate(lifecycle(o)[1][1], e, o, p, ls)
-function compute_reproduction_rate(stage::Embryo, e::AbstractEstimator, model::DEBOrganism, p::NamedTuple, ls::Transitions)
+function compute_reproduction_rate(stage, e::AbstractEstimator, model::DEBAnimal, p::NamedTuple, ls::Transitions)
     (; κ, κ_R, g, f, k_J, k_M, L_T, v, U_Hb, U_Hp) = p
 
     L = ls[Female(Ultimate())].L
@@ -87,3 +87,8 @@ end
 #     dUH = (1 - κ) * L^3 * f * (1 / L - r / v) - kJ * UH # cm^2, d/dt UH
 #     dtL = [1; dL] / dUH # 1/cm, d/dUH L
 # end
+
+function gestation(pars::NamedTuple, τ_b, TC)
+    (; t_0, k_M) = pars
+    t_0 + τ_b / k_M / TC  # d, gestation time at f and T
+end

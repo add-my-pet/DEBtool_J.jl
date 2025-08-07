@@ -17,7 +17,7 @@ using ComponentArrays
 import ModelParameters.ConstructionBase
 
 export Estimator, DEBNelderMead, DEBMultimodalEvolutionaryAlgorithm
-export DEBOrganism
+export DEBAnimal
 export ModelParEnv
 export ArrheniusResponse, LowTorporResponse, HighTorporResponse, LowAndHighTorporResponse
 export LifeCycle, LifeStages, Transitions, Dimorphic
@@ -26,24 +26,20 @@ export Embryo, Juvenile, Adult
 export Gestation
 export Female, Male
 export AtTemperature
-export EstimationData, Univariate, Times, Temperatures, Lengths, FunctionalResponses, Food, DryWeights, WetWeights
+export EstimationData, Univariate, Time, Temperature, Length, FunctionalResponse, Food, DryWeight, WetWeights, Duration, Period
 export AbstractEnvironment, Environment, ConstantEnvironment
 export Standard, FoetalDevelopment, FoetalDevelopmentX, GrowthCeasesAtPuberty, Accelerated, Hemimetabolous, Holometabolous
 export std, stf, stx, sbp, abj, abp, asj, hep, hex, hax
-export std_organism, stf_organism, stx_organism, sbp_organism, 
-    abj_organism, abp_organism, asj_organism, 
-    hep_organism, hex_organism, hax_organism
+export std_animal, stf_animal, stx_animal, sbp_animal, 
+    abj_animal, abp_animal, asj_animal, 
+    hep_animal, hex_animal, hax_animal
 
-export estimate, simulate, defaultpseudodata, defaultweights
+export estimate, simulate
 
-# TODO make these types
-export DEFAULT_CHEMICAL_PARAMETERS,
-    DEFAULT_CHEMICAL_POTENTIALS,
-    DEFAULT_CHEMICAL_POTENTIAL_OF_MINERALS,
-    DEFAULT_CHEMICAL_INDICES_FOR_MINERALS,
-    DEFAULT_CHEMICAL_INDICES_FOR_WATER_ORGANICS
+export defaultpseudodata, defaultpseudoweights, defaultweights, defaultchemistry, default_d_V
 
 include("const.jl")
+include("chemistry.jl")
 include("data.jl")
 include("environment.jl")
 include("behavior.jl")

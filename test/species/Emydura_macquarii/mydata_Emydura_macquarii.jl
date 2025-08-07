@@ -1,59 +1,32 @@
-using StaticArrays, ConstructionBase
+using StaticArrays: @SMatrix
 
-# Convert the matrix tL1 into a named tuple with units assigned to each column
-tL = @SVector[
-    6.876
-    7.090
-    8.369
-    8.689
-    9.115
-    9.435
-    9.808
-    10.075
-    10.235
-    10.661
-    11.141
-    11.354
-    9.701
-    10.768
-    12.420
-    11.674
-    13.220
-    13.326
-    13.646
-    12.100
-    12.420
-    12.633
-    12.953
-    14.072
-]u"cm"
-
-tLt = @SVector[
-    0.981
-    0.981
-    1.956
-    1.956
-    1.957
-    1.957
-    1.957
-    1.958
-    1.958
-    1.983
-    2.833
-    2.908
-    2.931
-    2.932
-    2.984
-    3.008
-    3.833
-    3.834
-    3.834
-    3.857
-    3.883
-    3.883
-    3.883
-    3.934
-] * 365u"d"
+# TODO use an external CSV / DataFrame for this?
+tL = @SMatrix[ 
+    0.981  6.876    
+    0.981  7.090    
+    1.956  8.369    
+    1.956  8.689    
+    1.957  9.115    
+    1.957  9.435    
+    1.957  9.808    
+    1.958  10.075   
+    1.958  10.235   
+    1.983  10.661   
+    2.833  11.141   
+    2.908  11.354   
+    2.931  9.701    
+    2.932  10.768   
+    2.984  12.420   
+    3.008  11.674   
+    3.833  13.220   
+    3.834  13.326   
+    3.834  13.646   
+    3.857  12.100   
+    3.883  12.420   
+    3.883  12.633   
+    3.883  12.953   
+    3.934  14.072  
+]
 
 data = EstimationData(;
     timesinceconception=(
@@ -81,17 +54,18 @@ data = EstimationData(;
         Male(Ultimate(3673.0u"g")),
     ),
     reproduction=Female(Ultimate(AtTemperature(u"K"(22.0u"°C"), 36.0 / 365.0u"d"))),
-    univariate=(; lengths=Univariate(Times(tLt), Lengths(tL))),
-    pseudo=nothing,
+    variate=(; lengths=Univariate(Time(365u"d"), Length(u"cm"), tL)),
+    pseudo=(; k=0.3),
 )
 
 # set pseudodata and respective weights
-# TODO why is k=0.3 etc here
-pseudo = defaultpseudodata(; data=(k=0.3,), weights=(k_J=0.0, k=0.1))
+# TODO why is k=0.3 etc here, what is this based on
 # set weights for all real data
 weights = defaultweights(data)
-weights = ConstructionBase.setproperties(weights, (; univariate=(; lengths=2 .* weights.univariate.lengths), pseudo=pseudo.weights))
-data = ConstructionBase.setproperties(data, (; pseudo=pseudo.data))
+weights = merge(weights, (; 
+    variate=(; lengths=2 .* weights.variate.lengths), 
+    pseudo=defaultpseudoweights((k_J=0.0, k=0.1)),
+))
 temp = u"K"(22.0u"°C")
 
-(; data, temp, weights)
+(; data, weights, temp)

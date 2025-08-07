@@ -11,6 +11,7 @@ function load_species(species::AbstractString)
     (; organism, par) = include(joinpath(sp, "pars_init_" * species * ".jl")) 
     par = StaticModel(par) # create a 'Model' out of the Pars struct
     data = include(joinpath(sp, "mydata_" * species * ".jl")) # load the mydata file 
+
     return (; organism, par, data)
 end
 

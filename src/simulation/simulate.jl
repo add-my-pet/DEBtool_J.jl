@@ -40,13 +40,25 @@ struct StateReconstructor{F,T,U}
     template::T
     time_units::U
 end
-function (sr::StateReconstructor)(u::AbstractArray{T}, p, t) where T
-    res = sr.f(Flatten.reconstruct(sr.template, u, T), p, t)
-    converted = map(Flatten.flatten(res, Number), Flatten.flatten(sr.template, Number)) do r, t 
-        convert(typeof(t), r * sr.time_units)
-    end
-    return SVector(Flatten.flatten(converted, T))
+function (sr::StateReconstructor)(u::AbstractArray, p, t)
+    res = sr.f(to_obj(sr, u), p, t)
+    to_vec(sr::StateReconstructor, res) 
 end
+
+function to_vec(sr::StateReconstructor, obj)
+    converted = map(Flatten.flatten(obj, Number), Flatten.flatten(sr.template, Number)) do r, t 
+        if isnothing(sr.time_units) 
+            convert(typeof(t), r)
+        else
+            convert(typeof(t), r * sr.time_units)
+        end
+    end
+    # TODO get T rather than AbstractFloat
+    return SVector(Flatten.flatten(converted, AbstractFloat))
+end
+
+to_obj(sr::StateReconstructor, vec::AbstractArray{T}) where T =
+    Flatten.reconstruct(sr.template, vec, T)
 
 Base.values(sr::StateReconstructor) = Flatten.flatten(sr.template, AbstractFloat)
 Base.collect(sr::StateReconstructor) = collect(values(sr))
@@ -54,6 +66,15 @@ Base.Array(sr::StateReconstructor) = collect(sr)
 
 StaticArrays.SVector(sr::StateReconstructor) = SVector(values(sr))
 StaticArrays.SArray(sr::StateReconstructor) = SVector(values(sr))
+
+struct CallbackReconstructor{C,T}
+    callback::C
+    template::T
+end
+(cr::CallbackReconstructor)(u::AbstractArray{T}, p, τ) where T =
+    cr.callback(Flatten.reconstruct(cr.template, u, T), p, τ)
+
+
 
 """
     simulate(mbe::MetabolismBehaviorEnvironment)
@@ -85,12 +106,12 @@ function simulate(mbe::MetabolismBehaviorEnvironment;
 
     mbe = MetabolismBehaviorEnvironment(metabolism, behavior, environment, par)
     # Initiale state
-    state_structure = initialise_state(mbe)
-    f = StateReconstructor(d_sim, state_structure, u"d")
+    state_template = initialise_state(mbe)
+    f = StateReconstructor(d_sim, state_template, u"d")
     u0 = SVector(f)
     # Define the mode-specific callback function. This controls 
     # how the solver handles specific lifecycle events.
-    callback = simulation_callback(mbe)
+    callback = simulation_callback(mbe, state_template)
     # Define the ODE to solve with function, initial state, 
     # timespan and parameters
     problem = ODEProblem(f, u0, tspan, mbe)
@@ -104,7 +125,7 @@ function initialise_state(mbe::MetabolismBehaviorEnvironment)
     environment = initialise_state(mbe.environment, mbe)
     return (; metabolism, behavior, environment)
 end
-function initialise_state(o::DEBOrganism, mbe::MetabolismBehaviorEnvironment)
+function initialise_state(o::DEBAnimal, mbe::MetabolismBehaviorEnvironment)
     (; par) = mbe
     l_b, info = compute_length(Birth(), par)
     (; UE0) = initial_scaled_reserve(o.mode, par, l_b)
@@ -161,7 +182,7 @@ d_sim(state, b::AbstractEnvironment, mbe::MetabolismBehaviorEnvironment, t) = st
 # E_G    J/cm^3, volume-specific costs of structure
 #
 # dELHR: 4-vector with change in E, L, H, R
-function d_sim(state, o::DEBOrganism, me::MetabolismEnvironment, t)
+function d_sim(state, o::DEBAnimal, me::MetabolismEnvironment, t)
     (; metabolism, environment, par) = me
     (; p_Am, v, p_M, k_J, κ, E_Hb, E_Hp) = par
     (; E, L, E_H) = state
@@ -233,21 +254,21 @@ acceleration_factor(::Accelerated{<:Isomorph,<:Birth}, p, L) = p.accelerating ? 
 acceleration_factor(::Mode, pars, L) = 1.0 # Non-accelerating modes
 
 # Callbacks for metabolism, behavior and environment are combined
-function simulation_callback(mbe::MetabolismBehaviorEnvironment)
+function simulation_callback(mbe::MetabolismBehaviorEnvironment, template)
     CallbackSet(
-        simulation_callback(mbe.environment),
-        simulation_callback(mbe.behavior),
-        simulation_callback(mbe.metabolism),
+        simulation_callback(mbe.environment, template),
+        simulation_callback(mbe.behavior, template),
+        simulation_callback(mbe.metabolism, template),
     )
 end
-simulation_callback(o::AbstractEnvironment) = CallbackSet()
-simulation_callback(o::AbstractBehavior) = CallbackSet()
-simulation_callback(o::DEBOrganism) = simulation_callback(o.mode, o)
+simulation_callback(o::AbstractEnvironment, template) = CallbackSet()
+simulation_callback(o::AbstractBehavior, template) = CallbackSet()
+simulation_callback(o::DEBAnimal, template) = simulation_callback(o.mode, o, template)
 function simulation_callback(
-    mode::Union{typeof(std()),typeof(sbp())} , o::DEBOrganism
+    mode::Union{typeof(std()),typeof(sbp())}, o::DEBAnimal, template
 )
     callbacks = map(callback_transitions(o)) do tr
-        transition_callback(tr)
+        transition_callback(tr, template)
     end
     # Define a callback that simply forces accuracy around life-stage transitions
     return CallbackSet(callbacks...)
@@ -255,17 +276,26 @@ end
 
 function callback_transitions(model)
     reduce((Birth(), Weaning(), Puberty(), Metamorphosis()); init=()) do acc, transition
-        isnothing(get(lifecycle(model), transition, nothing)) ? acc : (acc..., transition)
+        isnothing(get(life(model), transition, nothing)) ? acc : (acc..., transition)
     end
 end
 
-transition_callback(::AbstractTransition, model) = 
-    ContinuousCallback(transition_event(model), transition_action(model))
+transition_callback(tr::AbstractTransition, model, template) = 
+    ContinuousCallback(transition_event(tr, model, template), transition_action(model))
 
-transition_event(::Birth, model) = (ELHR, t, integrator) -> ustrip(u"J", i.p.par.E_Hb) - ELHR[3]
-transition_event(::Puberty, model) = (ELHR, t, integrator) -> ustrip(u"J", i.p.par.E_Hp) - ELHR[3]
-transition_event(::Metamorphosis, model) = (ELHR, t, i) -> ustrip(u"J", i.p.par.E_Hj) - ELHR[3]
+transition_event(::Birth, model, template) = CallbackReconstructor(template) do u, t, i
+    i.p.par.E_Hb - u.E_H
+end
+transition_event(::Puberty, model, template) = CallbackReconstructor(template) do u, t, i
+    i.p.par.E_Hp - u.E_H
+end
+transition_event(::Metamorphosis, model, template) = CallbackReconstructor(template) do u, t, i
+    i.p.par.E_Hj - u.E_H
+end
+transition_event(::Weaning, model, template) = CallbackReconstructor(template) do u, t, i
+    i.p.par.E_Hx - u.E_H
+end
 
 # The default action is to do nothing
 # This will still force the solver to exactly calculate the transitions time
-transition_action(::AbstractTransition, model) = (integrator, i) -> (@show i; nothing) # action when event is found
+transition_action(::AbstractTransition, model) = (integrator, i) -> nothing # action when event is found
