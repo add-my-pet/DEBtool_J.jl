@@ -71,6 +71,16 @@ Often the `independent` argument to `Univariate` or `Multivariate` datasets.
 struct Temperature{T} <: Data
     val::T
 end
+# Always convert temperature to kelvin
+function Temperature(x::Quantity{<:Any,<:Any,Unitful.FreeUnits})
+    x1 = u"K"(A)
+    Temperature{typeof(x1)}(x1)
+end
+function Temperature(A::AbstractArray{<:Quantity{<:Any,<:Any,<:Unitful.FreeUnits}})
+    A1 = u"K".(A)
+    Temperature{typeof(A1)}(A1)
+end
+
 """
     Length <: Data
 
@@ -131,6 +141,7 @@ struct Duration{X,T} <: Data
     val::T
 end
 Duration{X}(val::T) where {X,T} = Duration{X,T}(val)
+ConstructionBase.constructorof(::Type{<:Duration{X}}) where {X} = Duration{X}
 """
     Period{A,B} <: Data
 
@@ -142,21 +153,25 @@ struct Period{A,B,T} <: Data
     val::T
 end
 Period{A,B}(val::T) where {A,B,T} = Period{A,B,T}(val)
+ConstructionBase.constructorof(::Type{<:Period{A,B}}) where {A,B} = Period{A,B}
 
 # TODO: can we just use Multivariate for everything?
 struct Univariate{I<:Data,D<:Data} <: Data
     independent::I
     dependent::D
 end
-function Univariate(independent, dependent, data::AbstractMatrix)
+function Univariate(independent, dependent, data::SMatrix)
     @assert size(data, 2) == 2
-    iv = independent.val
-    dv = dependent.val
-    @show iv dv
-    idata = isnothing(iv) ? data[:, 1] : data[:, 1] .* iv
-    ddata = isnothing(dv) ? data[:, 2] : data[:, 2] .* dv
-    @show idata ddata
-    return Univariate(rebuild(independent, idata), rebuild(dependent, data[:, 2]))
+    iv = inner_val(independent)
+    dv = inner_val(dependent)
+    idata = rebuild_inner(independent, isnothing(iv) ? data[:, 1] : data[:, 1] .* iv)
+    ddata = rebuild_inner(dependent, isnothing(dv) ? data[:, 2] : data[:, 2] .* dv)
+    return Univariate(idata, ddata)
+end
+function Univariate(independent, dependent, path::AbstractString)
+    data, header = readdlm(path, ','; header=true)
+    # TODO check the header names match ?
+    Univariate(independent, dependent, SMatrix{size(data)...}(data))
 end
 
 """
@@ -176,17 +191,24 @@ struct Multivariate{I<:Data,D<:Tuple{<:Data,Vararg}} <: Data
     independent::I
     dependents::D
 end
-function Multivariate(independent, dependent::Tuple, data::AbstractMatrix)
-    @assert size(data, 2) == length(dependents) + 1
-    iv = independent.val
+function Multivariate(independent, dependents::Tuple, data::SMatrix)
+    @assert size(data, 2) == length(dependents) + 1 "$(size(data, 2)) $(length(dependents) + 1)"
+    iv = inner_val(independent)
     idata = isnothing(iv) ? data[:, 1] : data[:, 1] .* iv
     ddata = map(dependents, ntuple(identity, length(dependents))) do d, i
-        dv = d.val
-        rebuild(d, isnothing(dv) ? data[:, i] : data[:, i] .* dv)
+        dv = inner_val(d)
+        rebuild_inner(d, isnothing(dv) ? data[:, i] : data[:, i] .* dv)
     end
-    return Univariate(rebuild(independent, idata), ddata)
+    return Multivariate(rebuild_inner(independent, idata), ddata)
+end
+function Multivariate(independent, dependents::Tuple, path::AbstractString)
+    data, header = readdlm(path, ','; header=true)
+    @assert size(data, 2) == length(dependents) + 1 "$(size(data, 2)) $independent $dependents $data"
+    # TODO does this really need to be static? it will fail if not but probably shouldn't
+    Multivariate(independent, dependents, SMatrix{size(data)...}(data))
 end
 
+abstract type DataContext{X,V} <: Data end
 """
     AtTemperature(temperature, val)
 
@@ -199,13 +221,43 @@ temperature to the default for the observations.
 AtTemperature(22.0u"°C", Birth(2.0u"cm"))
 ```
 """
-struct AtTemperature{T,X}
+struct AtTemperature{T<:Number,V} <: DataContext{T,V}
     t::T
-    x::X
+    val::V
 end
+AtTemperature(t::Number) = AtTemperature(t, nothing)
+rebuild(at::AtTemperature, val) = AtTemperature(at.t, val)
+
+"""
+    Weighted(weight, val)
+
+A wrapper type to specify that observed data takes a specific weight.
+If `val` is an array a `Real` weight will be evenly distributed over all members.
+
+# Example
+
+This vector of lengths has a weight of 2.0 divided over its values.
+
+```julia
+Weighted(2.0, lenghts)
+```
+"""
+struct Weighted{W<:Real,V} <: DataContext{W,V}
+    weight::W
+    val::V
+end
+Weighted(weight::Real) = Weighted(weight, nothing)
+rebuild(w::Weighted, val) = Weighted(w.weight, val)
+
 
 # Object/type utilities copied from DimensionalData.jl
 # these make it easy to wrap objects in a type wrapper
-basetypeof(::Type{T}) where T = T.name.wrapper
+basetypeof(::Type{T}) where T = ConstructionBase.constructorof(T)
 basetypeof(::T) where T = basetypeof(T)
-rebuild(::T, x) where T = basetypeof(T)(x)
+rebuild(::T, val) where T = basetypeof(T)(val)
+
+rebuild_inner(d::Data, val) = rebuild(d, rebuild_inner(d.val,  val))
+rebuild_inner(d, val) = val
+
+inner_val(d::Data) = inner_val(d.val)
+inner_val(val) = val

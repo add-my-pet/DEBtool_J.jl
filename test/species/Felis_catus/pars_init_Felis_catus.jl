@@ -34,6 +34,13 @@ par = (;
 
 organism=stx_animal(;
     temperatureresponse=strip(ArrheniusResponse(; par[(:T_ref, :T_A)]...)),
+    # lifecycle=LifeCycle(
+    #     # TODO rethink how we write dimorphism
+    #     Foetus() => Dimorphic(Female(Birth()), Male(Birth())),
+    #     Baby() => Dimorphic(Female(Weaning()), Male(Weaning())),
+    #     Juvenile() => Dimorphic(Female(Puberty()), Male(Puberty())),
+    #     Adult() => Dimorphic(Female(Ultimate()), Male(Ultimate())),
+    # ),
 )
 
 (; organism, par)

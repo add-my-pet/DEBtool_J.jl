@@ -1,32 +1,3 @@
-using StaticArrays: @SMatrix
-
-# TODO use an external CSV / DataFrame for this?
-tL = @SMatrix[ 
-    0.981  6.876    
-    0.981  7.090    
-    1.956  8.369    
-    1.956  8.689    
-    1.957  9.115    
-    1.957  9.435    
-    1.957  9.808    
-    1.958  10.075   
-    1.958  10.235   
-    1.983  10.661   
-    2.833  11.141   
-    2.908  11.354   
-    2.931  9.701    
-    2.932  10.768   
-    2.984  12.420   
-    3.008  11.674   
-    3.833  13.220   
-    3.834  13.326   
-    3.834  13.646   
-    3.857  12.100   
-    3.883  12.420   
-    3.883  12.633   
-    3.883  12.953   
-    3.934  14.072  
-]
 
 data = EstimationData(;
     timesinceconception=(
@@ -54,13 +25,12 @@ data = EstimationData(;
         Male(Ultimate(3673.0u"g")),
     ),
     reproduction=Female(Ultimate(AtTemperature(u"K"(22.0u"°C"), 36.0 / 365.0u"d"))),
-    variate=(; lengths=Univariate(Time(365u"d"), Length(u"cm"), tL)),
+    variate=(; lengths=Univariate(Time(365u"d"), Length(u"cm"), "$(@__DIR__)/data/length.csv")),
+    # TODO why is k=0.3 etc here, what is this based on
     pseudo=(; k=0.3),
 )
 
-# set pseudodata and respective weights
-# TODO why is k=0.3 etc here, what is this based on
-# set weights for all real data
+# TODO this should be defined in the data object
 weights = defaultweights(data)
 weights = merge(weights, (; 
     variate=(; lengths=2 .* weights.variate.lengths), 

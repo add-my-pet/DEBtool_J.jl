@@ -1,6 +1,6 @@
 # TODO: get these from metadata somehow
-phylum = "Arthropoda"
-class = "Insecta"
+phylum = "Chordata"
+class = "Reptilia"
 
 par = (;
     defaultchemistry(phylum, class)...,

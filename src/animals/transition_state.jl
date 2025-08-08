@@ -1,11 +1,12 @@
-# These methods dig down into the LifeStages object,
-# and calculate the state variables at each transition - e.g. birth or puberty,
-# for fixed temperatures and at-liberty feeding.
-#
-# They may also calculate males and females separately where specified.
-#
-# Reduce over all lifestages computing basic variables
-# The output state of each transition is used as input state for the next
+"""
+
+
+
+These methods calculate the state variables at each transition, 
+e.g. birth or puberty, for fixed temperatures and at-liberty feeding.
+
+They may also calculate females and males separately when specified.
+"""
 compute_transition_state(e::AbstractEstimator, o::DEBAnimal{<:Standard}, pars) =
     compute_transition_state(e, lifecycle(o), pars)
 function compute_transition_state(e::AbstractEstimator, lifecycle::LifeCycle, pars)
@@ -54,15 +55,16 @@ function compute_transition_state(at::Weaning, e::AbstractEstimator, pars, ::Tra
     a = τ / k_M # TODO is this correct
     Weaning((; l, L, Lw, Ww, τ, a))
 end
-function compute_transition_state(at::Puberty, e::AbstractEstimator, pars, ::Transitions, previous)
+function compute_transition_state(at::Puberty, e::AbstractEstimator, pars, trans::Transitions, previous)
     (; L_m, del_M, k_M, ω, l_T, g, f) = pars
+    birth = trans[Birth()]
 
-    # TODO lean this up
+    # TODO clean this up
     ρ_B = 1 / (3 * (1 + f / g))
     l_i = f - l_T
-    l_d = l_i - previous.val.l
+    l_d = l_i - birth.l
 
-    l, info = compute_length(at, pars, previous.val.l)
+    l, info = compute_length(at, pars, birth.l)
     τ = previous.val.τ + log(l_d / (l_i - l)) / ρ_B
 
     # Check if τ is real and positive
@@ -70,7 +72,7 @@ function compute_transition_state(at::Puberty, e::AbstractEstimator, pars, ::Tra
         info = false
     end
 
-    t = (τ - previous.val.τ) / k_M    # d, time since birth at puberty
+    t = (τ - birth.τ) / k_M    # d, time since birth at puberty
     L = L_m * l                       # cm, structural length at puberty
     Lw = L / del_M                    # cm, plastron length at puberty
     Ww = wet_weight(at, L, f, ω)
@@ -260,3 +262,68 @@ end
 v_transition_event(::Weaning, model, template) = CallbackReconstructor(template) do u, t, i
     i.p.par.v_Hx - u.v_H
 end
+
+
+# TODO this is all kind of pointless, why not just one ODE
+# function compute_transition_state(e::AbstractEstimator, o::DEBAnimal{<:Holometabolous{NoFeeding}}, pars::NamedTuple)
+#     (;
+#      g,      # -, energy investment ratio
+#      k,      # -, k_J/ k_M, ratio of maturity and somatic maintenance rate coeff
+#      v_Hb,   # -, v_H^b = U_H^b g^2 kM^3/ (1 - kap) v^2; U_H^b = E_H^b/ {p_Am}: birth (embryo-larva transition)
+#      v_He,   # -, v_H^e = U_H^e g^2 kM^3/ (1 - kap) v^2; U_H^e = E_H^e/ {p_Am}: emergence (pupa-imago transition)
+#      s_j,    # -, [E_R^j]/ [E_R^ref] scaled reprod buffer density at pupation
+#      kap,    # -, allocation fraction to soma of pupa
+#      kap_V,  # -, conversion efficiency from larval reserve to larval structure, back to imago reserve
+#      f,
+#     )
+#     #  [E_R^ref] = (1 - kap) [E_m] g (k_E + k_M)/ (k_E - g k_M) is max reprod buffer density
+
+#     # from birth to pupation
+#     [tau_b, l_b, info] = get_tb([g k v_Hb], f)  # scaled age and length at birth
+#     rho_j = (f / l_b - 1) / (f / g + 1)          # scaled specific growth rate of larva
+#     v_Rj = s_j * (1 + l_b / g) / (1 - l_b)       # scaled reprod buffer density at pupation
+
+#     p = (; f, g, l_b, k, v_Hb, v_Rj, rho_j
+#     tau_j = nmfzero(fnget_tj_hex, 1, p)     # scaled time since birth at pupation
+#     l_j = l_b * exp(tau_j * rho_j / 3)          # scaled length at pubation
+#     tau_j = tau_b + tau_j                       # -, scaled age at pupation
+#     sM = l_j / l_b                              # -, acceleration factor
+
+#     # from pupation to emergence; 
+#     # instantaneous conversion from larval structure to pupal reserve
+#     u_Ej = l_j^3 * (kap * kap_V + f / g)        # -, scaled reserve at pupation
+
+#     # options = odeset("Events", emergence, 'NonNegative',[1; 1; 1]);
+#     [t luEvH tau_e luEvH_e] = ode45(dget_tj_hex, [0, 300], [0, u_Ej, 0], options, sM, g, k, v_He)
+#     tau_e = tau_j + tau_e; # -, scaled age at emergence 
+#     l_e = luEvH[end, 1];    # -, scaled length at emergence
+#     u_Ee = luEvH[end, 2];   # -, scaled reserve at emergence
+# end
+
+# # subfunctions
+
+# function fnget_tj_hex(tau_j, par)
+#     (; f, g, l_b, k, v_Hb, v_Rj, rho_j) = par
+#     ert = exp(-tau_j * rho_j)
+#     return v_Rj - f / g * (g + l_b) / (f - l_b) * (1 - ert) + tau_j * k * v_Hb * ert / l_b^3
+# end
+
+# function [value,isterminal,direction] = emergence(u, t, par)
+#     value = v_He - luEvH(3)
+#     isterminal = 1
+#     direction = 0
+# end
+
+# function dget_tj_hex(u, t, par)
+#     (; l, u_E, v_H) = u
+#     l2 = l * l
+#     l3 = l * l2
+#     l4 = l * l3
+#     u_E = max(1e-6, u_E)
+
+#     dl = (g * sM * u_E - l4) / (u_E + l3) / 3
+#     du_E = -u_E * l2 * (g * sM + l) / (u_E + l3)
+#     dv_H = -du_E - k * v_H
+
+#     (; dl, du_E, dv_H)
+# end

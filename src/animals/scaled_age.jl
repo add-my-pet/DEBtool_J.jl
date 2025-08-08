@@ -1,3 +1,5 @@
+# TODO tis is kind of incoherent
+
 """
     scaled_age(at::Birth, pars::NamedTuple, eb::Number)
 
@@ -21,8 +23,8 @@ Divide the result by the somatic maintenance rate coefficient to arrive at age a
 was get_tb
 """
 function scaled_age(at::Birth, pars::NamedTuple, eb::Number;
-                    l=nothing, # TODO handle eb and l more generically
-                   )
+    l=nothing, # TODO handle eb and l more generically
+)
     (; g) = pars # energy investment ratio
     info = true
     if isnothing(l)

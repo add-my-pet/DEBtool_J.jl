@@ -2,6 +2,7 @@ phylum = "Chordata"
 class = "Mammalia" 
 
 par = (;
+    # TODO we shouldn't always have to specify defaults, only if we change them.
     defaultchemistry(phylum, class)...,
     # reference parameter (not to be changed) 
     T_ref=Const(293.15; units=u"K", label="Reference temperature"), 

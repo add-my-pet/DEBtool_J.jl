@@ -28,5 +28,5 @@ function _defaultweight(d::AbstractArray)
     end
 end
 _defaultweight(d::Univariate) = _defaultweight(d.dependent.val)
-_defaultweight(d::AtTemperature) = _defaultweight(d.x)
+_defaultweight(d::AtTemperature) = _defaultweight(d.val)
 _defaultweight(d::Number) = 1.0

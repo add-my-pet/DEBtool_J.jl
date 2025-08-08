@@ -24,7 +24,7 @@ end
     #     k = "maintenance ratio"
     # )
 
-function defaultpseudoweights(custom::Union{NamedTuple,Nothing})
+function defaultpseudoweights(custom::Union{NamedTuple,Nothing}=nothing)
     # TODO explain and justify these
     defaults = (;
         v = 0.1,

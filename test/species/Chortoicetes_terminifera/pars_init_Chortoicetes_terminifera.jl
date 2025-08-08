@@ -4,7 +4,7 @@ class = "Reptilia"
 par = (;
     defaultchemistry(phylum, class)...,
     T_ref = Const(293.15; units=u"K", label = "Reference temperature"), 
-## core primary     meters 
+    # core primary 
     T_A = Const(12545.34; units=u"K", label = "Arrhenius temperature"), 
     z = Param(4.671; units=nothing, label = "zoom factor"), 
     F_m = Const(6.5; units=u"l/d.cm^2", label = "{F_m}, max spec searching rate"), 
@@ -21,7 +21,7 @@ par = (;
     E_Hp = Param(163.4; units=u"J", label = "maturity at puberty"), 
     h_a = Param(1.898e-5; units=u"1/d^2", label = "Weibull aging acceleration"), 
     s_G = Const(0.0001; units=nothing, label = "Gompertz stress coefficient"), 
-## other     meters 
+    # other
     T_A0 = Const(10597.34; units=u"K", label = "Arrhenius temperature egg"), 
     T_A5 = Const(13777.3; units=u"K", label = "Arrhenius temperature 5th instar and higher"), 
     T_AH = Const(16000; units=u"K", label = "Arrhenius temperature at upper boundary"), 
@@ -35,11 +35,10 @@ par = (;
     del_M = Param(0.1744; units=nothing, label = "shape coefficient"), 
     f = Const(1; units=nothing, label = "scaled functional response for 0-var data"), 
     s_1 = Param(1.788; units=nothing, label = "stress at instar 1: L_1^2/ L_b^2"), 
-#    s_2 = Param(1.5374; units=nothing, label = "stress at instar 1: L_2^2/ L_1^2"), 
-#    s_3 = Param(1.6226; units=nothing, label = "stress at instar 1: L_3^2/ L_2^2"), 
-#    s_4 = Param(2.2073; units=nothing, label = "stress at instar 1: L_4^2/ L_3^2"), 
+    # s_2 = Param(1.5374; units=nothing, label = "stress at instar 1: L_2^2/ L_1^2"), 
+    # s_3 = Param(1.6226; units=nothing, label = "stress at instar 1: L_3^2/ L_2^2"), 
+    # s_4 = Param(2.2073; units=nothing, label = "stress at instar 1: L_4^2/ L_3^2"), 
     t_0 = Const(1; units=u"d", label = "time of start development at 20 C"), 
-
     d_V = Const(0.25; units=u"g/cm^3", label = "specific density of structure"), 
     d_E = Const(0.25; units=u"g/cm^3", label = "specific density of reserve"), 
 )

@@ -120,9 +120,9 @@ function compute_length(at::Puberty, p::NamedTuple, l0::Number)
     b2 = f * sM - b3 * li
 
     a0 = - (b2 + b3 * li) * li^2 / k
-    a1 = - li * ld * (2 * b2 + 3 * b3 * li) / (rB - k)
+    a1 = -li * ld * (2 * b2 + 3 * b3 * li) / (rB - k)
     a2 = ld^2 * (b2 + 3 * b3 * li) / (2 * rB - k)
-    a3 = - b3 * ld^3 / (3 * rB - k)
+    a3 = -b3 * ld^3 / (3 * rB - k)
 
     if v_Hp > -a0
         lp = NaN

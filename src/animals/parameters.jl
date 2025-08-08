@@ -198,33 +198,9 @@ function compound_parameters(model::DEBAnimal, p::NamedTuple)
         compound_pars = merge(compound_pars, (; v_Rj))
     end
 
-    # TODO this is horrific
-    # if hasproperty(p, :del_M)
-    #     del_M = if isfield(par, 'E_Hj') # in case of acceleration
-    #         pars_tj = [g; k; l_T; v_Hb; v_Hj; v_Hp]; # compose parameter vector for get_tj
-    #         [t_j, t_p, t_b, l_j, l_p, l_b, l_i] = get_tj(pars_tj, 1);
-    #         if exist ('Lj', 'var') 
-    #             l_j * L_m/ Lj; # -, structural/ measured length at metam
-    #         elseif exist ('Li', 'var') 
-    #             l_i * L_m/ Li; # -, ultimate structural/ measured length 
-    #         elseif exist ('Lp', 'var')
-    #             l_p * L_m/ Lp; # -, structural/ measured length at puberty
-    #         elseif exist ('Lb', 'var')
-    #             l_b * L_m/ Lb; # -, structural/ measured length at birth
-    #         end
-    #     else
-    #         pars_tp = [g; k; l_T; v_Hb; v_Hp];                # compose parameter vector
-    #         [t_p, t_b, l_p, l_b] = get_tp(pars_tp, 1); # -, scaled length at birth at f
-    #         if hasproperty(p, :Li)
-    #             L_m/ Li; # -, ultimate structural/ measured length 
-    #         elseif hasproperty('Lp', 'var')
-    #             l_p * L_m/ Lp; # -, structural/ measured length at puberty
-    #         elseif hasproperty('Lb', 'var')
-    #             l_b * L_m/ Lb; # -, structural/ measured length at birth
-    #         end
-    #     end
-    #     compound_pars = merge(compound_pars, (; del_M))
-    # end
+    # Added for generality, not in matlab debtool
+    compound_pars = merge(compound_pars, (; del_M=1.0))
+
 
     return _add_pars(p, compound_pars)
 end

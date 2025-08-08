@@ -1,18 +1,15 @@
 """
     compute_survival_probability(at::Birth, model, pars; kw...)
 
-Was `get_Sb` and `get_Sb_foetus`
-
 Gets survival probability at birth and scaled variables
 
- Description
 Obtains survival probability at birth by integration survival prob over scaled age. All variables/parameters  are dimensionless.
 Called by ssd functions for statistics at population level; ρ_N is scaled spec pop growth rate, h_B0b, scaled background hazard between 0 and b.
 
 # Arguments
 
 - model: an `AbstractDEBOrganism`
-- pars: NamedTuple with parameters: g k v_Hb h_a S_G h_B0b ρ_N f. 
+- pars: `NamedTuple` with parameters: g k v_Hb h_a S_G h_B0b ρ_N f. 
     - `h_B0b`: scaled background hazard.
     - `f`: scalar with scaled reserve density at birth (usual default f = 1.0)
 
@@ -22,8 +19,8 @@ A `NamedTuple` with fields:
 
 TODO: make the math real latex
 - `S_b`: scalar with survival probability at birth
-- `q_b`: scalar with scaled acceleration at birth: q(b) / k_M^2
-- `h_Ab`: scalar scaled hazard at birth: h_A(b) / k_M
+- `q_b`: scalar with scaled acceleration at birth: `q(b) / k_M^2`
+- `h_Ab`: scalar scaled hazard at birth: `h_A(b) / k_M`
 - `τ_b`: scalar scaled age at birth
 - `τ_0b`: \\int_0^τ_b exp(-ρ_N * τ) S(τ) dτ
 - `u_E0`: scaled initial reserve
@@ -31,14 +28,16 @@ TODO: make the math real latex
 - `info`: boolean with success `true` or failure `false`
 
 # Remarks
-#
+
+Was `get_Sb` and `get_Sb_foetus`
+ 
 To unscale:
 
-- `q_b` by multiplying with kT_M^2,
-- `h_Ab` with kT_M
-- `τ_b` and τ_0b with 1/k_M
-- `l3_0b` with kT_M * L_m^3
-- `u_E_0b` with kT_M * {p_Am}*v^2/k_M^3/g^2
+- `q_b` by multiplying with `kT_M^2`
+- `h_Ab` with `kT_M`
+- `τ_b` and `τ_0b` with `1 / k_M`
+- `l3_0b` with `kT_M * L_m^3`
+- `u_E_0b` with `kT_M * {p_Am}*v^2/k_M^3/g^2`
 """
 function compute_survival_probability(at::Birth, model, p;
     abstol=1e-9, reltol=1e-9, kw...
