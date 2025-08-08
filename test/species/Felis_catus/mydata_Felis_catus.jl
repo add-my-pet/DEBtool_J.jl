@@ -13,17 +13,10 @@ EstimationData(;
     reproduction = 4/365u"d^-1",
     gestation = 65.0u"d",
     variate = (
-        Univariate(Time(u"d"), WetWeight(u"g"), "$(@__DIR__)/data/female_weight.csv"),
+        Univariate(Time(u"d"), Weighted(5.0, WetWeight(u"g")), "$(@__DIR__)/data/female_weight.csv"),
         # TODO wrap this as Male
-        # Univariate(Time(u"d"), Male(WetWeight(u"g")), "$(@__DIR__)/data/male_weight.csv"),
+        # Univariate(Time(u"d"), Weighted(5.0, Male(WetWeight(u"g"))), "$(@__DIR__)/data/male_weight.csv"),
     ),
 )
 
-## set weights for all real data
-# weights = defaultweights(data)
-# weights = merge(weights, (; pseudo=defaultpseudoweights()))
-# weights = merge(weights, (;
-    # tW_f = 5 .* tW_f,
-    # tW_m = 5 .* tW_m,
-    # TODO tp = 5 .* weights.tp,
-# ))
+# TODO tp = 5 .* weights.tp
