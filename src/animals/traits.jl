@@ -1,3 +1,4 @@
+# These are actually for NicheMap models
 
 abstract type AbstractShape end
 
@@ -12,7 +13,6 @@ struct Ellipse{S}
 end
 struct Lizard end
 struct Frog end
-
 
 abstract type AbstractMophology end
 

@@ -9,7 +9,7 @@ end
 
 # TODO: put parameters in objects so this isn't needed
 # ending params with _m is bad and has multiple meanings
-function compute_male_params(model::DEBOrganism, par)
+function compute_male_params(model::DEBAnimal, par)
     # TODO better detection here
     if haskey(par, :z_m)
         (; κ, z_m, p_M, w_E, w_V, v, E_G, k_M, κ, y_E_V, v_Hpm) = par
@@ -26,19 +26,50 @@ function compute_male_params(model::DEBOrganism, par)
 end
 
 # TODO
-# function compute_univariate(::Weights, at::Times, pars, Lw_i, Lw_b)
+# function compute_variate(::Weights, at::Time, pars, Lw_i, Lw_b)
 # end
-# function compute_univariate(::Weights, at::Lengths, pars, Lw_i, Lw_b)
+# function compute_variate(::Weights, at::Length, pars, Lw_i, Lw_b)
 # end
-# function compute_univariate(::ReprodRates, at::Temperatures, pars, Lw_i, Lw_b)
+# function compute_variate(::ReprodRates, at::Temperature, pars, Lw_i, Lw_b)
 # end
-compute_univariate(e::AbstractEstimator, o::DEBOrganism, u::Univariate, pars, lifestages_state, TC) =
-    compute_univariate(e, o, u.dependent, u.independent, pars, lifestages_state, TC)
-function compute_univariate(e::AbstractEstimator, o::DEBOrganism, dependent::Lengths, independent::Times, pars, lifestages_state, TC)
+compute_variate(e::AbstractEstimator, o::DEBAnimal, us::Tuple, pars, transition_state, TC) =
+    map(us) do u
+        compute_variate(e, o, u, pars, transition_state, TC)
+    end
+function compute_variate(e::AbstractEstimator, o::DEBAnimal, u::AtTemperature, pars, transition_state, TC_main)
+    TC_data = tempcorr(temperatureresponse(o), u.t)
+    compute_variate(e, o, u.x, pars, transition_state, TC_data)
+end
+compute_variate(e::AbstractEstimator, o::DEBAnimal, u::Univariate, pars, transition_state, TC) =
+    compute_variate(e, o, u.independent, u.dependent, pars, transition_state, TC)
+function compute_variate(e::AbstractEstimator, o::DEBAnimal, u::Multivariate, pars, transition_state, TC)
+    map(u.dependents) do d
+        compute_variate(e, o, u.independent, d, pars, transition_state, TC)
+    end
+end
+function compute_variate(e::AbstractEstimator, o::DEBAnimal, u::Multivariate{<:Temperature}, pars, transition_state, TC)
+    TCs = tempcorr(temperatureresponse(o), u.independent.val)
+    map(u.dependents) do d
+        compute_variate(e, o, u.independent, d, pars, transition_state, TC)
+    end
+end
+function compute_variate(e::AbstractEstimator, o::DEBAnimal, independent::Time, dependent::Length, pars, transition_state, TC)
     (; k_M, f, g) = pars
-    Lw_b = lifestages_state[Birth()].Lw
-    Lw_i = lifestages_state[Female(Ultimate())].Lw
+    Lw_b = transition_state[Birth()].Lw
+    Lw_i = transition_state[Ultimate()].Lw
     # TODO explain these equations
     rT_B = TC * k_M / 3 / (oneunit(f) + f / g)
-    return Lw_i .- (Lw_i .- Lw_b) .* exp.(-rT_B .* independent.val)
+    EWw = Lw_i .- (Lw_i .- Lw_b) .* exp.(-rT_B .* independent.val)
+    return EWw
+end
+
+function compute_variate(e::AbstractEstimator, o::DEBAnimal, independent::Time, dependent::WetWeight, pars, transition_state, TC)
+    (; f, k_M, L_m, v, ω) = pars
+    L_b = transition_state[Birth()].L # cm, length at birth, ultimate
+    L_i = transition_state[Ultimate()].L
+    # time-weight 
+    # f = f_tW TODO: how to allow a specific f for variate data
+    ir_B = 3 / k_M + 3 * f * L_m / v
+    rT_B = TC / ir_B     # d, 1/von Bert growth rate
+    return (L_i .- (L_i .- L_b) .* exp.(-rT_B .* independent.val)) .^ 3 .* (oneunit(f) + f * ω) # g, wet weight
 end

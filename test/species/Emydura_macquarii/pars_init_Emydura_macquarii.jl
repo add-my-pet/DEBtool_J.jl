@@ -1,5 +1,9 @@
+# TODO: get these from metadata somehow
+phylum = "Chordata"
+class = "Reptilia"
 
 par = (;
+    defaultchemistry(phylum, class)...,
     # reference parameter (not to be changed),
     T_ref = (20.0 + 273.15)u"K", # Param(20.0 + 273.15, units=u"K", label="Reference Temperature"),
 
@@ -29,14 +33,6 @@ par = (;
     # κ_X = Const(0.8, units=nothing, label="digestion efficiency of food to reserve"),
     # κ_P = Const(0.1, units=nothing, label="faecation efficiency of food to faeces"),
 
-    # TODO these should be objects in the model
-    DEFAULT_CHEMICAL_PARAMETERS...,
-    DEFAULT_CHEMICAL_POTENTIALS...,
-    DEFAULT_CHEMICAL_INDICES_FOR_WATER_ORGANICS...,
-    DEFAULT_CHEMICAL_POTENTIAL_OF_MINERALS...,
-    DEFAULT_CHEMICAL_INDICES_FOR_WATER_ORGANICS...,
-    DEFAULT_CHEMICAL_INDICES_FOR_MINERALS...,
-
     # other parameters
     #T_AL = Const(50000.0, units=u"K", label="low temp boundary"),
     #T_AH = Const(50000.0, units=u"K", label="high temp boundary"),
@@ -44,7 +40,7 @@ par = (;
     #T_H = Const(54.5 + 273.15, units=u"K", label="high Arrhenius temperature"),
 )
 
-organism = std_organism(;
+organism = std_animal(;
     temperatureresponse = strip(ArrheniusResponse(; par[(:T_ref, :T_A)]...)),
     lifecycle = LifeCycle(
         Embryo() => Birth(),

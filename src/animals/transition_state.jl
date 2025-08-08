@@ -1,12 +1,13 @@
-# These methods dig down into the LifeStages object,
-# and calculate the state variables at each transition - e.g. birth or puberty,
-# for fixed temperatures and at-liberty feeding.
-#
-# They may also calculate males and females separately where specified.
-#
-# Reduce over all lifestages computing basic variables
-# The output state of each transition is used as input state for the next
-compute_transition_state(e::AbstractEstimator, o::DEBOrganism{<:Standard}, pars) =
+"""
+
+
+
+These methods calculate the state variables at each transition, 
+e.g. birth or puberty, for fixed temperatures and at-liberty feeding.
+
+They may also calculate females and males separately when specified.
+"""
+compute_transition_state(e::AbstractEstimator, o::DEBAnimal{<:Standard}, pars) =
     compute_transition_state(e, lifecycle(o), pars)
 function compute_transition_state(e::AbstractEstimator, lifecycle::LifeCycle, pars)
     init = (nothing => Conception(),)
@@ -36,33 +37,34 @@ function compute_transition_state(t::Male, e::AbstractEstimator, pars, ts::Trans
 end
 # This is the actual transition state code!
 function compute_transition_state(at::Birth, e::AbstractEstimator, pars, ::Transitions, previous)
-    (; L_m, del_M, d_V, k_M, ω, f) = pars
+    (; L_m, del_M, k_M, ω, f) = pars
 
     (; τ, l, info) = scaled_age(at, pars, f)
     L = L_m * l                       # cm, structural length at birth at f
     Lw = L / del_M
-    Ww = wet_weight(at, L, d_V, f, ω)
+    Ww = wet_weight(at, L, f, ω)
     a = τ / k_M # TODO is this correct
     Birth((; l, L, Lw, Ww, τ, a))
 end
 function compute_transition_state(at::Weaning, e::AbstractEstimator, pars, ::Transitions, previous)
-    (; L_m, del_M, d_V, k_M, ω, f) = pars
+    (; L_m, del_M, k_M, ω, f) = pars
 
     L = L_m * l                       # cm, structural length at birth at f
     Lw = L / del_M
-    Ww = wet_weight(at, L, d_V, f, ω)
+    Ww = wet_weight(at, L, f, ω)
     a = τ / k_M # TODO is this correct
     Weaning((; l, L, Lw, Ww, τ, a))
 end
-function compute_transition_state(at::Puberty, e::AbstractEstimator, pars, ::Transitions, previous)
-    (; L_m, del_M, d_V, k_M, ω, l_T, g, f) = pars
+function compute_transition_state(at::Puberty, e::AbstractEstimator, pars, trans::Transitions, previous)
+    (; L_m, del_M, k_M, ω, l_T, g, f) = pars
+    birth = trans[Birth()]
 
-    # TODO lean this up
+    # TODO clean this up
     ρ_B = 1 / (3 * (1 + f / g))
     l_i = f - l_T
-    l_d = l_i - previous.val.l
+    l_d = l_i - birth.l
 
-    l, info = compute_length(at, pars, previous.val.l)
+    l, info = compute_length(at, pars, birth.l)
     τ = previous.val.τ + log(l_d / (l_i - l)) / ρ_B
 
     # Check if τ is real and positive
@@ -70,131 +72,258 @@ function compute_transition_state(at::Puberty, e::AbstractEstimator, pars, ::Tra
         info = false
     end
 
-    t = (τ - previous.val.τ) / k_M    # d, time since birth at puberty
+    t = (τ - birth.τ) / k_M    # d, time since birth at puberty
     L = L_m * l                       # cm, structural length at puberty
     Lw = L / del_M                    # cm, plastron length at puberty
-    Ww = wet_weight(at, L, d_V, f, ω)
+    Ww = wet_weight(at, L, f, ω)
     a = τ / k_M # TODO is this correct
     return Puberty((; l, L, Lw, Ww, τ, t, a))
 end
 function compute_transition_state(at::Ultimate, e::AbstractEstimator, pars, trans::Transitions, previous)
-    (; f, l_T, L_m, del_M, d_V, ω) = pars
+    (; f, l_T, L_m, del_M, ω) = pars
     l = f - l_T                    # -, scaled ultimate length
     L = L_m * l                    # cm, ultimate structural length at f
     # TODO make these calculations optional based on data?. 
     Lw = L / del_M                 # cm, ultimate plastron length
-    Ww = wet_weight(at, L, d_V, f, ω)
+    Ww = wet_weight(at, L, f, ω)
     l_b = trans[Birth()].l
     a = compute_lifespan(e, pars, l_b)
     return Ultimate((; l, L, Lw, Ww, a))
 end
 
-wet_weight(::Union{Sex,AbstractTransition}, L, d_V, f, ω) =
-    L^3 * d_V * (oneunit(f) + f * ω) # transition wet weight
+wet_weight(::Union{Sex,AbstractTransition}, L, f, ω) = begin
+    L^3 * (oneunit(f) + f * ω) # transition wet weight
+end
 
 
 # Just use an ode for the whole thing
-function compute_transition_state(e::AbstractEstimator, o::DEBOrganism{<:StandardFoetal}, pars)
-    # created 2019/02/04 by Bas Kooijman, modified 2023/08/26
-
-    ## Syntax
-    # varargout = <../get_tx.m *get_tx*> (p, f, tel_b, tau)
-
-    ## Description
-    # Obtains scaled age and length at puberty, weaning, birth for foetal development. 
-    # An extra optional parameter, the stress coefficient for foetal development can modify the rate of development from fast 
-    #    (default, and a large stress coefficient of 1e8) to slow (value 1 gives von Bertalanffy growth of the same rate as post-natal development). 
-    # Multiply the result with the somatic maintenance rate coefficient to arrive at age at puberty, weaning and birth. 
-    #
-    # Input
-    #
-    # * p: 6 or 7 -vector with parameters: g, k, l_T, v_Hb, v_Hx, v_Hp, s_F
-    # * f: optional (default f = 1)
-    #
-    #      - scalar with scaled functional response for period bi
-    #      - 2-vector with scaled functional responses for periods bx and xi
-    #      - (n,2)-array with scaled time since birth and functional responses in the columns
-    #
-    # * tel_b: optional scalar with scaled length at birth
-    #
-    #      or 3-vector with scaled age at birth, reserve density and length at 0
-    #
-    # * tau: optional n-vector with scaled times since birth
-    #
-    # Output
-    #
-    # * tvel: optional (n,4)-array with scaled time-since-birth, maturity, reserve density and length
-    # * tau_p: scaled age at puberty \tau_p = a_p k_M
-    # * tau_x: scaled age at puberty \tau_x = a_x k_M
-    # * tau_b: scaled age at birth \tau_b = a_b k_M
-    # * lp: scaled length at puberty
-    # * lx: scaled length at weaning
-    # * lb: scaled length at birth
-    # * info: indicator equals 1 if successful, 0 otherwise
-
-    ## Remarks
-    # uses integration over scaled age with event detection; this function replaces get_tx_old 
-
-    ## Examples
-    # See predict_Moschus_berezovskii for a gradual change from f_bx to f_xi;
-    # and predict_Moschiola_meminna for an instantaneous change
-
-    # unpack pars
-
-    (   g,    # -, energy investment ratio
+function compute_transition_state(e::AbstractEstimator, o::DEBAnimal{<:StandardFoetalDiapause}, pars::NamedTuple)
+    (;  g,    # -, energy investment ratio
         k,    # -, k_J/ k_M, ratio of maturity and somatic maintenance rate coeff
         l_T,  # -, scaled heating length
         v_Hb, # v_H^b = U_H^b g^2 kM^3/ (1 - kap) v^2; U_B^b = M_H^b/ {J_EAm}
         v_Hx, # v_H^x = U_H^x g^2 kM^3/ (1 - kap) v^2; U_B^x = M_H^x/ {J_EAm}
         v_Hp, # v_H^p = U_H^p g^2 kM^3/ (1 - kap) v^2; U_B^p = M_H^p/ {J_EAm}
         s_F,
+        k_M,
+        del_M,
+        L_m,
+        ω,
         f,
-    ) = p
+    ) = pars
+    state_template = (v_H=1e-20, l=1e-20)
+    # u0 = SVector(f)
+    # Define the mode-specific callback function. This controls
+    # how the solver handles specific lifecycle events.
 
-    f_0b = 1; # embryo development is independent of nutritional state of the mother
-    
-    # options = odeset('Events', @event_b, 'AbsTol',1e-8, 'RelTol',1e-8);   
+    f_0b = 1.0 # embryo development is independent of nutritional state of the mother
 
-    # [~, ~, tau_b, vl_b] = ode45(@dget_lb, [0, 1e10], [1e-20, 1e-20], options, f_0b, s_F, g, k, v_Hb)
-    l_b = vl_b(1,2);
-    vel_b = [v_Hb, f_0b, l_b]
+    embryo_env = ConstantEnvironment(;
+        functionalresponse = f_0b, # getattime(mbe.environment, :functionalresponse, t),
+    )
+    embryo_mbe = MetabolismBehaviorEnvironment(o, NullBehavior(), embryo_env, pars)
+    tspan = (0.0, 1e10)
+    birth_action(integrator) = terminate!(integrator)
+    birth_event = v_transition_event(Birth(), o, state_template)
+    birth_callback = ContinuousCallback(birth_event, birth_action)
+    solver = Tsit5()
+    sr = StateReconstructor(dget_length_birth, state_template, nothing)
+    state_init = SVector(sr)
+
+    # Define the ODE to solve with function, initial state,
+    # timespan and parameters
+    problem = ODEProblem(sr, state_init, tspan, embryo_mbe)
+
+    # solve the ODE, and return the solution object
+    sol = solve(problem, solver;
+        save_everystep=false, save_start=false, save_end=false,
+        callback=ContinuousCallback(birth_event, birth_action),
+        abstol=1e-8,
+        reltol=1e-8,
+    )
+    τ_b = sol.t[1]
+    l_b = to_obj(sr, sol[1]).l
+    # [~, ~, τ_b, vl_b] = ode45(@dget_lb, [0, 1e10], [1e-20, 1e-20], options, f_0b, s_F, g, k, v_Hb)
 
     # juvenile & adult
-    # options = odeset('Events', event_xp, abstol=1e-9, reltol=1e-9) 
-    # [tau, vel, tau_xp, vel_xp] = ode45(dget_lx, [-1e-10, tau], vel_b, options, info_tau, f, g, k, l_T, v_Hx, v_Hp);
 
-    if isempty(tau_xp) 
-        tau_x = []; tau_p = []; l_x = []; l_p = [];
-    elseif length(tau_xp) == 1
-        tau_x = tau_b + tau_xp[1]
-        tau_p = []
-        l_x = vel_xp[1, 3]
-        l_p = []
-    else
-        tau_x = tau_b + tau_xp[1]
-        tau_p = tau_b + tau_xp[2]
-        l_x = vel_xp[1, 3]
-        l_p = vel_xp[2, 3]
-    end
+    # l_b = vl_b[1, 2];
+    state_b = (; v_H=v_Hb, e=f_0b, l=l_b)
+    sr = StateReconstructor(dget_length_weaning_puberty, state_b, nothing)
+    state_init = SVector(sr)
+    τ = 1e20 
+    tspan = (-1e-10, τ)
+    # options = odeset('Events', event_xp, abstol=1e-9, reltol=1e-9)
+    # [τ, vel, τ_xp, vel_xp] = ode45(dget_lx, [-1e-10, τ], vel_b, options, info_τ, f, g, k, l_T, v_Hx, v_Hp);
+    weaning_action(integrator) = nothing
+    puberty_action(integrator) = terminate!(integrator)
+    weaning_event = v_transition_event(Weaning(), o, state_b)
+    puberty_event = v_transition_event(Puberty(), o, state_b)
+    callback = CallbackSet(
+        ContinuousCallback(weaning_event, weaning_action),
+        ContinuousCallback(puberty_event, puberty_action),
+    )
+    weaning_puberty_mbe = MetabolismBehaviorEnvironment(o, NullBehavior(), embryo_env, pars)
+    problem = ODEProblem(sr, state_init, tspan, weaning_puberty_mbe)
+    sol = solve(problem, solver; 
+        save_everystep=false, save_start=false, save_end=false,
+        callback, 
+        abstol=1e-9, reltol=1e-9
+    )
 
-    tvel = [tau, vel]
-    tvel[1, :] = []
-    info = 1
+    # if isempty(τ_xp)
+    #     τ_x = []; τ_p = []; l_x = []; l_p = [];
+    # elseif length(τ_xp) == 1
+    #     τ_x = τ_b + τ_xp[1]
+    #     τ_p = []
+    #     l_x = vel_xp[1, 3]
+    #     l_p = []
+    # else
+    #     τ_x = τ_b + τ_xp[1]
+    #     τ_p = τ_b + τ_xp[2]
+    #     l_x = vel_xp[1, 3]
+    #     l_p = vel_xp[2, 3]
+    # end
 
-    if any(!isreal, (tau_b, tau_x, tau_p)) || any(<(zero(tau_b)), (tau_b, tau_x, tau_p)) # tb, tx and tp must be real and positive
-        info = 0
-    end
+    # tvel = [τ, vel]
+    # tvel[1, :] = []
+    # info = 1
 
-    tau = (tau_b, tau_x, tau_p)
+    # if any(!isreal, (τ_b, τ_x, τ_p)) || any(<(zero(τ_b)), (τ_b, τ_x, τ_p)) # tb, tx and tp must be real and positive
+    #     info = 0
+    # end
+    l_x = to_obj(sr, sol[1]).l
+    l_p = to_obj(sr, sol[2]).l
+    τ_x = sol.t[1]
+    τ_p = sol.t[2]
+    τ = (τ_b, τ_x, τ_p)
     l = (l_b, l_x, l_p)
     transitions = (Birth(), Weaning(), Puberty())
-    stages = map(transitions, tau, l) do t, τ, l
-        t = (τ - tau_b) / k_M             # d, time since birth at puberty
+    transition_state = map(transitions, τ, l) do at, τ, l
+        t = (τ - τ_b) / k_M             # d, time since birth at puberty
         L = L_m * l                       # cm, structural length at puberty
         Lw = L / del_M                    # cm, plastron length at puberty
-        Ww = wet_weight(at, L, d_V, f, ω)
+        Ww = wet_weight(at, L, f, ω)
         a = τ / k_M # TODO is this correct
-        rebuild(t, (; l, L, Lw, Ww, τ, a))
+        rebuild(at, (; t, l, L, Lw, Ww, τ, a))
     end
-    return LifeStages(stages)
+    ultimate = compute_transition_state(Ultimate(), e, pars, Transitions(transition_state), last(transition_state))
+    return Transitions((transition_state..., ultimate))
 end
+
+
+function dget_length_birth(u, mbe, τ) # τ: scaled time since start development
+    (; v_H, l) = u
+    (; s_F, g, k, v_Hb, f) = mbe.par
+    f = getattime(mbe.environment, :functionalresponse, τ)
+
+    l_i = s_F * f # -, scaled ultimate length
+    f = s_F * f  # -, scaled functional response
+
+    dl = (g / 3) * (l_i - l) / (f + g)  # d/d τ l
+    dv_H = 3 * l^2 * dl + l^3 - k * v_H # d/d τ v_H
+    return (; v_H=dv_H, l=dl)
+end
+
+function dget_length_weaning_puberty(u, mbe, τ)
+    (; s_F, g, k, v_Hb, l_T, #= tf, =#) = mbe.par
+    # τ: scaled time since birth
+    (; v_H, e, l) = u
+    f = getattime(mbe.environment, :functionalresponse, τ)
+
+    # if size(tf, 1) == 1 && size(tf,2)==1 # f constant in period bi
+        # f = tf[1];
+        # e = f
+    # elseif size(tf,1)==1 && size(tf,2)==2 # f constant in periods bx and xi
+        # if v_H < v_Hx; f = tf(1); else f = tf(2); end; e = f;
+    # else # f is varying
+        # f = spline1(τ,tf);
+    # end
+
+    ρ = g * (e / l - 1 - l_T / l) / (e + g); # -, spec growth rate
+
+    de = (f - e) * g / l; # d/d τ e
+    dl = l * ρ / 3; # -, d/d τ l
+    dv_H = e * l^2 * (l + g) / (e + g) - k * v_H; # -, d/d τ v_H
+
+    return (; v_H=dv_H, e=de, l=dl)
+end
+
+
+v_transition_event(::Birth, model, template) = CallbackReconstructor(template) do u, t, i
+    i.p.par.v_Hb - u.v_H
+end
+v_transition_event(::Puberty, model, template) = CallbackReconstructor(template) do u, t, i
+    i.p.par.v_Hp - u.v_H
+end
+v_transition_event(::Metamorphosis, model, template) = CallbackReconstructor(template) do u, t, i
+    i.p.par.v_Hj - u.v_H
+end
+v_transition_event(::Weaning, model, template) = CallbackReconstructor(template) do u, t, i
+    i.p.par.v_Hx - u.v_H
+end
+
+
+# TODO this is all kind of pointless, why not just one ODE
+# function compute_transition_state(e::AbstractEstimator, o::DEBAnimal{<:Holometabolous{NoFeeding}}, pars::NamedTuple)
+#     (;
+#      g,      # -, energy investment ratio
+#      k,      # -, k_J/ k_M, ratio of maturity and somatic maintenance rate coeff
+#      v_Hb,   # -, v_H^b = U_H^b g^2 kM^3/ (1 - kap) v^2; U_H^b = E_H^b/ {p_Am}: birth (embryo-larva transition)
+#      v_He,   # -, v_H^e = U_H^e g^2 kM^3/ (1 - kap) v^2; U_H^e = E_H^e/ {p_Am}: emergence (pupa-imago transition)
+#      s_j,    # -, [E_R^j]/ [E_R^ref] scaled reprod buffer density at pupation
+#      kap,    # -, allocation fraction to soma of pupa
+#      kap_V,  # -, conversion efficiency from larval reserve to larval structure, back to imago reserve
+#      f,
+#     )
+#     #  [E_R^ref] = (1 - kap) [E_m] g (k_E + k_M)/ (k_E - g k_M) is max reprod buffer density
+
+#     # from birth to pupation
+#     [tau_b, l_b, info] = get_tb([g k v_Hb], f)  # scaled age and length at birth
+#     rho_j = (f / l_b - 1) / (f / g + 1)          # scaled specific growth rate of larva
+#     v_Rj = s_j * (1 + l_b / g) / (1 - l_b)       # scaled reprod buffer density at pupation
+
+#     p = (; f, g, l_b, k, v_Hb, v_Rj, rho_j
+#     tau_j = nmfzero(fnget_tj_hex, 1, p)     # scaled time since birth at pupation
+#     l_j = l_b * exp(tau_j * rho_j / 3)          # scaled length at pubation
+#     tau_j = tau_b + tau_j                       # -, scaled age at pupation
+#     sM = l_j / l_b                              # -, acceleration factor
+
+#     # from pupation to emergence; 
+#     # instantaneous conversion from larval structure to pupal reserve
+#     u_Ej = l_j^3 * (kap * kap_V + f / g)        # -, scaled reserve at pupation
+
+#     # options = odeset("Events", emergence, 'NonNegative',[1; 1; 1]);
+#     [t luEvH tau_e luEvH_e] = ode45(dget_tj_hex, [0, 300], [0, u_Ej, 0], options, sM, g, k, v_He)
+#     tau_e = tau_j + tau_e; # -, scaled age at emergence 
+#     l_e = luEvH[end, 1];    # -, scaled length at emergence
+#     u_Ee = luEvH[end, 2];   # -, scaled reserve at emergence
+# end
+
+# # subfunctions
+
+# function fnget_tj_hex(tau_j, par)
+#     (; f, g, l_b, k, v_Hb, v_Rj, rho_j) = par
+#     ert = exp(-tau_j * rho_j)
+#     return v_Rj - f / g * (g + l_b) / (f - l_b) * (1 - ert) + tau_j * k * v_Hb * ert / l_b^3
+# end
+
+# function [value,isterminal,direction] = emergence(u, t, par)
+#     value = v_He - luEvH(3)
+#     isterminal = 1
+#     direction = 0
+# end
+
+# function dget_tj_hex(u, t, par)
+#     (; l, u_E, v_H) = u
+#     l2 = l * l
+#     l3 = l * l2
+#     l4 = l * l3
+#     u_E = max(1e-6, u_E)
+
+#     dl = (g * sM * u_E - l4) / (u_E + l3) / 3
+#     du_E = -u_E * l2 * (g * sM + l) / (u_E + l3)
+#     dv_H = -du_E - k * v_H
+
+#     (; dl, du_E, dv_H)
+# end

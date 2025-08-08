@@ -58,32 +58,35 @@ hep() = Hemimetabolous(NoFeeding())
 hex() = Holometabolous(NoFeeding())
 hax() = Holometabolous(Feeding())
 
-"""
-    DEBOrganism
+abstract type AbstractDEBOrganism end
 
-Organism object specifies lifestages, temperature response,
-reproduction and other organism traits and structure.
+has(o::AbstractDEBOrganism, t::Union{AbstractTransition,AbstractLifeStage,Sex}) = has(lifecycle(o), t) 
+temperatureresponse(model::AbstractDEBOrganism) = model.temperatureresponse
+
 """
-@kwdef struct DEBOrganism{M<:Mode,L<:AbstractLifeSequence,TR<:AbstractTemperatureResponse}
+    DEBAnimal
+
+Animal object specifies lifestages, temperature response,
+reproduction and other animal traits and structure.
+"""
+@kwdef struct DEBAnimal{M<:Mode,L<:AbstractLifeSequence,TR<:AbstractTemperatureResponse} <: AbstractDEBOrganism
     mode::M
-    lifecycle::L # TODO make this lifecycle ?
+    lifecycle::L
     temperatureresponse::TR
     # structures::M
     # reserves::E
     # chemicalcomposition::CC
 end
 
-mode(model::DEBOrganism) = model.mode
-lifecycle(model::DEBOrganism) = model.lifecycle
-temperatureresponse(model::DEBOrganism) = model.temperatureresponse
-reproduction(model::DEBOrganism) = model.reproduction
-has(o::DEBOrganism, t::Union{AbstractTransition,AbstractLifeStage,Sex}) = has(lifecycle(o), t) 
-# chemicalcomposition(model::DEBOrganism) = model.chemicalcomposition
-# structures(model::DEBOrganism) = model.structures
-# reserves(model::DEBOrganism) = model.reserves
+mode(model::DEBAnimal) = model.mode
+lifecycle(model::DEBAnimal) = model.lifecycle
+# reproduction(model::DEBAnimal) = model.reproduction
+# chemicalcomposition(model::DEBAnimal) = model.chemicalcomposition
+# structures(model::DEBAnimal) = model.structures
+# reserves(model::DEBAnimal) = model.reserves
 
-# Define organism constructors for model types
-std_organism(;
+# Define animal constructors for model types
+std_animal(;
     temperatureresponse = Arrhenius1parTemperatureResponse(),
     lifecycle=LifeCycle(
         Embryo() => Birth(),
@@ -91,8 +94,8 @@ std_organism(;
         Adult() => Ultimate(),
     ),
     kw...
-) = DEBOrganism(; lifecycle, temperatureresponse, kw..., mode=std())
-stf_organism(;
+) = DEBAnimal(; lifecycle, temperatureresponse, kw..., mode=std())
+stf_animal(;
     temperatureresponse = Arrhenius1parTemperatureResponse(),
     lifecycle=LifeCycle(
         Foetus() => Birth(),
@@ -100,8 +103,8 @@ stf_organism(;
         Adult() => Ultimate(),
     ),
     kw...
-) = DEBOrganism(; lifecycle, temperatureresponse, kw..., mode=stf())
-stx_organism(;
+) = DEBAnimal(; lifecycle, temperatureresponse, kw..., mode=stf())
+stx_animal(;
     temperatureresponse = Arrhenius1parTemperatureResponse(),
     lifecycle=LifeCycle(
         Foetus() => Birth(),
@@ -110,8 +113,8 @@ stx_organism(;
         Adult() => Ultimate(),
     ),
     kw...
-) = DEBOrganism(; lifecycle, temperatureresponse, kw..., mode=stx())
-ssj_organism(;
+) = DEBAnimal(; lifecycle, temperatureresponse, kw..., mode=stx())
+ssj_animal(;
     temperatureresponse = Arrhenius1parTemperatureResponse(),
     lifecycle=LifeCycle(
         Embryo() => Birth(),
@@ -119,8 +122,8 @@ ssj_organism(;
         Adult() => Ultimate(),
     ),
     kw...
-) = DEBOrganism(; lifecycle, temperatureresponse, kw..., mode=std())
-sbp_organism(; 
+) = DEBAnimal(; lifecycle, temperatureresponse, kw..., mode=std())
+sbp_animal(; 
     temperatureresponse = Arrhenius1parTemperatureResponse(),
     lifecycle=LifeCycle(
         Embryo() => Birth(),
@@ -128,23 +131,22 @@ sbp_organism(;
         Adult(NonFeeding()) => Ultimate(),
     ),
     kw...
-) = DEBOrganism(; lifecycle, temperatureresponse, kw..., mode=stx())
+) = DEBAnimal(; lifecycle, temperatureresponse, kw..., mode=stx())
 # TODO: define lifecycle
-abj_organism(; kw...) = DEBOrganism(; kw..., mode=abj())
-abp_organism(; kw...) = DEBOrganism(; kw..., mode=abp())
-asj_organism(; kw...) = DEBOrganism(; kw..., mode=asj())
-hax_organism(; kw...) = DEBOrganism(; kw..., mode=hax())
-hex_organism(N::Int; kw...) = hex_organism(Val{N}(); kw...)
-hex_organism(::Val{N}; 
+abj_animal(; kw...) = DEBAnimal(; kw..., mode=abj())
+abp_animal(; kw...) = DEBAnimal(; kw..., mode=abp())
+asj_animal(; kw...) = DEBAnimal(; kw..., mode=asj())
+hax_animal(; kw...) = DEBAnimal(; kw..., mode=hax())
+hex_animal(N::Int; kw...) = hex_animal(Val{N}(); kw...)
+hex_animal(::Val{N}; 
     lifecycle=LifeCycle(
         Embryo() => Birth(),
         ntuple(Val{N}()) do n
             Instar{n}() => Moult{n}()
         end...,
         Juvenile() => Metamorphosis(),
-        Imago(NonFeeding()) => Ultimate(),
+        Imago(NoFeeding()) => Ultimate(),
     ),
     kw...
-) where N = DEBOrganism(; kw..., mode=hex())
-hep_organism(; kw...) = DEBOrganism(; kw..., mode=hep())
-
+) where N = DEBAnimal(; kw..., lifecycle, mode=hex())
+hep_animal(; kw...) = DEBAnimal(; kw..., mode=hep())

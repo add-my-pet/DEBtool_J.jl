@@ -22,7 +22,7 @@ end
     T_AH::TAH
 end
 
-struct LowAndHighTorporResponse{TR,TA,TL,TAL,TH,TAH} <: AbstractTemperatureResponse
+@kwdef struct LowAndHighTorporResponse{TR,TA,TL,TAL,TH,TAH} <: AbstractTemperatureResponse
     T_ref::TR
     T_A::TA
     T_L::TL
@@ -57,7 +57,7 @@ tempcorr(model::AbstractTemperatureResponse, e::AbstractEnvironment) =
 # Most data is not temperature corrected
 tempcorr(model::AbstractTemperatureResponse, d::Data) = d
 # Temperature data needs correction
-tempcorr(model::AbstractTemperatureResponse, d::Temperatures) = 
+tempcorr(model::AbstractTemperatureResponse, d::Temperature) = 
     tempcorr(model, d.val)
 tempcorr(model::AbstractTemperatureResponse, T::AbstractArray) = 
     tempcorr.((model,), T)

@@ -48,7 +48,7 @@ abstract type AbstractEstimator end
 Estimates parameter values for a DEB model.
 
 - `estimator`: parameter estimation method.
-- `model`: DEB organism model definition.
+- `model`: DEB animal model definition.
 - `params`: model parameter `NamedTuple`. May be integrated into `model` in future iterations.
 - `data`: `NamedTuple` of data to predict with the model.
 """
@@ -78,7 +78,17 @@ The standard DEBtool parameter estimator.
     verbose::Bool = true
 end
 
-function estimate(estimator::Estimator, model, par, speciesdata::NamedTuple)
+# struct EstimationContext{O,P<:NamedTuple,D<:AbstractEstimationData,W,T}
+#     organism::O
+#     par::P
+#     data::D
+#     weights::W
+#     temp::T
+# end
+
+# TODO make context an object...
+estimate(estimator::Estimator, c::NamedTuple) = estimate(estimator, c.organism, c.par, c.data)
+function estimate(estimator::Estimator, model, par, speciesdata)
     (; data, weights) = speciesdata
 
     # Precalculate data means and weights

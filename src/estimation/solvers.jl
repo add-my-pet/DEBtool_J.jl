@@ -261,7 +261,7 @@ end
 
 const SELECT = Union{Number,AbstractArray,AtTemperature,Univariate}
 
-function _combine(xs::Union{Tuple,NamedTuple}, refs::NamedTuple)
+function _combine(xs::EstimationData, refs::EstimationData)
     map(Flatten.flatten(xs, SELECT), Flatten.flatten(refs, SELECT)) do x, ref
         _combine(x, ref)
     end |> Flatten.flatten
@@ -270,13 +270,13 @@ _combine(x::Number, ref::AbstractArray) = map(_ -> x, ref)
 _combine(x::AbstractArray, ref::AbstractArray) = x
 _combine(x::Number, ref::Number) = x
 _combine(x::Pair, ref::Pair) = x
-_combine(x::AtTemperature, ref::AtTemperature) = _combine(only(Flatten.flatten(x.x, SELECT)), only(Flatten.flatten(x.x, SELECT)))
+_combine(x::AtTemperature, ref::AtTemperature) = _combine(only(Flatten.flatten(x.val, SELECT)), only(Flatten.flatten(x.val, SELECT)))
 _combine(x::Univariate, ref::Univariate) = _combine(only(Flatten.flatten(x.dependent, SELECT)), only(Flatten.flatten(ref.dependent, SELECT)))
-_combine(x::SVector, ref::Univariate) = _combine(x, only(Flatten.flatten(ref.dependent, SELECT)))
-_combine(x::SVector, ref::AtTemperature) = _combine(x, ref.x)
-_combine(x::Number, ref::AtTemperature) = _combine(x, ref.x)
+_combine(x::AbstractArray, ref::Univariate) = _combine(x, only(Flatten.flatten(ref.dependent, SELECT)))
+_combine(x::AbstractArray, ref::AtTemperature) = _combine(x, ref.val)
+_combine(x::Number, ref::AtTemperature) = _combine(x, ref.val)
 
-function _mean(xs::NamedTuple, refs::NamedTuple)
+function _mean(xs::EstimationData, refs::EstimationData)
     map(Flatten.flatten(xs, SELECT), Flatten.flatten(refs, SELECT)) do x, ref
         _mean(x, ref)
     end |> Flatten.flatten
@@ -284,11 +284,11 @@ end
 _mean(x::Number, ref::AbstractArray) = map(_ -> x, ref)
 _mean(x::AbstractArray, ref::AbstractArray) = (m = mean(x); map(_ -> m, ref))
 _mean(x::Number, ref::Number) = x * 1.0
-_mean(x::AtTemperature, ref::AtTemperature) = _mean(only(Flatten.flatten(x.x, SELECT)), only(Flatten.flatten(ref.x, SELECT)))
+_mean(x::AtTemperature, ref::AtTemperature) = _mean(only(Flatten.flatten(x.val, SELECT)), only(Flatten.flatten(ref.val, SELECT)))
 _mean(x::Univariate, ref::Univariate) = _mean(only(Flatten.flatten(x.dependent, SELECT)), only(Flatten.flatten(ref.dependent, SELECT)))
-_mean(x::SVector, ref::Univariate) = _mean(x, only(Flatten.flatten(ref.dependent, SELECT)))
-_mean(x::SVector, ref::AtTemperature) = _mean(x, only(Flatten.flatten(ref.x, SELECT)))
-_mean(x::Number, ref::AtTemperature) = _mean(x, only(Flatten.flatten(ref.x, SELECT)))
+_mean(x::AbstractArray, ref::Univariate) = _mean(x, only(Flatten.flatten(ref.dependent, SELECT)))
+_mean(x::AbstractArray, ref::AtTemperature) = _mean(x, only(Flatten.flatten(ref.val, SELECT)))
+_mean(x::Number, ref::AtTemperature) = _mean(x, only(Flatten.flatten(ref.val, SELECT)))
 
 function maybe_objective(objective, filter, loss, qvec, np1, fv)
     f_test, flag = filter(qvec)
