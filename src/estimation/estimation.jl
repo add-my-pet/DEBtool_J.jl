@@ -88,22 +88,21 @@ end
 
 # TODO make context an object...
 estimate(estimator::Estimator, c::NamedTuple) = estimate(estimator, c.organism, c.par, c.data)
-function estimate(estimator::Estimator, model, par, speciesdata)
-    (; data, weights) = speciesdata
+function estimate(estimator::Estimator, model, par, data::EstimationData)
 
     # Precalculate data means and weights
-    meandatavec = struct2means(data, data)
-    weightsvec = struct2means(weights, data)
-    return _estimate_inner(estimator, model, par, speciesdata, meandatavec, weightsvec)
+    meandatavec = struct2means(data.data, data.data)
+    weightsvec = struct2means(data.weights, data.data)
+    return _estimate_inner(estimator, model, par, data, meandatavec, weightsvec)
 end
 
 # Function barrier so local functions are type stable
-function _estimate_inner(e::Estimator, model, par::P, speciesdata, meandatavec, weightsvec) where P
-    (; data, temp) = speciesdata
+function _estimate_inner(e::Estimator, model, par::P, estimationdata, meandatavec, weightsvec) where P
+    (; data, temperature) = estimationdata
 
     function objective(parvec)
         par1 = stripparams(ModelParameters.update(par, parvec)::P)
-        (; predictions, info) = predict(e, model, par1, data, temp)
+        (; predictions, info) = predict(e, model, par1, data, temperature)
         prdData1 = predict_pseudodata(model, par1, data, predictions)
         return prdData1, info
     end

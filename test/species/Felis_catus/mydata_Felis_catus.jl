@@ -1,4 +1,5 @@
-data = EstimationData(;
+EstimationData(;
+    temperature = u"K"(38.1u"°C"),
     timesincebirth=(
         Weaning(56.0u"d"),
         Puberty(239.0u"d"),
@@ -19,13 +20,10 @@ data = EstimationData(;
 )
 
 ## set weights for all real data
-weights = defaultweights(data)
-weights = merge(weights, (; pseudo=defaultpseudoweights()))
+# weights = defaultweights(data)
+# weights = merge(weights, (; pseudo=defaultpseudoweights()))
 # weights = merge(weights, (;
     # tW_f = 5 .* tW_f,
     # tW_m = 5 .* tW_m,
     # TODO tp = 5 .* weights.tp,
 # ))
-temp = u"K"(38.1u"°C")
-
-(; data, temp, weights)

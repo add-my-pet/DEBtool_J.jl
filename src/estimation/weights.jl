@@ -13,20 +13,35 @@
 # Output: 
 #
 # * weight : structure with added weights from data 
-defaultweights(data) = Flatten.modify(_defaultweight, data, SELECT)
+defaultweights(data) = Flatten.modify(_defaultweight, data, Union{SELECT,Weighted})
 
-function _defaultweight(d::AbstractArray)
-    nvar = size(d, 2)
-    if nvar == 1 # uni- or bi-variate data
-        N = size(d, 1)
-        SVector{N}(ones(N)) / N / nvar
-    else # tri-variate data
-        error("Multiple columns of data not yet tested")
-        # N = size(getproperty(data, nm[i]), 1)
-        # nvar = size(getproperty(data, nm[i]), 3)
-        # weight = merge(weight, (nm[i] => ones(N, nvar, npage) / N / nvar / npage,))
+const DEFAULT_NUMBER_WEIGHT = 1.0
+
+# Weighted have pre-specified weights
+function _defaultweight(d::Weighted)
+    v = inner_val(d)
+    if v isa Number
+        return d.weight
+    elseif v isa AbstractArray
+        w = d.weight / length(v)
+        return map(_ -> w, v)
+    else
+        error("$v is not a valid type to add weight to")
     end
 end
-_defaultweight(d::Univariate) = _defaultweight(d.dependent.val)
+_defaultweight(d::Data) = _defaultweight(d.val)
+_defaultweight(d::Univariate) = _defaultweight(d.dependent)
+_defaultweight(d::Multivariate) = map(_defaultweight, d.dependents)
 _defaultweight(d::AtTemperature) = _defaultweight(d.val)
-_defaultweight(d::Number) = 1.0
+_defaultweight(d::AbstractLifeStage) = _defaultweight(d.val)
+_defaultweight(d::AbstractTransition) = _defaultweight(d.val)
+
+# Numbers have a default weight
+_defaultweight(d::Number) = DEFAULT_NUMBER_WEIGHT
+# Vectors the weight is divided by the length.
+# TODO: this is an opinionated approach, there should be other options
+function _defaultweight(d::AbstractVector)
+    N = length(d)
+    weight = DEFAULT_NUMBER_WEIGHT / N
+    return map(_ -> weight, d)
+end

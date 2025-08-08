@@ -46,9 +46,13 @@ end
 @noinline _warn_value_range(x0, x1) = @warn "beta0: argument values (" * num2str(x0) * "," * num2str(x1), ") outside (0, 1) \n"
 
 
-## was petregr_f
+# DEBNelderMead solver ##################################################################################
+
+# was petregr_f
 # Finds parameter values for a pet that minimizes the lossfunction using Nelder Mead's simplex method using a filter
+#
 # TODO: single objective/loss/filter function, and replace this with Optimisation.jl or similar
+# (We shouldn't have our own optimizer)
 function optimize!(objective, filter, loss, estimator::Estimator{DEBNelderMead}, qvec::Vector)
     info = true # initiate info setting
     n_par = length(qvec)
@@ -249,47 +253,7 @@ function optimize!(objective, filter, loss, estimator::Estimator{DEBNelderMead},
     return (qvec, info, itercount, fval)
 end
 
-
-function struct2vector(structin, structref)
-    combined = _combine(structin, structref)
-    return Flatten.flatten(combined, Number)
-end
-function struct2means(structin, structref)
-    meanstruct = _mean(structin, structref)
-    return Flatten.flatten(meanstruct, Number)
-end
-
-const SELECT = Union{Number,AbstractArray,AtTemperature,Univariate}
-
-function _combine(xs::EstimationData, refs::EstimationData)
-    map(Flatten.flatten(xs, SELECT), Flatten.flatten(refs, SELECT)) do x, ref
-        _combine(x, ref)
-    end |> Flatten.flatten
-end
-_combine(x::Number, ref::AbstractArray) = map(_ -> x, ref)
-_combine(x::AbstractArray, ref::AbstractArray) = x
-_combine(x::Number, ref::Number) = x
-_combine(x::Pair, ref::Pair) = x
-_combine(x::AtTemperature, ref::AtTemperature) = _combine(only(Flatten.flatten(x.val, SELECT)), only(Flatten.flatten(x.val, SELECT)))
-_combine(x::Univariate, ref::Univariate) = _combine(only(Flatten.flatten(x.dependent, SELECT)), only(Flatten.flatten(ref.dependent, SELECT)))
-_combine(x::AbstractArray, ref::Univariate) = _combine(x, only(Flatten.flatten(ref.dependent, SELECT)))
-_combine(x::AbstractArray, ref::AtTemperature) = _combine(x, ref.val)
-_combine(x::Number, ref::AtTemperature) = _combine(x, ref.val)
-
-function _mean(xs::EstimationData, refs::EstimationData)
-    map(Flatten.flatten(xs, SELECT), Flatten.flatten(refs, SELECT)) do x, ref
-        _mean(x, ref)
-    end |> Flatten.flatten
-end
-_mean(x::Number, ref::AbstractArray) = map(_ -> x, ref)
-_mean(x::AbstractArray, ref::AbstractArray) = (m = mean(x); map(_ -> m, ref))
-_mean(x::Number, ref::Number) = x * 1.0
-_mean(x::AtTemperature, ref::AtTemperature) = _mean(only(Flatten.flatten(x.val, SELECT)), only(Flatten.flatten(ref.val, SELECT)))
-_mean(x::Univariate, ref::Univariate) = _mean(only(Flatten.flatten(x.dependent, SELECT)), only(Flatten.flatten(ref.dependent, SELECT)))
-_mean(x::AbstractArray, ref::Univariate) = _mean(x, only(Flatten.flatten(ref.dependent, SELECT)))
-_mean(x::AbstractArray, ref::AtTemperature) = _mean(x, only(Flatten.flatten(ref.val, SELECT)))
-_mean(x::Number, ref::AtTemperature) = _mean(x, only(Flatten.flatten(ref.val, SELECT)))
-
+# Run the objective function if the filter test passes
 function maybe_objective(objective, filter, loss, qvec, np1, fv)
     f_test, flag = filter(qvec)
     if !f_test
@@ -303,3 +267,50 @@ function maybe_objective(objective, filter, loss, qvec, np1, fv)
         end
     end
 end
+
+# Data comparision and means ###################################################
+
+# Used to compare observation data and model preditions.
+# TODO: this is pretty ugly, largely adapted from the matlab.
+# It could be rewritten from scratch to be less confusing
+function struct2vector(data::EstimationFields, ref::EstimationFields)
+    combined = _combine(data, ref)
+    return Flatten.flatten(combined, Number)
+end
+function struct2means(data::EstimationFields, ref::EstimationFields)
+    meanstruct = _mean(data, ref)
+    return Flatten.flatten(meanstruct, Number)
+end
+
+const SELECT = Union{Number,AbstractArray,AtTemperature,Univariate}
+
+function _combine(data::EstimationFields, refs::EstimationFields)
+    map(Flatten.flatten(data, SELECT), Flatten.flatten(refs, SELECT)) do d, ref
+        _combine(d, ref)
+    end |> Flatten.flatten
+end
+_combine(x::Number, ref::AbstractArray) = map(_ -> x, ref)
+_combine(x::AbstractArray, ref::AbstractArray) = x
+_combine(x::Number, ref::Number) = x
+_combine(x::Pair, ref::Pair) = x
+_combine(x::AtTemperature, ref::AtTemperature) = _combine(only(Flatten.flatten(x.val, SELECT)), only(Flatten.flatten(x.val, SELECT)))
+_combine(x::Univariate, ref::Univariate) = _combine(only(Flatten.flatten(x.dependent, SELECT)), only(Flatten.flatten(ref.dependent, SELECT)))
+_combine(x::AbstractArray, ref::Univariate) = _combine(x, only(Flatten.flatten(ref.dependent, SELECT)))
+_combine(x::AbstractArray, ref::AtTemperature) = _combine(x, ref.val)
+_combine(x::Number, ref::AtTemperature) = _combine(x, ref.val)
+
+function _mean(xs::EstimationFields, refs::EstimationFields)
+    map(Flatten.flatten(xs, SELECT), Flatten.flatten(refs, SELECT)) do x, ref
+        _mean(x, ref)
+    end |> Flatten.flatten
+end
+_mean(x::Number, ref::AbstractArray) = map(_ -> x, ref)
+_mean(x::AbstractArray, ref::AbstractArray) = (m = mean(x); map(_ -> m, ref))
+_mean(x::Number, ref::Number) = x * 1.0
+_mean(x::AtTemperature, ref::AtTemperature) = _mean(only(Flatten.flatten(x.val, SELECT)), only(Flatten.flatten(ref.val, SELECT)))
+_mean(x::Univariate, ref::Univariate) = _mean(only(Flatten.flatten(x.dependent, SELECT)), only(Flatten.flatten(ref.dependent, SELECT)))
+_mean(x::AbstractArray, ref::Univariate) = _mean(x, only(Flatten.flatten(ref.dependent, SELECT)))
+_mean(x::AbstractArray, ref::AtTemperature) = _mean(x, only(Flatten.flatten(ref.val, SELECT)))
+_mean(x::Number, ref::AtTemperature) = _mean(x, only(Flatten.flatten(ref.val, SELECT)))
+
+

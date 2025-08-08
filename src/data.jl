@@ -1,5 +1,18 @@
 abstract type AbstractEstimationData end
 
+@kwdef struct EstimationFields{TSC,TSB,L,WW,DW,R,D,G,V,P} <: AbstractEstimationData
+    timesinceconception::TSC = nothing
+    timesincebirth::TSB = nothing
+    length::L = nothing
+    wetweight::WW = nothing
+    dryweight::DW = nothing
+    reproduction::R = nothing
+    duration::D = nothing
+    gestation::G = nothing
+    variate::V = nothing
+    pseudo::P = nothing
+end
+
 # TODO: rethink this object
 # It may be better if it has no named fields,
 # and instead holds a tuple of wrapped objects, e.g. WetWeight, Duration etc.
@@ -13,6 +26,7 @@ A wrapper for all data used to estimate model parameters in [`estimate`](@ref).
 
 # Keywords
 
+- `temperature`:
 - `timesinceconception`:
 - `timesincebirth`:
 - `length`:
@@ -23,34 +37,32 @@ A wrapper for all data used to estimate model parameters in [`estimate`](@ref).
 - `gestation`:
 - `variate`:
 - `pseudo`:
+- `weights`:
 """
-struct EstimationData{TSC,TSB,L,WW,DW,R,D,G,V,P} <: AbstractEstimationData
-    timesinceconception::TSC
-    timesincebirth::TSB
-    length::L
-    wetweight::WW
-    dryweight::DW
-    reproduction::R
-    duration::D
-    gestation::G
-    variate::V
-    pseudo::P
+struct EstimationData{T,D,W} <: AbstractEstimationData
+    temperature::T
+    data::D
+    weights::W
 end
 function EstimationData(;
-    timesinceconception = nothing,
-    timesincebirth = nothing,
-    length = nothing,
-    wetweight = nothing,
-    dryweight = nothing,
-    reproduction = nothing,
-    duration = nothing,
-    gestation = nothing,
-    variate = nothing,
-    pseudo = nothing,
+    temperature,
+    pseudo=nothing,
+    weights=nothing,
+    kw...
 )
     pseudo = defaultpseudodata(pseudo)
-    return EstimationData(timesinceconception, timesincebirth, length, wetweight, dryweight, reproduction, duration, gestation, variate, pseudo)
+    # Remove weights from data
+    raw_kw = (; values(kw)..., pseudo)
+    if isnothing(weights) 
+        weights = defaultweights(EstimationFields(; raw_kw...))
+    end
+    weightless_kw = map(raw_kw) do kw
+        Flatten.modify(x -> x.val, kw, Weighted)
+    end
+    data = EstimationFields(; weightless_kw...)
+    return EstimationData(temperature, data, weights)
 end
+
 
 Base.merge(ed::EstimationData, nt::NamedTuple) = ConstructionBase.setproperties(ed, nt)
 
