@@ -34,14 +34,14 @@ par = (;
     # κ_P = Const(0.1, units=nothing, label="faecation efficiency of food to faeces"),
 
     # other parameters
-    #T_AL = Const(50000.0, units=u"K", label="low temp boundary"),
-    #T_AH = Const(50000.0, units=u"K", label="high temp boundary"),
-    #T_L = Const(0 + 273.15, units=u"K", label="low Arrhenius temperature"),
-    #T_H = Const(54.5 + 273.15, units=u"K", label="high Arrhenius temperature"),
+    # T_AL = Const(50000.0, units=u"K", label="low temp boundary"),
+    # T_AH = Const(50000.0, units=u"K", label="high temp boundary"),
+    # T_L = Const(0 + 273.15, units=u"K", label="low Arrhenius temperature"),
+    # T_H = Const(54.5 + 273.15, units=u"K", label="high Arrhenius temperature"),
 )
 
 organism = std_animal(;
-    temperatureresponse = strip(ArrheniusResponse(; par[(:T_ref, :T_A)]...)),
+    temperatureresponse = ArrheniusResponse(),
     lifecycle = LifeCycle(
         Embryo() => Birth(),
         Juvenile() => Dimorphic(Female(Puberty()), Male(Puberty())),

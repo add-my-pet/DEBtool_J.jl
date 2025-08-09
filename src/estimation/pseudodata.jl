@@ -3,37 +3,13 @@
 function defaultpseudodata(custom::Union{NamedTuple,Nothing}=nothing)
     # TODO explain and justify these
     defaults = (;
-        v = 0.02u"cm/d",
-        κ = 0.8,
-        κ_R = 0.95,
-        p_M = 18u"J/d/cm^3",
-        k_J = 0.002u"d^-1",
-        κ_G = 0.8,
-        k = 0.3
-    )
-    return isnothing(custom) ? defaults : merge(defaults, custom)
-end
-
-    # label = (;
-    #     v = "energy conductance",
-    #     κ = "allocation fraction to soma",
-    #     κ_R = "reproduction efficiency",
-    #     p_M = "vol-spec som maint",
-    #     k_J = "maturity maint rate coefficient",
-    #     κ_G = "growth efficiency",
-    #     k = "maintenance ratio"
-    # )
-
-function defaultpseudoweights(custom::Union{NamedTuple,Nothing}=nothing)
-    # TODO explain and justify these
-    defaults = (;
-        v = 0.1,
-        κ = 0.1,
-        κ_R = 0.1,
-        p_M = 0.1,
-        k_J = 0.1,
-        κ_G = 0.1 * 200, # more weight to κ_G
-        k = 0.1
+        v = Weighted(0.1, 0.02u"cm/d"),
+        κ = Weighted(0.1, 0.8),
+        κ_R = Weighted(0.1, 0.95),
+        p_M = Weighted(0.1, 18u"J/d/cm^3"),
+        k_J = Weighted(0.1, 0.002u"d^-1"),
+        κ_G = Weighted(20.0, 0.8),
+        k = Weighted(0.1, 0.3),
     )
     return isnothing(custom) ? defaults : merge(defaults, custom)
 end
@@ -75,7 +51,7 @@ end
 
 ## Example of use
 # prdData = predict_pseudodata(par, data, prdData)
-function predict_pseudodata(model, par, data::EstimationData, predicted::EstimationData)
+function predict_pseudodata(model, par, data::EstimationFields, predicted::EstimationFields)
     if !isnothing(data.pseudo)
         compound_pars = merge(compound_parameters(model, par), par)
         common_keys = _common_keys(data.pseudo, compound_pars)

@@ -26,7 +26,7 @@ function predict(e::AbstractEstimator, model::DEBAnimal, par, data, temperature)
     # @show sol[end][2] * par.L_m / par.del_M
     # Only calculate reproduction when needed
 
-    predictions = EstimationData(
+    predictions = EstimationFields(
         timesinceconception = isnothing(data.timesinceconception) ? nothing : _temp_correct_predictions(x -> x.a, tr, par, transitions, data.timesinceconception, tc),
         timesincebirth = isnothing(data.timesincebirth) ? nothing : _temp_correct_predictions(x -> x.t, tr, par, transitions, data.timesincebirth, tc),
         length = isnothing(data.length) ? nothing : map(x -> transitions[x].Lw, data.length),

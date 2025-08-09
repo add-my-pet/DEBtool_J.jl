@@ -1,4 +1,5 @@
-data = EstimationData(;
+EstimationData(;
+    temperature = u"K"(38.1u"°C"),
     timesincebirth=(
         Weaning(56.0u"d"),
         Puberty(239.0u"d"),
@@ -12,20 +13,10 @@ data = EstimationData(;
     reproduction = 4/365u"d^-1",
     gestation = 65.0u"d",
     variate = (
-        Univariate(Time(u"d"), WetWeight(u"g"), "$(@__DIR__)/data/female_weight.csv"),
+        Univariate(Time(u"d"), Weighted(5.0, WetWeight(u"g")), "$(@__DIR__)/data/female_weight.csv"),
         # TODO wrap this as Male
-        # Univariate(Time(u"d"), Male(WetWeight(u"g")), "$(@__DIR__)/data/male_weight.csv"),
+        # Univariate(Time(u"d"), Weighted(5.0, Male(WetWeight(u"g"))), "$(@__DIR__)/data/male_weight.csv"),
     ),
 )
 
-## set weights for all real data
-weights = defaultweights(data)
-weights = merge(weights, (; pseudo=defaultpseudoweights()))
-# weights = merge(weights, (;
-    # tW_f = 5 .* tW_f,
-    # tW_m = 5 .* tW_m,
-    # TODO tp = 5 .* weights.tp,
-# ))
-temp = u"K"(38.1u"°C")
-
-(; data, temp, weights)
+# TODO tp = 5 .* weights.tp

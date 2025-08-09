@@ -1,9 +1,5 @@
-using SparseArrays
-
-# TODO how to do this one
-# Univariate(Temperature(u"C"), Mortality(Larva(), u"d"), Ts)
-
-data = EstimationData(;
+EstimationData(;
+    temperature = u"K"(25u"°C"),
     timesinceconception = (
         AtTemperature(u"K"(22.0u"°C"), Birth(4.4u"d")),
     ),
@@ -41,7 +37,7 @@ data = EstimationData(;
                 Duration{Instar{4}}(u"d"),
                 Duration{Instar{5}}(u"d"),
                 Duration{Instar{6}}(u"d"),
-                Duration{Pupa}(u"d").
+                Duration{Pupa}(u"d"),
             ),
             "$(@__DIR__)/data/durations_Schl2018.csv",
         ),
@@ -71,16 +67,9 @@ data = EstimationData(;
             Period{Conception,Birth}(u"d"),
             "$(@__DIR__)/data/age_at_birth_2.csv"
         ),
-    )
+    ),
+    pseudo=(; v=Weighted(0.3, 0.02u"cm/d")),
 )
-
+# TODO implement max egg number
 # data.Ni = 1604.2; units.Ni = '#'; label.Ni = 'number of eggs'; bibkey.Ni = 'BarrOliv2010';
    # comment.Ni ='Maximum egg numer found for corn';
-
-# set weights for all real data TODO make this declaritive
-weights = defaultweights(data)
-pseudo = defaultpseudoweights()
-weights = merge(weights, (; pseudo=(; v=3 * pseudo.v)))
-temp = u"K"(25u"°C")
-
-(; data, weights, temp)
