@@ -42,8 +42,7 @@ par = (;
 )
 
 organism = hex_animal(5;
-    # TODO add the parameters to temp response somewhere else?
-    temperatureresponse=stripparams(LowAndHighTorporResponse(; par[(:T_ref, :T_A, :T_L, :T_AL, :T_H, :T_AH)]...))
+    temperatureresponse=stripparams(LowAndHighTorporResponse(),
 )
 
 (; organism, par)

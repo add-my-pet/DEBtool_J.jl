@@ -30,7 +30,7 @@ par = (;
 )
 
 organism = stx_animal(;
-    temperatureresponse = strip(ArrheniusResponse(; par[(:T_ref, :T_A)]...)),
+    temperatureresponse = ArrheniusResponse(),
 )
 
 (; organism, par)
