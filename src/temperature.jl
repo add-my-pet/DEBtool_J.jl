@@ -6,30 +6,39 @@ Lifespans are used in `lifespan`
 abstract type AbstractTemperatureResponse end
 
 @kwdef struct ArrheniusResponse{TR,TA} <: AbstractTemperatureResponse
-    T_ref::TR
-    T_A::TA
+    T_ref::TR = nothing
+    T_A::TA = nothing
 end
+ArrheniusResponse(par::NamedTuple) = ArrheniusResponse(; par[(:T_ref, :T_A)]...)
+
 @kwdef struct LowTorporResponse{TR,TA,TL,TAL} <: AbstractTemperatureResponse
-    T_ref::TR
-    T_A::TA
-    T_L::TL
-    T_AL::TAL
+    T_ref::TR = nothing
+    T_A::TA = nothing
+    T_L::TL = nothing
+    T_AL::TAL = nothing
 end
+LowTorporResponse(par::NamedTuple) =
+    LowAndHighTorporResponse(; par[(:T_ref, :T_A, :T_L, :T_AL)]...)
+
 @kwdef struct HighTorporResponse{TR,TA,TH,TAH} <: AbstractTemperatureResponse
-    T_ref::TR
-    T_A::TA
-    T_H::TH
-    T_AH::TAH
+    T_ref::TR = nothing
+    T_A::TA = nothing
+    T_H::TH = nothing
+    T_AH::TAH = nothing
 end
+HighTorporResponse(par::NamedTuple) = 
+    LowAndHighTorporResponse(; par[(:T_ref, :T_A, :T_H, :T_AH)]...)
 
 @kwdef struct LowAndHighTorporResponse{TR,TA,TL,TAL,TH,TAH} <: AbstractTemperatureResponse
-    T_ref::TR
-    T_A::TA
-    T_L::TL
-    T_AL::TAL
-    T_H::TH
-    T_AH::TAH
+    T_ref::TR = nothing
+    T_A::TA = nothing
+    T_L::TL = nothing
+    T_AL::TAL = nothing
+    T_H::TH = nothing
+    T_AH::TAH = nothing
 end
+LowAndHighTorporResponse(par::NamedTuple) = 
+    LowAndHighTorporResponse(; par[(:T_ref, :T_A, :T_L, :T_AL, :T_H, :T_AH)]...)
 
 check_temp(tr::ArrheniusResponse, T) = true
 check_temp(tr::LowTorporResponse, T) = tr.T_H >= T
@@ -40,18 +49,11 @@ check_temp(tr::LowAndHighTorporResponse, T) = tr.T_L <= T && tr.T_H >= T
 # _check_T(T_ref, T_L, T_H) = 
     # T_L > T_ref || T_H < T_ref && error("from temp_corr: invalid parameter combination, T_L > T_ref and /or T_H < T_ref")
 
-# Move parameters from pars NameTuple into temperature model objects
+# Move parameters from par NameTuple into temperature model objects
 # Eventually parameters should just be defined as objects from the start,
 # but for now this allows both approaches to work with the same code.
-tempcorr(model::ArrheniusResponse, par::NamedTuple, T) =
-    tempcorr(ConstructionBase.setproperties(model, par[(:T_ref, :T_A)]), T)
-tempcorr(model::LowTorporResponse, par::NamedTuple, T) =
-    tempcorr(ConstructionBase.setproperties(model, par[(:T_ref, :T_A, :T_L, :T_AL)]), T)
-tempcorr(model::HighTorporResponse, par::NamedTuple, T) =
-    tempcorr(ConstructionBase.setproperties(model, par[(:T_ref, :T_A, :T_H, :T_AH)]), T)
-tempcorr(model::LowAndHighTorporResponse, pars::NamedTuple, T) =
-    tempcorr(ConstructionBase.setproperties(model, par[(:T_ref, :T_A, :T_L, :T_AL, :T_H, :T_AH)]), T)
-
+tempcorr(model::M, par::NamedTuple, T) where M<:AbstractTemperatureResponse =
+    tempcorr(basetypeof(M)(par), T)
 tempcorr(model::AbstractTemperatureResponse, e::AbstractEnvironment) =
     rebuild(e; data=map(d -> tempcorr(model, d), e.data))
 # Most data is not temperature corrected

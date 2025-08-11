@@ -1,11 +1,15 @@
 using DEBtool_J
-using Flatten
 include(joinpath(dirname(pathof(DEBtool_J)), "../test/test_utils.jl"))
 
+# Estimation
 species = "Emydura_macquarii"
-(; data, par) = species_context = load_species(species);
+(; data, organism, par) = species_context = load_species(species);
 estimator = Estimator(; max_step_number=5000, max_fun_evals=5000)
+@time parout, nsteps, info, fval = estimate(estimator, species_context)
 
+# Tests
+
+using Flatten
 # Test pars, data, weight and pseudodata are correct
 @test par[:val] == (13.2002, 12.8559, 0.060464, 0.7362, 16.4025, 0.00060219, 7857.8605, 13660.0, 1.168e7, 4.711e6, 1.211e-9, 0.61719)
 @test data.weights.pseudo == (v = 0.1, κ = 0.1, κ_R = 0.1, p_M = 0.1, k_J = 0.0, κ_G = 20.0, k = 0.1)
@@ -14,37 +18,5 @@ flat_ref = (78.0, 303.15, 48.0, 7628.499999999999, 3650.0, 2007.5, 2.7, 18.7, 14
 @test Flatten.flatten(data.data, Real) == flat_ref[1:73]
 @test Flatten.flatten(data.weights, Real) == flat_ref[74:end-1]
 
-@time parout, nsteps, info, fval = estimate(estimator, species_context)
+# Test against matlab results
 compare_matlab(species, parout)
-
-# tspan = (0.0, 8000.0)
-# environment = ConstantEnvironment(; 
-#     time=tspan,
-#     temperature=u"K"(22.0u"°C"),
-#     functionalresponse=1.0,
-#     temperatureresponse,
-# ) 
-# environment = Environment(; time=[0.0, 300.0, 600, 900.0, 1200.0, 2000.0],
-#     temperature=u"K".([10.0, 15.0, 22.0, 10.0, 10.0, 20.0]u"°C"),
-#     functionalresponse=[1.0, 0.8, 1.0, 0.9, 0.7, 1.0],
-#     temperatureresponse,
-#     interpolation=QuadraticInterpolation,
-# ) 
-# mpe = DEBtool_J.MetabolismBehaviorEnvironment(; metabolism, environment, par=parent(parout))
-# using ProfileView
-# @profview sol = simulate(mpe; tspan=(0.0, 7000.0))
-# p = stripparams(parout)
-# p = merge(p, DEBtool_J.compound_parameters(metabolism, p))
-# plot(map(x -> x[2], sol.u) .* p.L_m / p.del_M)
-# sol
-
-# using GLMakie
-# plot(mpe)
-
-# using ProfileView
-# @profview 1 + 2
-# @profview simulate(model, parout, environment)
-# sim(model, par, environment, n) = for i in 1:n simulate(model, stripparams(par), environment); end
-# @time sim(model, par, environment, 500)
-
-# TODO: test simulation outputs

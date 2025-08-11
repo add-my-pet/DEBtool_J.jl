@@ -35,7 +35,7 @@ function predict(e::AbstractEstimator, model::DEBAnimal, par, data, temperature)
         reproduction = if isnothing(data.reproduction)
             nothing
         else
-            (; R) = compute_reproduction_rate(e, model, par, transitions)
+            R = compute_reproduction_rate(e, model, par, transitions)
             r_at_t = Flatten.flatten(data.reproduction, AtTemperature)
             RT = if isempty(r_at_t)
                 R * tc

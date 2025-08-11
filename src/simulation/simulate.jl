@@ -237,7 +237,7 @@ function specific_growth_rate(mode::Mode, par, state)
     κ_G_or_1 = (κ * E * s_M * vT < pT_M * L^4) ? κ_G : oneunit(κ_G) # section 4.1.5 comments to Kooy2010
     (E * s_M * vT / L - pT_M * L^3 / κ) / (E * s_M + κ_G_or_1 * E_G * L^3 / κ) # d^-1, specific growth rate
 end
-function specific_growth_rate(mode::Union{typeof(sbp()), typeof(abp())}, par, state)
+function specific_growth_rate(mode::Union{typeof(sbp()),typeof(abp())}, par, state)
     if hasreached(Puberty(), par, state.E_H) 
         # Afterpuberty adults in sbp/adp do not grow or shrink. So the growth rate is zero
         0.0u"d^-1"
@@ -280,7 +280,7 @@ end
 
 function callback_transitions(model)
     reduce((Birth(), Weaning(), Puberty(), Metamorphosis()); init=()) do acc, transition
-        isnothing(get(life(model), transition, nothing)) ? acc : (acc..., transition)
+        isnothing(get(lifecycle(model), transition, nothing)) ? acc : (acc..., transition)
     end
 end
 

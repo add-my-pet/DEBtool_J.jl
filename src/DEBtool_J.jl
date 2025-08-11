@@ -18,6 +18,7 @@ using DelimitedFiles
 import ModelParameters.ConstructionBase
 
 export Estimator, DEBNelderMead, DEBMultimodalEvolutionaryAlgorithm
+export Simulator
 export DEBAnimal
 export ModelParEnv
 export ArrheniusResponse, LowTorporResponse, HighTorporResponse, LowAndHighTorporResponse
@@ -39,24 +40,17 @@ export estimate, simulate
 
 export defaultpseudodata, defaultpseudoweights, defaultweights, defaultchemistry, default_d_V
 
-export DEFAULT_CHEMICAL_PARAMETERS,
-    DEFAULT_CHEMICAL_POTENTIALS,
-    DEFAULT_CHEMICAL_POTENTIAL_OF_MINERALS,
-    DEFAULT_CHEMICAL_INDICES_FOR_MINERALS,
-    DEFAULT_CHEMICAL_INDICES_FOR_WATER_ORGANICS
+include("simulation/environment.jl")
+include("simulation/behavior.jl")
+include("estimation/data.jl")
+include("estimation/estimation.jl")
 
 include("const.jl")
 include("chemistry.jl")
-include("data.jl")
-include("environment.jl")
-include("behavior.jl")
 include("synthesizing_units.jl")
 include("temperature.jl")
 
 # TODO rethink how estimation/simulation are separated in animals folder
-include("estimation/estimation.jl")
-
-include("animals/traits.jl")
 include("animals/lifestages.jl")
 include("animals/modes.jl")
 include("animals/transition_state.jl")
@@ -75,6 +69,7 @@ include("estimation/pseudodata.jl")
 include("estimation/predict.jl")
 
 include("simulation/simulate.jl")
+include("simulation/traits.jl")
 
 end # module DEBtool_J
 
