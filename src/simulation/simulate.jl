@@ -74,7 +74,12 @@ end
 (cr::CallbackReconstructor)(u::AbstractArray{T}, p, τ) where T =
     cr.callback(Flatten.reconstruct(cr.template, u, T), p, τ)
 
-
+@kwdef struct Simulator{S,AT,RT,Ts}
+    solver::S = Tsit5()
+    abstol::AT = 1e-9
+    reltol::RT = 1e-9
+    tspan::Ts
+end
 
 """
     simulate(mbe::MetabolismBehaviorEnvironment)
@@ -94,10 +99,9 @@ Simulates lifecycle trajectory, returning an OrdinaryDiffEQ.jl output.
 
 was get_indDyn_mod in amptool
 """
-function simulate(mbe::MetabolismBehaviorEnvironment; 
-    solver=Tsit5(), abstol=1e-9, reltol=1e-9, tspan=tspan(mbe.environment),
-)
+function simulate(s::Simulator, mbe::MetabolismBehaviorEnvironment)
     (; metabolism, behavior, environment, par) = mbe
+    (; solver, abstol, reltol, tspan) = s
     # Reomove any ModelParameters Model or Param wrappers
     par = stripparams(par)
     # Add compound parameters to pars
