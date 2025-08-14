@@ -33,7 +33,7 @@ par = (;
 )
 
 organism=stx_animal(;
-    temperatureresponse=ArrheniusResponse()),
+    temperatureresponse=ArrheniusResponse(),
     # lifecycle=LifeCycle(
     #     # TODO rethink how we write dimorphism
     #     Foetus() => Dimorphic(Female(Birth()), Male(Birth())),

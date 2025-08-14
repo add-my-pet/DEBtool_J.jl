@@ -87,8 +87,17 @@ function compute_transition_state(at::Ultimate, e::AbstractEstimator, pars, tran
     Lw = L / del_M                 # cm, ultimate plastron length
     Ww = wet_weight(at, L, f, ω)
     l_b = trans[Birth()].l
-    a = compute_lifespan(e, pars, l_b)
-    return Ultimate((; l, L, Lw, Ww, a))
+    (; a, τ) = compute_lifespan(e, pars, l_b)
+    return Ultimate((; l, L, Lw, Ww, τ, a))
+end
+
+function compute_lifespan(e::AbstractEstimator, pars, l_b)
+    (; h_a, k_M) = pars
+    # TODO this merge is awful fix and explain scaling of h_a
+    pars_tm = merge(pars, (; h_a=h_a / k_M^2)) 
+    (; τ) = scaled_mean_age(Ultimate(), e, pars_tm, l_b) # -, scaled mean life span at T_ref
+    a = τ / k_M
+    return (; a, τ)
 end
 
 wet_weight(::Union{Sex,AbstractTransition}, L, f, ω) = begin
@@ -195,12 +204,13 @@ function compute_transition_state(e::AbstractEstimator, o::DEBAnimal{<:StandardF
     l_x = to_obj(sr, sol[1]).l
     l_p = to_obj(sr, sol[2]).l
     τ_x = sol.t[1]
-    τ_p = sol.t[2]
+    τ_p = sol.t[end]
+    @show sol.t
+    transitions = (Birth(), Weaning(), Puberty())
     τ = (τ_b, τ_x, τ_p)
     l = (l_b, l_x, l_p)
-    transitions = (Birth(), Weaning(), Puberty())
     transition_state = map(transitions, τ, l) do at, τ, l
-        t = (τ - τ_b) / k_M             # d, time since birth at puberty
+        t = (τ - τ_b) / k_M               # d, time since birth at puberty
         L = L_m * l                       # cm, structural length at puberty
         Lw = L / del_M                    # cm, plastron length at puberty
         Ww = wet_weight(at, L, f, ω)
@@ -218,7 +228,7 @@ function dget_length_birth(u, mbe, τ) # τ: scaled time since start development
     f = getattime(mbe.environment, :functionalresponse, τ)
 
     l_i = s_F * f # -, scaled ultimate length
-    f = s_F * f  # -, scaled functional response
+    f = s_F * f   # -, scaled functional response
 
     dl = (g / 3) * (l_i - l) / (f + g)  # d/d τ l
     dv_H = 3 * l^2 * dl + l^3 - k * v_H # d/d τ v_H
@@ -226,19 +236,10 @@ function dget_length_birth(u, mbe, τ) # τ: scaled time since start development
 end
 
 function dget_length_weaning_puberty(u, mbe, τ)
-    (; s_F, g, k, v_Hb, l_T, #= tf, =#) = mbe.par
-    # τ: scaled time since birth
+    (; s_F, g, k, v_Hb, l_T) = mbe.par
     (; v_H, e, l) = u
-    f = getattime(mbe.environment, :functionalresponse, τ)
 
-    # if size(tf, 1) == 1 && size(tf,2)==1 # f constant in period bi
-        # f = tf[1];
-        # e = f
-    # elseif size(tf,1)==1 && size(tf,2)==2 # f constant in periods bx and xi
-        # if v_H < v_Hx; f = tf(1); else f = tf(2); end; e = f;
-    # else # f is varying
-        # f = spline1(τ,tf);
-    # end
+    f = getattime(mbe.environment, :functionalresponse, τ)
 
     ρ = g * (e / l - 1 - l_T / l) / (e + g); # -, spec growth rate
 
@@ -254,6 +255,9 @@ v_transition_event(::Birth, model, template) = CallbackReconstructor(template) d
     i.p.par.v_Hb - u.v_H
 end
 v_transition_event(::Puberty, model, template) = CallbackReconstructor(template) do u, t, i
+    println(u)
+    println(t)
+    println()
     i.p.par.v_Hp - u.v_H
 end
 v_transition_event(::Metamorphosis, model, template) = CallbackReconstructor(template) do u, t, i

@@ -12,6 +12,20 @@ abstract type AbstractEstimationData end
     variate::V = nothing
     pseudo::P = nothing
 end
+function Base.show(io::IO, ef::EstimationFields)
+    println(io, "EstimationFields(;")
+    isnothing(ef.timesinceconception) || println(io, "    timesinceconception = "    , ef.timesinceconception, ",")
+    isnothing(ef.timesincebirth) || println(io, "    timesincebirth = "    , ef.timesincebirth, ",")
+    isnothing(ef.length) || println(io, "    length = "    , ef.length, ",")
+    isnothing(ef.wetweight) || println(io, "    wetweight = "    , ef.wetweight, ",")
+    isnothing(ef.dryweight) || println(io, "    dryweight = "    , ef.dryweight, ",")
+    isnothing(ef.reproduction) || println(io, "    reproduction = "    , ef.reproduction, ",")
+    isnothing(ef.duration) || println(io, "    duration = "    , ef.duration, ",")
+    isnothing(ef.gestation) || println(io, "    gestation = "    , ef.gestation, ",")
+    # println("variate = "    , ef.variate, ",")
+    isnothing(ef.pseudo) || println(io, "    pseudo = "    , ef.pseudo, ",")
+    println(")")
+end
 
 # TODO: rethink this object
 # It may be better if it has no named fields,

@@ -38,8 +38,7 @@ end
 # TODO this should just be initial_scaled_reserved, but Foetus needs work
 function _reprod_init(stage::Foetus, model, p, L_b, l_b)
     (; f, g, v) = p
-    UE0 = L_b^3 * (f + g) / v * (1 + 3 * l_b / 4 / f) # d.cm^2, scaled cost per foetus
-    (; UE0, info=true)
+    return L_b^3 * (f + g) / v * (1 + 3 * l_b / 4 / f) # d.cm^2, scaled cost per foetus
 end
 function _reprod_init(stage::Embryo, model, p, L_b, l_b)
     (; UE0) = initial_scaled_reserve(model.mode, p, l_b)

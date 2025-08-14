@@ -146,7 +146,7 @@ Theory is given in comments on DEB3 Section 6.1.1.
 See <get_tm.html *get_tm*> for the general case of long growth period relative to life span
 """
 function scaled_mean_age(at::Ultimate, e::AbstractEstimator, p, lb)
-    (; g, l_T, ha, s_G, f) = p
+    (; g, l_T, h_a, s_G, f) = p
 
     # TODO: explain - for numerical stability?
     if abs(s_G) < 1e-10
@@ -154,7 +154,7 @@ function scaled_mean_age(at::Ultimate, e::AbstractEstimator, p, lb)
     end
 
     li = f - l_T
-    hW3 = ha * f * g / 6 / li
+    hW3 = h_a * f * g / 6 / li
     hW = hW3^(1 / 3) # scaled Weibull aging rate
     hG = s_G * f * g * li^2
     hG3 = hG^3       # scaled Gompertz aging rate
@@ -180,7 +180,7 @@ function scaled_mean_age(at::Ultimate, e::AbstractEstimator, p, lb)
         tm = _integrate_quad(hW, tG, tm, tm_tail)
     end
 
-    return (; t_m=tm)
+    return (; τ=tm)
 end
 
 # TODO: could this range be shorter, or an accuracy parameter?

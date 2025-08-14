@@ -70,4 +70,5 @@ function [prdData, info] = predict_Vulpes_vulpes(par, data, auxData)
   % pack to output
   prdData.tW = EWw;
   prdData.tL = ELw;
-  
+
+  % disp(prdData)
