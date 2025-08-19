@@ -190,16 +190,15 @@ function _integrate_quad(hW, tG, tm, tm_tail)
     # Performance critical!!
     # integrate_tm_s is the most deeply nested function call
     # TODO explain what 0 is, why is atol not specified
-    quadgk(x -> _q_tm_s(QUAD_RANGE, x * hW, tG), 0, tm * hW)[1][1] + tm_tail
+    quadgk(x -> fnget_tm_s(QUAD_RANGE, x * hW, tG), 0, tm * hW)[1][1] + tm_tail
 end
 
-# was fnget_tm_s
 # modified 2010/02/25
 # called by get_tm_s for life span at short growth periods
 # integrate ageing surv prob over scaled age
 # t: age * hW 
 # Returns: ageing survival prob
-function _q_tm_s(range, t, tG)
+function fnget_tm_s(range, t, tG)
     hGt = tG * t # age * hG
     if tG > 0
         # Compute the scaled dataset

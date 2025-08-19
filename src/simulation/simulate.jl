@@ -67,6 +67,9 @@ Base.Array(sr::StateReconstructor) = collect(sr)
 StaticArrays.SVector(sr::StateReconstructor) = SVector(values(sr))
 StaticArrays.SArray(sr::StateReconstructor) = SVector(values(sr))
 
+OrdinaryDiffEq.ODEProblem(sr::StateReconstructor, tspan::Tuple, p) =
+    OrdinaryDiffEq.ODEProblem(sr, SVector(sr), tspan, p)
+
 struct CallbackReconstructor{C,T}
     callback::C
     template::T

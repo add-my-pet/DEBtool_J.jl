@@ -45,6 +45,7 @@ include("simulation/behavior.jl")
 include("estimation/data.jl")
 include("estimation/estimation.jl")
 
+include("organims.jl")
 include("const.jl")
 include("chemistry.jl")
 include("synthesizing_units.jl")

@@ -1,5 +1,5 @@
-phylum = "Chordata"
-class = "Reptilia" 
+phylum = "Arthropoda"
+class = "Insecta" 
 
 par = (;
     defaultchemistry(phylum, class)...,
