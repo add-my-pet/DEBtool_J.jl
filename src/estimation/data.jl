@@ -213,7 +213,7 @@ with columns matching the number of dependent variables plus the independent var
 If dependent or independent variables hold values other than `nothing`, it will
 be multiplied with the data columns to e.g. add units.
 """
-struct Multivariate{I<:Data,D<:Tuple{<:Union{<:Data,<:Sex},Vararg{Union{<:Data,<:Sex}}} <: Data
+struct Multivariate{I<:Data,D<:Tuple{<:Union{<:Data,<:Sex},Vararg{Union{<:Data,<:Sex}}}} <: Data
     independent::I
     dependents::D
 end

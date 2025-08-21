@@ -246,16 +246,6 @@ struct Death{T} <: AbstractTransition{T}
     val::T
 end
 """
-    Emergence <: AbstractTransition
-
-    Emergence([val])
-
-Emergence of insects from `Pupa` to become an `Imago`.
-"""
-struct Emergence{T} <: AbstractTransition{T}
-    val::T
-end
-"""
     Moult{N} <: AbstractTransition
 
     Mount{N}([val])
@@ -266,6 +256,17 @@ struct Moult{N,T} <: AbstractTransition{T}
     val::T
 end
 Moult{N}(val::V=nothing) where {N,V} = Moult{N,V}(val)
+
+"""
+    Emergence <: AbstractTransition
+
+    Emergence([val])
+
+Emergence of insects from `Pupa` to become an `Imago`.
+"""
+struct Emergence{T} <: AbstractTransition{T}
+    val::T
+end
 
 ConstructionBase.constructorof(::Type{<:Moult{N}}) where {N} = Moult{N}
 
@@ -318,6 +319,7 @@ Holds an ordered tuple of `AbstractTransition`s.
     sequence::S = ()
 end
 Transitions(args::Union{Dimorphic,Sex,AbstractTransition}...) = Transitions(args)
+Transitions(fc::LifeCycle) = Transitions(map(last, values(fc)))
 
 """
     LifeStages <: AbstractLifeSequence
@@ -328,6 +330,7 @@ Holds a sequence of `AbstractLifeStage`.
     sequence::S = ()
 end
 LifeStages(args::AbstractLifeStage...) = LifeStages(args)
+LifeStages(fc::LifeCycle) = LifeStages(map(first, values(fc)))
 
 function Base.getindex(stages::Union{AbstractLifeSequence,Dimorphic,Sex}, stage)
     out = _get(stages, stage)

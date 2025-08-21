@@ -237,12 +237,14 @@ function specific_growth_rate(mode::Mode, par, state)
     (; E, L, E_H) = state
     (; κ, κ_G, E_G, s_M, vT, pT_M) = par
     # TODO why is growth efficiency optional here
+    
+    ρ = g * (e / l - 1 - l_T / l) / (e + g); # -, spec growth rate
     κ_G_or_1 = (κ * E * s_M * vT < pT_M * L^4) ? κ_G : oneunit(κ_G) # section 4.1.5 comments to Kooy2010
     (E * s_M * vT / L - pT_M * L^3 / κ) / (E * s_M + κ_G_or_1 * E_G * L^3 / κ) # d^-1, specific growth rate
 end
 function specific_growth_rate(mode::Union{typeof(sbp()),typeof(abp())}, par, state)
     if hasreached(Puberty(), par, state.E_H) 
-        # Afterpuberty adults in sbp/adp do not grow or shrink. So the growth rate is zero
+        # After puberty adults in sbp/adp do not grow or shrink. So the growth rate is zero
         0.0u"d^-1"
     else
         # Otherwise call the standard model specific growth rate
@@ -274,35 +276,29 @@ simulation_callback(o::DEBAnimal, template) = simulation_callback(o.mode, o, tem
 function simulation_callback(
     mode::Union{typeof(std()),typeof(sbp())}, o::DEBAnimal, template
 )
-    callbacks = map(callback_transitions(o)) do tr
-        transition_callback(tr, template)
+    callbacks = map(values(Transitions(lifecycle(o)))) do tr
+        E_H_transition_callback(tr, template)
     end
     # Define a callback that simply forces accuracy around life-stage transitions
     return CallbackSet(callbacks...)
 end
 
-function callback_transitions(model)
-    reduce((Birth(), Weaning(), Puberty(), Metamorphosis()); init=()) do acc, transition
-        isnothing(get(lifecycle(model), transition, nothing)) ? acc : (acc..., transition)
-    end
-end
+E_H_transition_callback(tr::AbstractTransition, model, template) = 
+    ContinuousCallback(E_H_transition_event(tr, model, template), E_H_transition_action(model))
 
-transition_callback(tr::AbstractTransition, model, template) = 
-    ContinuousCallback(transition_event(tr, model, template), transition_action(model))
-
-transition_event(::Birth, model, template) = CallbackReconstructor(template) do u, t, i
+E_H_transition_event(::Birth, model, template) = CallbackReconstructor(template) do u, t, i
     i.p.par.E_Hb - u.E_H
 end
-transition_event(::Puberty, model, template) = CallbackReconstructor(template) do u, t, i
+E_H_transition_event(::Puberty, model, template) = CallbackReconstructor(template) do u, t, i
     i.p.par.E_Hp - u.E_H
 end
-transition_event(::Metamorphosis, model, template) = CallbackReconstructor(template) do u, t, i
+E_H_transition_event(::Metamorphosis, model, template) = CallbackReconstructor(template) do u, t, i
     i.p.par.E_Hj - u.E_H
 end
-transition_event(::Weaning, model, template) = CallbackReconstructor(template) do u, t, i
+E_H_transition_event(::Weaning, model, template) = CallbackReconstructor(template) do u, t, i
     i.p.par.E_Hx - u.E_H
 end
 
 # The default action is to do nothing
 # This will still force the solver to exactly calculate the transitions time
-transition_action(::AbstractTransition, model) = (integrator, i) -> nothing # action when event is found
+E_H_transition_action(::AbstractTransition, model) = (integrator, i) -> nothing # action when event is found
