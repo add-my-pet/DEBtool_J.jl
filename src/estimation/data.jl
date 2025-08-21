@@ -182,7 +182,7 @@ Period{A,B}(val::T) where {A,B,T} = Period{A,B,T}(val)
 ConstructionBase.constructorof(::Type{<:Period{A,B}}) where {A,B} = Period{A,B}
 
 # TODO: can we just use Multivariate for everything?
-struct Univariate{I<:Data,D<:Data} <: Data
+struct Univariate{I<:Data,D<:Union{Data,Sex}} <: Data
     independent::I
     dependent::D
 end
@@ -213,7 +213,7 @@ with columns matching the number of dependent variables plus the independent var
 If dependent or independent variables hold values other than `nothing`, it will
 be multiplied with the data columns to e.g. add units.
 """
-struct Multivariate{I<:Data,D<:Tuple{<:Data,Vararg}} <: Data
+struct Multivariate{I<:Data,D<:Tuple{<:Union{<:Data,<:Sex},Vararg{Union{<:Data,<:Sex}}} <: Data
     independent::I
     dependents::D
 end
