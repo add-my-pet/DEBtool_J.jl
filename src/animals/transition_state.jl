@@ -34,10 +34,13 @@ function compute_transition_state(t::Male, e::AbstractEstimator, o, pars, ts::Tr
 end
 # This is the actual transition state code!
 function compute_transition_state(at::Birth, e::AbstractEstimator, o::DEBAnimal{<:Standard}, pars, trans::Transitions, previous)
-    (; L_m, del_M, k_M, ω, f) = pars
+    (; L_m, del_M, k_M, ω, f, v_Hb) = pars
     (; τ, l, info) = scaled_age(at, pars, f)
-    m = metrics(l, τ, τ, pars)
-    Birth(m)
+    derived = metrics(l, τ, τ, pars)
+    # TODO calculate aging properly here
+    state = (; v_H=v_Hb, e=1.0, l, aging=nothing) # aging_init(o))
+    # TODO: τ has two meanings, since fertilisations and conception
+    Birth((; state, τ, derived))
 end
 # function compute_transition_state(at::Weaning, e::AbstractEstimator, o::DEBAnimal{<:Standard}, pars, trans::Transitions, previous)
 #     (; L_m, del_M, k_M, ω, f) = pars
@@ -50,9 +53,9 @@ function compute_transition_state(at::Puberty, e::AbstractEstimator, o::DEBAnima
     # TODO clean this up
     ρ_B = 1 / (3 * (1 + f / g))
     l_i = f - l_T
-    l_d = l_i - birth.l
+    l_d = l_i - birth.state.l
 
-    l, info = compute_length(at, pars, birth.l)
+    l, info = compute_length(at, pars, birth.state.l)
     τ = previous.val.τ + log(l_d / (l_i - l)) / ρ_B
 
     # Check if τ is real and positive
@@ -60,26 +63,20 @@ function compute_transition_state(at::Puberty, e::AbstractEstimator, o::DEBAnima
         info = false
     end
 
-    return Puberty(metrics(l, τ, birth.τ, pars))
+    return Puberty((; state=(; l), τ, derived=metrics(l, τ, birth.τ, pars)))
 end
 function compute_transition_state(at::Ultimate, e::AbstractEstimator, o::DEBAnimal{<:Standard}, pars, trans::Transitions, previous)
-    (; f, l_T, L_m, del_M, ω) = pars
+    (; f, l_T, L_m, del_M, ω, h_a, k_M) = pars
+    l_b = trans[Birth()].state.l
     l = f - l_T                    # -, scaled ultimate length
     L = L_m * l                    # cm, ultimate structural length at f
-    # TODO make these calculations optional based on data?. 
     Lw = L / del_M                 # cm, ultimate plastron length
     Ww = wet_weight(L, f, ω)
-    (; a, τ) = compute_lifespan(e, pars, trans[Birth()].l)
-    return Ultimate((; l, L, Lw, Ww, τ, a))
-end
-
-function compute_lifespan(e::AbstractEstimator, pars, l_b)
-    (; h_a, k_M) = pars
     # TODO this merge is awful fix and explain scaling of h_a
     pars_tm = merge(pars, (; h_a=h_a / k_M^2)) 
     (; τ) = scaled_mean_age(Ultimate(), e, pars_tm, l_b) # -, scaled mean life span at T_ref
     a = τ / k_M
-    return (; a, τ)
+    return Ultimate((; state=(; l), τ, derived=(; l, L, Lw, Ww, a)))
 end
 
 function metrics(l, τ, τ_b, pars)
@@ -99,7 +96,7 @@ wet_weight(L, f, ω) = L^3 * (oneunit(f) + f * ω) # transition wet weight
 function compute_transition_state(at::Birth, e::AbstractEstimator, o::DEBAnimal{<:StandardFoetalDiapause}, pars, trans::Transitions, previous)
     (; g, k, l_T, k_M, del_M, L_m, ω, f) = pars
     # TODO give these numbers names
-    state = (v_H=1e-20, l=1e-20)
+    state = (v_H=1e-20, l=1e-20, aging=nothing) # aging_init(o))
 
     # Define the mode-specific callback function. This controls
     # how the solver handles specific lifecycle events.
@@ -112,7 +109,7 @@ function compute_transition_state(at::Birth, e::AbstractEstimator, o::DEBAnimal{
     tspan = (0.0, 1e10)
     callback = scaled_transition_callback(Birth(), o, state)
     solver = Tsit5()
-    state_reconstructor = StateReconstructor(dget_length_birth, state, nothing)
+    state_reconstructor = StateReconstructor(d_scaled, state, nothing)
 
     # Define the ODE to solve with function, initial state,
     # timespan and parameters
@@ -127,13 +124,13 @@ function compute_transition_state(at::Birth, e::AbstractEstimator, o::DEBAnimal{
     )
     τ = sol.t[1]
     l = to_obj(state_reconstructor, sol[1]).l
-    return Birth((; v_H=v_Hb, e=f_0b, metrics(l, τ, τ, pars)...))
+    return Birth((; state=(; v_H=v_Hb, e=f_0b, l, aging), τ, derived=metrics(l, τ, τ, pars)))
 end
 
-function compute_transition_state(at::AbstractTransition, e::AbstractEstimator, o::DEBAnimal, pars, trans::Transitions, previous)
+function compute_transition_state(at::AbstractTransition, e::AbstractEstimator, o::DEBAnimal, pars, trans::Transitions, previous::AbstractTransition)
     (; g, k, l_T, k_M, del_M, L_m, ω, f) = pars
 
-    state = previous[(:v_H, :e, :l)]
+    state = previous.val.state
     callback = scaled_transition_callback(at, o, state)
     state_reconstructor = StateReconstructor(d_scaled, state, nothing)
     tspan = (previous.val.τ, 1e20)
@@ -148,54 +145,59 @@ function compute_transition_state(at::AbstractTransition, e::AbstractEstimator, 
     )
 
     τ = sol.t[1]
-    (; v_H, e, l) = to_obj(sr, sol[1])
+    (; v_H, e, l, aging) = to_obj(state_reconstructor, sol[1])
 
-    return rebuild(at, (; v_H, e, metrics(l, τ, trans[Birth()].τ, pars)...))
+    return rebuild(at, (; state=(; v_H, e, l, aging), τ, derived=metrics(l, τ, trans[Birth()].τ, pars)))
 end
 
-function dget_length_birth(u, mbe, τ) # τ: scaled time since start development
-    (; v_H, l) = u
-    (; s_F, g, k, v_Hb, f) = mbe.par
-    f = getattime(mbe.environment, :functionalresponse, τ)
+function d_scaled(state, at::Birth, τ) # τ: scaled time since start development
+    par = at.val.par
+    (; v_H, l) = state
+    (; g, k, v_Hb, f) = par
+    s_F = haskey(at.val.par, :s_F) ? par.s_F : 1e10
+    f = getattime(at.val.environment, :functionalresponse, τ)
 
     l_i = s_F * f # -, scaled ultimate length
     f = s_F * f   # -, scaled functional response
 
     dl = (g / 3) * (l_i - l) / (f + g)  # d/d τ l
     dv_H = 3 * l^2 * dl + l^3 - k * v_H # d/d τ v_H
-    return (; v_H=dv_H, l=dl)
+    return (; v_H=dv_H, l=dl, aging=d_scaled_aging(state, mbe, τ))
+end
+function d_scaled(state, at::AbstractTransition, τ)
+    par = at.val.par
+    (; g, k, v_Hb, l_T) = par
+    (; v_H, e, l) = state
+
+    f = getattime(at.val.environment, :functionalresponse, τ)
+
+    ρ = g * (e / l - 1 - l_T / l) / (e + g) # -, spec growth rate
+
+    de = (f - e) * g / l # d/d τ e
+    dl = l * ρ / 3 # -, d/d τ l
+    dv_H = e * l^2 * (l + g) / (e + g) - k * v_H # -, d/d τ v_H
+
+    return (; v_H=dv_H, e=de, l=dl, aging=d_scaled_aging(state, at, τ))
 end
 
-function dget_length_weaning_puberty(u, mbe, τ)
-    (; s_F, g, k, v_Hb, l_T) = mbe.par
-    (; v_H, e, l) = u
-
-    f = getattime(mbe.environment, :functionalresponse, τ)
-
-    ρ = g * (e / l - 1 - l_T / l) / (e + g); # -, spec growth rate
-
-    de = (f - e) * g / l; # d/d τ e
-    dl = l * ρ / 3; # -, d/d τ l
-    dv_H = e * l^2 * (l + g) / (e + g) - k * v_H; # -, d/d τ v_H
-
-    return (; v_H=dv_H, e=de, l=dl)
-end
+scaled_transition_callback(tr::AbstractTransition, model, template) = 
+    ContinuousCallback(scaled_transition_event(tr, model, template), terminate!)
+# Death is a discrete event? Maybe it should be continuous on a vector?
+scaled_transition_callback(tr::Ultimate, model, template) = 
+    DiscreteCallback(scaled_transition_event(tr, model, template), terminate!)
 
 # Events - based on v_H
-v_H_transition_event(::Birth, model, template) = CallbackReconstructor(template) do u, t, i
-    i.p.par.v_Hb - u.v_H
+scaled_transition_event(::Birth, model, template) = CallbackReconstructor(template) do u, t, i
+    i.p.val.par.v_Hb - u.v_H
 end
-v_H_transition_event(::Puberty, model, template) = CallbackReconstructor(template) do u, t, i
-    println(u)
-    println(t)
-    println()
-    i.p.par.v_Hp - u.v_H
+scaled_transition_event(::Puberty, model, template) = CallbackReconstructor(template) do u, t, i
+    i.p.val.par.v_Hp - u.v_H
 end
-v_H_transition_event(::Metamorphosis, model, template) = CallbackReconstructor(template) do u, t, i
-    i.p.par.v_Hj - u.v_H
+scaled_transition_event(::Metamorphosis, model, template) = CallbackReconstructor(template) do u, t, i
+    i.p.val.par.v_Hj - u.v_H
 end
-v_H_transition_event(::Weaning, model, template) = CallbackReconstructor(template) do u, t, i
-    i.p.par.v_Hx - u.v_H
+scaled_transition_event(::Weaning, model, template) = CallbackReconstructor(template) do u, t, i
+    i.p.val.par.v_Hx - u.v_H
 end
 scaled_transition_event(::Ultimate, model, template) = CallbackReconstructor(template) do u, t, i
     state_below_zero_means_death = (u.v_H, u.e, u.l, u.aging...)

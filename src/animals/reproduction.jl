@@ -16,13 +16,13 @@ compute_reproduction_rate(e::AbstractEstimator, o::DEBAnimal, p::NamedTuple, tra
 function compute_reproduction_rate(stage, e::AbstractEstimator, model::DEBAnimal, p::NamedTuple, trans::Transitions)
     (; κ, κ_R, g, f, k_J, k_M, L_T, v, U_Hb, U_Hp) = p
 
-    L = trans[Ultimate()].L
+    L = trans[Ultimate()].derived.L
 
     L_m = v / (k_M * g) # maximum length
     k = k_J / k_M       # -, maintenance ratio
 
-    l_b = trans[Birth()].l
-    l_p = trans[Puberty()].l
+    l_b = trans[Birth()].state.l
+    l_p = trans[Puberty()].state.l
     L_b = l_b * L_m
     L_p = l_p * L_m # structural length at birth, puberty
 

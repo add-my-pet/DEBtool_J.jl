@@ -113,10 +113,10 @@ function predict(e::AbstractEstimator, model::DEBAnimal, par, data, temperature,
     # @show transitions[Puberty()]
     # @show transitions[Ultimate()]
     predictions = EstimationFields(
-        timesincefertilisation = isnothing(data.timesincefertilisation) ? nothing : _temp_correct_predictions(x -> x.a, tr, par, transitions, data.timesincefertilisation, tc),
-        timesincebirth = isnothing(data.timesincebirth) ? nothing : _temp_correct_predictions(x -> x.t, tr, par, transitions, data.timesincebirth, tc),
-        length = isnothing(data.length) ? nothing : map(x -> transitions[x].Lw, data.length),
-        wetweight = isnothing(data.wetweight) ? nothing : map(x -> transitions[x].Ww, data.wetweight),
+        timesincefertilisation = isnothing(data.timesincefertilisation) ? nothing : _temp_correct_predictions(x -> x.derived.a, tr, par, transitions, data.timesincefertilisation, tc),
+        timesincebirth = isnothing(data.timesincebirth) ? nothing : _temp_correct_predictions(x -> x.derived.t, tr, par, transitions, data.timesincebirth, tc),
+        length = isnothing(data.length) ? nothing : map(x -> transitions[x].derived.Lw, data.length),
+        wetweight = isnothing(data.wetweight) ? nothing : map(x -> transitions[x].derived.Ww, data.wetweight),
         gestation = isnothing(data.gestation) ? nothing : gestation(par, transitions[Birth()].τ, tc),
         reproduction = if isnothing(data.reproduction)
             nothing
@@ -162,6 +162,8 @@ function predict(e::AbstractEstimator, model::DEBAnimal, par, data, temperature,
         @assert isapprox(ustrip(predictions.gestation), d.tg; atol=1e-5)
         @assert isapprox(ustrip(predictions.reproduction), d.Ri; atol=1e-5)
     end
+    # @show predictions.timesincebirth[1].val
+    # @show transitions[Ultimate()].state.aging
 
     info = true 
     # Sort the returned value to match the data
@@ -209,8 +211,8 @@ function predict_variate(e::AbstractEstimator, o::DEBAnimal, independent::Time, 
 end
 function predict_variate(e::AbstractEstimator, o::DEBAnimal, independent::Time, dependent::Length, pars, transition_state, TC)
     (; k_M, f, g) = pars
-    Lw_b = transition_state[Birth()].Lw
-    Lw_i = transition_state[Ultimate()].Lw
+    Lw_b = transition_state[Birth()].derived.Lw
+    Lw_i = transition_state[Ultimate()].derived.Lw
     # TODO explain these equations
     rT_B = TC * k_M / 3 / (oneunit(f) + f / g)
     EWw = Lw_i .- (Lw_i .- Lw_b) .* exp.(-rT_B .* independent.val)
@@ -218,8 +220,8 @@ function predict_variate(e::AbstractEstimator, o::DEBAnimal, independent::Time, 
 end
 function predict_variate(e::AbstractEstimator, o::DEBAnimal, independent::Time, dependent::WetWeight, pars, transition_state, TC)
     (; f, k_M, L_m, v, ω) = pars
-    L_b = transition_state[Birth()].L # cm, length at birth, ultimate
-    L_i = transition_state[Ultimate()].L
+    L_b = transition_state[Birth()].derived.L # cm, length at birth, ultimate
+    L_i = transition_state[Ultimate()].derived.L
     # time-weight 
     # f = f_tW TODO: how to allow a specific f for variate data
     ir_B = 3 / k_M + 3 * f * L_m / v
