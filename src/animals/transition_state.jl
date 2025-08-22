@@ -106,49 +106,46 @@ function compute_transition_state(::Birth, e::AbstractEstimator, o::DEBAnimal{<:
 
     f_0b = 1.0 # embryo development is independent of nutritional state of the mother
 
-    embryo_env = ConstantEnvironment(;
-        functionalresponse = f_0b, # getattime(mbe.environment, :functionalresponse, t),
-    )
-    embryo_mbe = MetabolismBehaviorEnvironment(o, NullBehavior(), embryo_env, pars)
+    env = ConstantEnvironment(; functionalresponse = f_0b)
+    mbe = MetabolismBehaviorEnvironment(o, NullBehavior(), env, pars)
     # TODO give these numbers names
     tspan = (0.0, 1e10)
-    birth_event = v_H_transition_event(Birth(), o, state)
-    birth_callback = ContinuousCallback(birth_event, terminate!)
+    callback = scaled_transition_callback(Birth(), o, state)
     solver = Tsit5()
     sr = StateReconstructor(dget_length_birth, state_template, nothing)
     state_init = SVector(sr)
 
     # Define the ODE to solve with function, initial state,
     # timespan and parameters
-    problem = ODEProblem(sr, state_init, tspan, embryo_mbe)
+    problem = ODEProblem(state_reconstructor, tspan, rebuilt(at, mbe))
 
     # solve the ODE, and return the solution object
     sol = solve(problem, solver;
         save_everystep=false, save_start=false, save_end=false,
         # TODO make these config parameters? Why are they different to below?
         abstol=1e-8, reltol=1e-8,
-        callback=ContinuousCallback(birth_event, birth_action),
+        callback,
     )
     τ = sol.t[1]
-    l = to_obj(sr, sol[1]).l
+    l = to_obj(state_reconstructor, sol[1]).l
     return Birth((; v_H=v_Hb, e=f_0b, metrics(l, τ, τ, pars)...))
 end
 
-function compute_transition_state(at::Union{Weaning,Puberty}, e::AbstractEstimator, o::DEBAnimal{<:StandardFoetalDiapause}, trans::Transitions, previous)
-    (; g, k, l_T, v_Hx, v_Hp, s_F, k_M, del_M, L_m, ω, f) = pars
+function compute_transition_state(at::AbstractTransition, e::AbstractEstimator, o::DEBAnimal, pars, trans::Transitions, previous)
+    (; g, k, l_T, k_M, del_M, L_m, ω, f) = pars
 
     state = previous[(:v_H, :e, :l)]
-    event = v_H_transition_event(at, o, state)
-    state_reconstructor = StateReconstructor(dget_length_weaning_puberty, state, nothing)
-    state_init = SVector(state_reconstructor)
-    tspan = (previous.τ, 1e20)
-    mbe = MetabolismBehaviorEnvironment(o, NullBehavior(), embryo_env, pars)
-    problem = ODEProblem(state_reconstructor, state_init, tspan, mbe)
+    callback = scaled_transition_callback(at, o, state)
+    state_reconstructor = StateReconstructor(d_scaled, state, nothing)
+    tspan = (previous.val.τ, 1e20)
+    env = ConstantEnvironment(; functionalresponse=f)
+    mbe = MetabolismBehaviorEnvironment(o, NullBehavior(), env, pars)
+    problem = ODEProblem(state_reconstructor, tspan, rebuild(at, mbe))
     solver = Tsit5()
     sol = solve(problem, solver; 
-        save_everystep=false, save_start=false, save_end=false,
+        save_everystep=false, save_start=false, save_end=true,
         abstol=1e-9, reltol=1e-9,
-        callback=ContinuousCallback(event, terminate!),
+        callback,
     )
 
     τ = sol.t[1]
@@ -266,3 +263,4 @@ end
 
 #     (; dl, du_E, dv_H)
 # end
+
