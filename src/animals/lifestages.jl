@@ -183,11 +183,11 @@ abstract type AbstractTransition{T} <: AbstractEvent end
 (::Type{Tr})() where Tr<:AbstractTransition = Tr(nothing)
 
 """
-    Conception <: AbstractTransition
+    Fertilisation <: AbstractTransition
 
-Fertilisation. TODO: should this be `Fertilisation` instead?
+Fertilisation event.
 """
-struct Conception{T} <: AbstractTransition{T}
+struct Fertilisation{T} <: AbstractTransition{T}
     val::T
 end
 """

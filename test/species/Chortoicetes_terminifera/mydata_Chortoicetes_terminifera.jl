@@ -51,7 +51,7 @@
 
 EstimationData(;
     temperature = u"K"(35.1u"°C"),
-    timesinceconception = (
+    timesincefertilisation = (
         Birth(17.4u"d")
     ),
     timesincebirth = (

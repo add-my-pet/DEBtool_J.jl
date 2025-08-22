@@ -51,8 +51,8 @@ Divide the result by the somatic maintenance rate coefficient to arrive at the m
 #     (; g, k, v_Hb, h_a, s_G, f) = p
 #     (; S_b, q_b, h_Ab, τ_b) = survival_probability(Birth(), model, merge(p, (; h_B0b=h_B[1], ρ_N=0.0)))
 #     # TODO: better handling of f/eb functional response at birth
-#     birth_state = scaled_mean(Since(Conception()), Birth(), p, f) # -, scaled ages and lengths at birth
-#     puberty_state = scaled_mean(Since(Conception()), Puberty(), merge(p, (; l_T=0.0)), birth_state) # -, scaled ages and lengths at puberty
+#     birth_state = scaled_mean(Since(Fertilisation()), Birth(), p, f) # -, scaled ages and lengths at birth
+#     puberty_state = scaled_mean(Since(Fertilisation()), Puberty(), merge(p, (; l_T=0.0)), birth_state) # -, scaled ages and lengths at puberty
 #     τ_b, l_b = birth_state.τ, birth_state.l
 #     τ_p, l_p = puberty_state.τ, puberty_state.l
 

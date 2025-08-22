@@ -1,6 +1,6 @@
-function predict(e::AbstractEstimator, model::DEBAnimal, par, data, temperature, n=0)
+function predict(e::AbstractEstimator, model::DEBAnimal, par, data, temperature, n)
     # Hacks for checking final params against matlab
-    if n == -1
+    if n == 1
         ref = (; 
             T_ref = 293.1500,
               T_A = 8000,
@@ -140,7 +140,7 @@ function predict(e::AbstractEstimator, model::DEBAnimal, par, data, temperature,
         end
     )
 
-    if n == -1
+    if n == 1
         @show "Checking predictions..."
         println(predictions) 
         d = (;
@@ -156,11 +156,12 @@ function predict(e::AbstractEstimator, model::DEBAnimal, par, data, temperature,
             Ri = 0.013766820776005,
         )
         @assert all(map((a, b) -> isapprox(ustrip(a.val), b; atol=1e-5), predictions.timesincebirth, values(d[(:tx, :tp)])))
-        @assert all(map((a, b) -> isapprox(ustrip(a.val), b; atol=1e-4), predictions.timesincefertilisation, values(d[(:am,)])))
         @assert all(map((a, b) -> isapprox(ustrip(a.val), b; atol=1e-5), predictions.length, values(d[(:Lb, :Li)])))
         @assert all(map((a, b) -> isapprox(ustrip(a), b; atol=1e-5), predictions.wetweight, values(d[(:Wwb, :Wwx, :Wwi)])))
         @assert isapprox(ustrip(predictions.gestation), d.tg; atol=1e-5)
         @assert isapprox(ustrip(predictions.reproduction), d.Ri; atol=1e-5)
+        @show predictions.timesincefertilisation d.am
+        @assert all(map((a, b) -> isapprox(ustrip(a.val), b; atol=1e-4), predictions.timesincefertilisation, values(d[(:am,)])))
     end
     # @show predictions.timesincebirth[1].val
     # @show transitions[Ultimate()].state.aging

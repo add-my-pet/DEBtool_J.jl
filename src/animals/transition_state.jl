@@ -7,7 +7,7 @@ They may also calculate females and males separately when specified.
 compute_transition_state(e::AbstractEstimator, o::DEBAnimal, pars) =
     compute_transition_state(e, o, pars, lifecycle(o))
 function compute_transition_state(e::AbstractEstimator, o::DEBAnimal, pars, lifecycle::LifeCycle)
-    init = (nothing => Conception(),)
+    init = (Fertilisation((; state=init_scaled_state(o), τ=0.0)),)
     # Reduce over all transitions, where each uses the state of the previous
     states = foldl(values(lifecycle); init) do transition_states, (lifestage, transition)
         prevstate = last(transition_states)
@@ -38,14 +38,10 @@ function compute_transition_state(at::Birth, e::AbstractEstimator, o::DEBAnimal{
     (; τ, l, info) = scaled_age(at, pars, f)
     derived = metrics(l, τ, τ, pars)
     # TODO calculate aging properly here
-    state = (; v_H=v_Hb, e=1.0, l, aging=nothing) # aging_init(o))
+    state = (; v_H=v_Hb, e=1.0, l, aging=()) # aging_init(o))
     # TODO: τ has two meanings, since fertilisations and conception
     Birth((; state, τ, derived))
 end
-# function compute_transition_state(at::Weaning, e::AbstractEstimator, o::DEBAnimal{<:Standard}, pars, trans::Transitions, previous)
-#     (; L_m, del_M, k_M, ω, f) = pars
-#     return Weaning(metrics(l, τ, trans[Birth()].τ, pars))
-# end
 function compute_transition_state(at::Puberty, e::AbstractEstimator, o::DEBAnimal{<:Standard}, pars, trans::Transitions, previous::AbstractTransition)
     (; L_m, del_M, k_M, ω, l_T, g, f) = pars
     birth = trans[Birth()]
@@ -65,9 +61,10 @@ function compute_transition_state(at::Puberty, e::AbstractEstimator, o::DEBAnima
 
     return Puberty((; state=(; l), τ, derived=metrics(l, τ, birth.τ, pars)))
 end
-function compute_transition_state(at::Ultimate, e::AbstractEstimator, o::DEBAnimal{<:Standard}, pars, trans::Transitions, previous)
+function compute_transition_state(at::Ultimate, e::AbstractEstimator, o::DEBAnimal, pars, trans::Transitions, previous)
     (; f, l_T, L_m, del_M, ω, h_a, k_M) = pars
     l_b = trans[Birth()].state.l
+    τ_b = trans[Birth()].τ
     l = f - l_T                    # -, scaled ultimate length
     L = L_m * l                    # cm, ultimate structural length at f
     Lw = L / del_M                 # cm, ultimate plastron length
@@ -76,27 +73,15 @@ function compute_transition_state(at::Ultimate, e::AbstractEstimator, o::DEBAnim
     pars_tm = merge(pars, (; h_a=h_a / k_M^2)) 
     (; τ) = scaled_mean_age(Ultimate(), e, pars_tm, l_b) # -, scaled mean life span at T_ref
     a = τ / k_M
-    return Ultimate((; state=(; l), τ, derived=(; l, L, Lw, Ww, a)))
-end
-
-function metrics(l, τ, τ_b, pars)
-    (; f, L_m, del_M, k_M, ω) = pars
     t = (τ - τ_b) / k_M               # d, time since birth at puberty
-    L = L_m * l                       # cm, structural length at puberty
-    Lw = L / del_M                    # cm, plastron length at puberty
-    Ww = wet_weight(L, f, ω)
-    a = τ / k_M # TODO is this correct
-    return (; t, l, L, Lw, Ww, τ, a)
+    @show (τ, t, a)
+    return Ultimate((; state=(; l), τ, derived=(; l, L, Lw, Ww, t, a)))
 end
-
-wet_weight(L, f, ω) = L^3 * (oneunit(f) + f * ω) # transition wet weight
-
-
 # Just use an ode for the whole thing
 function compute_transition_state(at::Birth, e::AbstractEstimator, o::DEBAnimal{<:StandardFoetalDiapause}, pars, trans::Transitions, previous)
-    (; g, k, l_T, k_M, del_M, L_m, ω, f) = pars
-    # TODO give these numbers names
-    state = (v_H=1e-20, l=1e-20, aging=nothing) # aging_init(o))
+    (; g, k, l_T, k_M, del_M, L_m, ω, f, v_Hb) = pars
+    state = previous.val.state
+    # TODO merge this with the below method
 
     # Define the mode-specific callback function. This controls
     # how the solver handles specific lifecycle events.
@@ -110,10 +95,7 @@ function compute_transition_state(at::Birth, e::AbstractEstimator, o::DEBAnimal{
     callback = scaled_transition_callback(Birth(), o, state)
     solver = Tsit5()
     state_reconstructor = StateReconstructor(d_scaled, state, nothing)
-
-    # Define the ODE to solve with function, initial state,
-    # timespan and parameters
-    problem = ODEProblem(state_reconstructor, tspan, rebuilt(at, mbe))
+    problem = ODEProblem(state_reconstructor, tspan, rebuild(at, mbe))
 
     # solve the ODE, and return the solution object
     sol = solve(problem, solver;
@@ -124,10 +106,9 @@ function compute_transition_state(at::Birth, e::AbstractEstimator, o::DEBAnimal{
     )
     τ = sol.t[1]
     l = to_obj(state_reconstructor, sol[1]).l
-    return Birth((; state=(; v_H=v_Hb, e=f_0b, l, aging), τ, derived=metrics(l, τ, τ, pars)))
+    return Birth((; state=(; v_H=v_Hb, e=f_0b, l, aging=state.aging), τ, derived=metrics(l, τ, τ, pars)))
 end
-
-function compute_transition_state(at::AbstractTransition, e::AbstractEstimator, o::DEBAnimal, pars, trans::Transitions, previous::AbstractTransition)
+function compute_transition_state(at::AbstractTransition, e::AbstractEstimator, o::DEBAnimal, pars, trans::Transitions, previous)
     (; g, k, l_T, k_M, del_M, L_m, ω, f) = pars
 
     state = previous.val.state
@@ -139,7 +120,7 @@ function compute_transition_state(at::AbstractTransition, e::AbstractEstimator, 
     problem = ODEProblem(state_reconstructor, tspan, rebuild(at, mbe))
     solver = Tsit5()
     sol = solve(problem, solver; 
-        save_everystep=false, save_start=false, save_end=true,
+        save_everystep=false, save_start=false, save_end=false,
         abstol=1e-9, reltol=1e-9,
         callback,
     )
@@ -149,6 +130,10 @@ function compute_transition_state(at::AbstractTransition, e::AbstractEstimator, 
 
     return rebuild(at, (; state=(; v_H, e, l, aging), τ, derived=metrics(l, τ, trans[Birth()].τ, pars)))
 end
+
+# No e for birth
+init_scaled_state(::DEBAnimal) = nothing
+init_scaled_state(::DEBAnimal{<:StandardFoetalDiapause}) = (v_H=1e-20, l=1e-20, aging=()) # aging_init(o))
 
 function d_scaled(state, at::Birth, τ) # τ: scaled time since start development
     par = at.val.par
@@ -162,7 +147,7 @@ function d_scaled(state, at::Birth, τ) # τ: scaled time since start developmen
 
     dl = (g / 3) * (l_i - l) / (f + g)  # d/d τ l
     dv_H = 3 * l^2 * dl + l^3 - k * v_H # d/d τ v_H
-    return (; v_H=dv_H, l=dl, aging=d_scaled_aging(state, mbe, τ))
+    return (; v_H=dv_H, l=dl, aging=d_scaled_aging(state, at, τ))
 end
 function d_scaled(state, at::AbstractTransition, τ)
     par = at.val.par
@@ -204,28 +189,8 @@ scaled_transition_event(::Ultimate, model, template) = CallbackReconstructor(tem
     any(map(x -> x <= zero(x), state_below_zero_means_death))
 end
 
-d_scaled_aging(state, mbe, τ) = d_scaled_aging(state.aging, state, mbe, τ)
-d_scaled_aging(::Nothing, state, mbe, τ) = nothing
-# function d_scaled_aging(aging, state, mbe, τ)
-#     (; g, k, v_Hb, h_a, s_G, k_M) = mbe.par
-#     h_a = h_a / k_M^2 # scale
-#     h_B = haskey(mbe.par, :h_B) ? mbe.par.h_B : 0.0 
-#     ρ_N = haskey(mbe.par, :ρ_N) ? mbe.par.ρ_Nh_B : 0.0 
-#     (; e, l, v_H) = state
-#     (; q, h, S) = aging
-#     q = max(zero(q), q)
-#     h = max(zero(h), h)
-
-#     e = g * e / l^3
-#     ρ = (e / l - 1) / (1 + e / g)
-#     dq = g * e * (q * s_G + h_a / l^3) * (g / l - ρ) - ρ * q
-#     dh = q - ρ * h
-#     dS = -(h + h_B) * S
-
-#     dl0 = S * exp(-ρ_N * τ)                       
-
-#     return (; q=dq, h=dh, S=dS, l0=dl0)
-# end
+d_scaled_aging(state, at::AbstractTransition, τ) = d_scaled_aging(state.aging, state, at, τ)
+d_scaled_aging(::Tuple{}, state, at::AbstractTransition, τ) = ()
 
 """
 
@@ -238,13 +203,13 @@ d_scaled_aging(::Nothing, state, mbe, τ) = nothing
 
 - 'τ': scaled time since birth
 """
-function d_scaled_aging(aging, state, at::AbstractTransition, τ)
+function d_scaled_aging(aging::NamedTuple, state, at::AbstractTransition, τ)
     par = at.val.par
     thinning = false # TODO 
     (; f, g, s_G, h_a, k_M) = par
     h_a = h_a / k_M^2 # scale
     h_B = haskey(par, :h_B) ? par.h_B : 0.0 
-    (; q, h_A, S, t) = aging   
+    (; q, h_A, S, t) = aging  
     l = state.l
   
     rho_B = 1/ 3/ (1 + f/ g)g 
@@ -261,6 +226,18 @@ function d_scaled_aging(aging, state, at::AbstractTransition, τ)
 end
 
 aging_init(o) = (; q=0.0, h_A=0.0, S=1.0, t=0.0)
+
+function metrics(l, τ, τ_b, pars)
+    (; f, L_m, del_M, k_M, ω) = pars
+    t = (τ - τ_b) / k_M               # d, time since birth at puberty
+    L = L_m * l                       # cm, structural length at puberty
+    Lw = L / del_M                    # cm, plastron length at puberty
+    Ww = wet_weight(L, f, ω)
+    a = τ / k_M # TODO is this correct
+    return (; t, l, L, Lw, Ww, τ, a)
+end
+
+wet_weight(L, f, ω) = L^3 * (oneunit(f) + f * ω) # transition wet weight
 
 
 # TODO this is all kind of pointless, why not just one ODE
