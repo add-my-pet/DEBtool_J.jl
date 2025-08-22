@@ -198,6 +198,68 @@ end
 v_H_transition_event(::Weaning, model, template) = CallbackReconstructor(template) do u, t, i
     i.p.par.v_Hx - u.v_H
 end
+scaled_transition_event(::Ultimate, model, template) = CallbackReconstructor(template) do u, t, i
+    state_below_zero_means_death = (u.v_H, u.e, u.l, u.aging...)
+    any(map(x -> x <= zero(x), state_below_zero_means_death))
+end
+
+d_scaled_aging(state, mbe, τ) = d_scaled_aging(state.aging, state, mbe, τ)
+d_scaled_aging(::Nothing, state, mbe, τ) = nothing
+# function d_scaled_aging(aging, state, mbe, τ)
+#     (; g, k, v_Hb, h_a, s_G, k_M) = mbe.par
+#     h_a = h_a / k_M^2 # scale
+#     h_B = haskey(mbe.par, :h_B) ? mbe.par.h_B : 0.0 
+#     ρ_N = haskey(mbe.par, :ρ_N) ? mbe.par.ρ_Nh_B : 0.0 
+#     (; e, l, v_H) = state
+#     (; q, h, S) = aging
+#     q = max(zero(q), q)
+#     h = max(zero(h), h)
+
+#     e = g * e / l^3
+#     ρ = (e / l - 1) / (1 + e / g)
+#     dq = g * e * (q * s_G + h_a / l^3) * (g / l - ρ) - ρ * q
+#     dh = q - ρ * h
+#     dS = -(h + h_B) * S
+
+#     dl0 = S * exp(-ρ_N * τ)                       
+
+#     return (; q=dq, h=dh, S=dS, l0=dl0)
+# end
+
+"""
+
+# State variables
+
+- 'q':   -, scaled aging acceleration
+- 'h_A': -, scaled hazard rate due to aging
+- 'S':   -, survival prob
+- 't':   -, scaled cumulative survival
+
+- 'τ': scaled time since birth
+"""
+function d_scaled_aging(aging, state, at::AbstractTransition, τ)
+    par = at.val.par
+    thinning = false # TODO 
+    (; f, g, s_G, h_a, k_M) = par
+    h_a = h_a / k_M^2 # scale
+    h_B = haskey(par, :h_B) ? par.h_B : 0.0 
+    (; q, h_A, S, t) = aging   
+    l = state.l
+  
+    rho_B = 1/ 3/ (1 + f/ g)g 
+    r = 3 * rho_B * (f/ l - 1)g
+
+    dq = f * (q * l^3 * s_G + h_a) * (g/ l - r) - r * q
+    dh_A = q - r * h_A
+    h_X = thinning * r * 2 / 3
+    h = h_A + h_B + h_X
+    dS = -h * S
+    dt = S
+
+    return (; q=dq, h_A=dh_A, S=dS, t=dt) 
+end
+
+aging_init(o) = (; q=0.0, h_A=0.0, S=1.0, t=0.0)
 
 
 # TODO this is all kind of pointless, why not just one ODE
