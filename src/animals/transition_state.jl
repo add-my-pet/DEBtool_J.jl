@@ -39,11 +39,11 @@ function compute_transition_state(at::Birth, e::AbstractEstimator, o::DEBAnimal{
     m = metrics(l, τ, τ, pars)
     Birth(m)
 end
-function compute_transition_state(at::Weaning, e::AbstractEstimator, o::DEBAnimal{<:Standard}, pars, trans::Transitions, previous)
-    (; L_m, del_M, k_M, ω, f) = pars
-    return Weaning(metrics(l, τ, trans[Birth()].τ, pars))
-end
-function compute_transition_state(at::Puberty, e::AbstractEstimator, o::DEBAnimal{<:Standard}, pars, trans::Transitions, previous)
+# function compute_transition_state(at::Weaning, e::AbstractEstimator, o::DEBAnimal{<:Standard}, pars, trans::Transitions, previous)
+#     (; L_m, del_M, k_M, ω, f) = pars
+#     return Weaning(metrics(l, τ, trans[Birth()].τ, pars))
+# end
+function compute_transition_state(at::Puberty, e::AbstractEstimator, o::DEBAnimal{<:Standard}, pars, trans::Transitions, previous::AbstractTransition)
     (; L_m, del_M, k_M, ω, l_T, g, f) = pars
     birth = trans[Birth()]
 
@@ -96,8 +96,8 @@ wet_weight(L, f, ω) = L^3 * (oneunit(f) + f * ω) # transition wet weight
 
 
 # Just use an ode for the whole thing
-function compute_transition_state(::Birth, e::AbstractEstimator, o::DEBAnimal{<:StandardFoetalDiapause}, trans::Transitions, previous)
-    (; g, k, l_T, v_Hb, v_Hx, v_Hp, s_F, k_M, del_M, L_m, ω, f) = pars
+function compute_transition_state(at::Birth, e::AbstractEstimator, o::DEBAnimal{<:StandardFoetalDiapause}, pars, trans::Transitions, previous)
+    (; g, k, l_T, k_M, del_M, L_m, ω, f) = pars
     # TODO give these numbers names
     state = (v_H=1e-20, l=1e-20)
 
@@ -112,8 +112,7 @@ function compute_transition_state(::Birth, e::AbstractEstimator, o::DEBAnimal{<:
     tspan = (0.0, 1e10)
     callback = scaled_transition_callback(Birth(), o, state)
     solver = Tsit5()
-    sr = StateReconstructor(dget_length_birth, state_template, nothing)
-    state_init = SVector(sr)
+    state_reconstructor = StateReconstructor(dget_length_birth, state, nothing)
 
     # Define the ODE to solve with function, initial state,
     # timespan and parameters
