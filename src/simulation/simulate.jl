@@ -76,6 +76,8 @@ struct CallbackReconstructor{C,T}
 end
 (cr::CallbackReconstructor)(u::AbstractArray{T}, p, τ) where T =
     cr.callback(Flatten.reconstruct(cr.template, u, T), p, τ)
+(cr::CallbackReconstructor)(out::AbstractArray, u::AbstractArray{T}, p, τ) where T =
+    cr.callback(out, Flatten.reconstruct(cr.template, u, T), p, τ)
 
 @kwdef struct Simulator{S,AT,RT,Ts}
     solver::S = Tsit5()
@@ -294,9 +296,6 @@ E_H_transition_event(::Puberty, model, template) = CallbackReconstructor(templat
 end
 E_H_transition_event(::Metamorphosis, model, template) = CallbackReconstructor(template) do u, t, i
     i.p.par.E_Hj - u.E_H
-end
-E_H_transition_event(::Weaning, model, template) = CallbackReconstructor(template) do u, t, i
-    i.p.par.E_Hx - u.E_H
 end
 
 # The default action is to do nothing

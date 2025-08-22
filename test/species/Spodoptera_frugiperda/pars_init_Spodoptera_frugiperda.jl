@@ -42,7 +42,7 @@ par = (;
 )
 
 organism = hex_animal(5;
-    temperatureresponse=stripparams(LowAndHighTorporResponse(),
+    temperatureresponse=LowAndHighTorporResponse(),
 )
 
 (; organism, par)

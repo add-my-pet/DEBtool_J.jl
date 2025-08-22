@@ -1,7 +1,7 @@
 abstract type AbstractEstimationData end
 
 @kwdef struct EstimationFields{TSC,TSB,L,WW,DW,R,D,G,V,P} <: AbstractEstimationData
-    timesinceconception::TSC = nothing
+    timesincefertilisation::TSC = nothing
     timesincebirth::TSB = nothing
     length::L = nothing
     wetweight::WW = nothing
@@ -14,7 +14,7 @@ abstract type AbstractEstimationData end
 end
 function Base.show(io::IO, ef::EstimationFields)
     println(io, "EstimationFields(;")
-    isnothing(ef.timesinceconception) || println(io, "    timesinceconception = "    , ef.timesinceconception, ",")
+    isnothing(ef.timesincefertilisation) || println(io, "    timesincefertilisation = "    , ef.timesincefertilisation, ",")
     isnothing(ef.timesincebirth) || println(io, "    timesincebirth = "    , ef.timesincebirth, ",")
     isnothing(ef.length) || println(io, "    length = "    , ef.length, ",")
     isnothing(ef.wetweight) || println(io, "    wetweight = "    , ef.wetweight, ",")
@@ -41,7 +41,7 @@ A wrapper for all data used to estimate model parameters in [`estimate`](@ref).
 # Keywords
 
 - `temperature`:
-- `timesinceconception`:
+- `timesincefertilisation`:
 - `timesincebirth`:
 - `length`:
 - `wetweight`:

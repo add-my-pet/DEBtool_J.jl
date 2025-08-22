@@ -2,7 +2,7 @@ using StaticArrays: @SVector
 # TODO does this even need the field names, they could be wrappers
 EstimationData(;
     temperature=u"K"(39.0u"°C"),
-    timesinceconception=(
+    timesincefertilisation=(
         Birth(78.0u"d"),
         Ultimate(20.9 * 365.0u"d"),
     ),

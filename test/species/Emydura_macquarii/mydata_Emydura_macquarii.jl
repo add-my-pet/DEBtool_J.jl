@@ -1,6 +1,11 @@
+
 EstimationData(;
+    # evironments = (
+    #     standard=ConstantEnvironment(u"K"(22.0u"°C"), 1.0),
+    #     high=ConstantEnvironment(u"K"(30.0u"°C"), nothing),
+    # ),
     temperature=u"K"(22.0u"°C"),
-    timesinceconception=(
+    timesincefertilisation=(
         Birth(78.0u"d"),
         Birth(AtTemperature(u"K"(30.0u"°C"), 48.0u"d")),
         Female(Ultimate(20.9 * 365.0u"d")),

@@ -113,7 +113,7 @@ function predict(e::AbstractEstimator, model::DEBAnimal, par, data, temperature,
     # @show transitions[Puberty()]
     # @show transitions[Ultimate()]
     predictions = EstimationFields(
-        timesinceconception = isnothing(data.timesinceconception) ? nothing : _temp_correct_predictions(x -> x.a, tr, par, transitions, data.timesinceconception, tc),
+        timesincefertilisation = isnothing(data.timesincefertilisation) ? nothing : _temp_correct_predictions(x -> x.a, tr, par, transitions, data.timesincefertilisation, tc),
         timesincebirth = isnothing(data.timesincebirth) ? nothing : _temp_correct_predictions(x -> x.t, tr, par, transitions, data.timesincebirth, tc),
         length = isnothing(data.length) ? nothing : map(x -> transitions[x].Lw, data.length),
         wetweight = isnothing(data.wetweight) ? nothing : map(x -> transitions[x].Ww, data.wetweight),
@@ -156,7 +156,7 @@ function predict(e::AbstractEstimator, model::DEBAnimal, par, data, temperature,
             Ri = 0.013766820776005,
         )
         @assert all(map((a, b) -> isapprox(ustrip(a.val), b; atol=1e-5), predictions.timesincebirth, values(d[(:tx, :tp)])))
-        @assert all(map((a, b) -> isapprox(ustrip(a.val), b; atol=1e-4), predictions.timesinceconception, values(d[(:am,)])))
+        @assert all(map((a, b) -> isapprox(ustrip(a.val), b; atol=1e-4), predictions.timesincefertilisation, values(d[(:am,)])))
         @assert all(map((a, b) -> isapprox(ustrip(a.val), b; atol=1e-5), predictions.length, values(d[(:Lb, :Li)])))
         @assert all(map((a, b) -> isapprox(ustrip(a), b; atol=1e-5), predictions.wetweight, values(d[(:Wwb, :Wwx, :Wwi)])))
         @assert isapprox(ustrip(predictions.gestation), d.tg; atol=1e-5)

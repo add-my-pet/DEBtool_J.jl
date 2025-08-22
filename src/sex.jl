@@ -39,7 +39,7 @@ end
 A wrapper for diomorphic life stage.
 `a` and `b` are usually `Female` and `Male`.
 """
-@kwdef struct Dimorphic{A,B}
+@kwdef struct Dimorphic{A<:Female,B<:Male}
     a::A
     b::B
 end

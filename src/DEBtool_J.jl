@@ -61,7 +61,6 @@ include("animals/reproduction.jl")
 include("animals/scaled_age.jl")
 include("animals/length.jl")
 include("animals/parameters.jl")
-include("animals/misc.jl")
 include("animals/init.jl")
 
 include("estimation/loss.jl")
