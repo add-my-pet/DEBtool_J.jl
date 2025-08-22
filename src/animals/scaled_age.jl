@@ -144,6 +144,8 @@ Obsolete function; please use get_tm_mod.
 
 Theory is given in comments on DEB3 Section 6.1.1.
 See <get_tm.html *get_tm*> for the general case of long growth period relative to life span
+
+was get_tm_s
 """
 function scaled_mean_age(at::Ultimate, e::AbstractEstimator, p, lb)
     (; g, l_T, h_a, s_G, f) = p
@@ -157,6 +159,8 @@ function scaled_mean_age(at::Ultimate, e::AbstractEstimator, p, lb)
     hW3 = h_a * f * g / 6 / li
     hW = hW3^(1 / 3) # scaled Weibull aging rate
     hG = s_G * f * g * li^2
+    # @show s_G f g li h_a
+    # @show hG hW
     hG3 = hG^3       # scaled Gompertz aging rate
     tG = hG / hW
     tG3 = hG3 / hW3  # scaled Gompertz aging rate
@@ -169,9 +173,13 @@ function scaled_mean_age(at::Ultimate, e::AbstractEstimator, p, lb)
         tm = gamma(4 / 3) / hW
         tm_tail = 0
     elseif hG > 0
-        tm = 10 / hG # upper boundary for main integration of S(t)
-        tm_tail = expint(exp(tm * hG) * 6 / tG3) / hG
-        tm = _integrate_quad(hW, tG, tm, tm_tail)
+        # TODO what is this 10 about
+        tm1 = 10 / hG # upper boundary for main integration of S(t)
+        # TODO what is 6
+        tm_tail = expint(exp(tm1 * hG) * 6 / tG3) / hG
+        # @show tm1, hW, tG, tm_tail
+        # @assert all(map(isapprox, (tm, hW, tG), (1.056122230056153e+04, 1.749906956796689e-04, 5.410916826054532)))
+        tm = _integrate_quad(hW, tG, tm1, tm_tail)
     else # hG < 0
         error("This hG < 0 branch has never been used")
         tm = -1e4 / hG # upper boundary for main integration of S(t)
@@ -186,33 +194,28 @@ end
 # TODO: could this range be shorter, or an accuracy parameter?
 const QUAD_RANGE = 1 ./ (4:500)
 
-function _integrate_quad(hW, tG, tm, tm_tail)
-    # Performance critical!!
-    # integrate_tm_s is the most deeply nested function call
-    # TODO explain what 0 is, why is atol not specified
-    quadgk(x -> fnget_tm_s(QUAD_RANGE, x * hW, tG), 0, tm * hW)[1][1] + tm_tail
-end
+# Performance critical!!
+# integrate_tm_s is the most deeply nested function call
+# TODO explain what 0 is
+# atol 1e-6 is just to match matlab
+_integrate_quad(hW, tG, tm, tm_tail) =
+    quadgk(t -> fnget_tm_s(QUAD_RANGE, t, tG), 0, tm * hW; atol=1e-6)[1] / hW + tm_tail
 
-# modified 2010/02/25
 # called by get_tm_s for life span at short growth periods
 # integrate ageing surv prob over scaled age
 # t: age * hW 
 # Returns: ageing survival prob
-function fnget_tm_s(range, t, tG)
-    hGt = tG * t # age * hG
+function fnget_tm_s(range, t::Number, tG::Number)
+    hGt = tG * t
     if tG > 0
-        # Compute the scaled dataset
         s = c = first(range) * hGt
         for i in 2:lastindex(range)
             x = range[i]
             c *= hGt * x
             s += c 
         end
-        exp(-(oneunit(s) + s) * t^3)
-    else # tG < 0
-        error("Branch not yet tested!") 
-        exp(((oneunit(hGt) + hGt + hGt^2 / 2) - exp(hGt)) * 6 / tG^3)
+        return exp(-(1 + s) * t ^ 3)  # Transpose back and apply element-wise exp
+    else
+        return exp((1 + hGt + hGt^2 / 2 - exp.(hGt)) * 6 / tG^3)
     end
 end
-
-

@@ -5,17 +5,15 @@ abstract type AbstractEnvironment end
 
 An environment with fixed variables for all times.
 """
-struct ConstantEnvironment{Ti,Te,TC,FR} <: AbstractEnvironment
-    time::Ti
+struct ConstantEnvironment{Te,F,TC} <: AbstractEnvironment
     temperature::Te
+    food::F
     tempcorrection::TC
-    functionalresponse::FR
 end
 function ConstantEnvironment(; 
-    time=(0.0, 365.0),
     temperature=nothing,
     tempcorrection=nothing,
-    functionalresponse=nothing,
+    food=nothing,
     temperatureresponse=nothing
 )
     tempcorrection = if !isnothing(tempcorrection)
@@ -25,7 +23,7 @@ function ConstantEnvironment(;
     else
         tempcorr(temperatureresponse, temperature)
     end
-    return ConstantEnvironment(time, temperature, tempcorrection, functionalresponse)
+    return ConstantEnvironment(temperature, food, tempcorrection)
 end
 
 getattime(e::ConstantEnvironment, x, t) = getproperty(e, x)  

@@ -1,6 +1,6 @@
 function predict(e::AbstractEstimator, model::DEBAnimal, par, data, temperature, n)
     # Hacks for checking final params against matlab
-    if n == 1
+    if n == -1
         ref = (; 
             T_ref = 293.1500,
               T_A = 8000,
@@ -140,7 +140,7 @@ function predict(e::AbstractEstimator, model::DEBAnimal, par, data, temperature,
         end
     )
 
-    if n == 1
+    if n == -1
         @show "Checking predictions..."
         println(predictions) 
         d = (;
@@ -216,8 +216,8 @@ function predict_variate(e::AbstractEstimator, o::DEBAnimal, independent::Time, 
     Lw_i = transition_state[Ultimate()].derived.Lw
     # TODO explain these equations
     rT_B = TC * k_M / 3 / (oneunit(f) + f / g)
-    EWw = Lw_i .- (Lw_i .- Lw_b) .* exp.(-rT_B .* independent.val)
-    return EWw
+    Lw = Lw_i .- (Lw_i .- Lw_b) .* exp.(-rT_B .* independent.val)
+    return Lw
 end
 function predict_variate(e::AbstractEstimator, o::DEBAnimal, independent::Time, dependent::WetWeight, pars, transition_state, TC)
     (; f, k_M, L_m, v, ω) = pars
@@ -227,5 +227,6 @@ function predict_variate(e::AbstractEstimator, o::DEBAnimal, independent::Time, 
     # f = f_tW TODO: how to allow a specific f for variate data
     ir_B = 3 / k_M + 3 * f * L_m / v
     rT_B = TC / ir_B     # d, 1/von Bert growth rate
-    return (L_i .- (L_i .- L_b) .* exp.(-rT_B .* independent.val)) .^ 3 .* (oneunit(f) + f * ω) # g, wet weight
+    Ww = (L_i .- (L_i .- L_b) .* exp.(-rT_B .* independent.val)) .^ 3 .* (oneunit(f) + f * ω) # g, wet weight
+    return Ww
 end

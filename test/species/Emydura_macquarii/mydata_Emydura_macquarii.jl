@@ -1,9 +1,7 @@
 
 EstimationData(;
-    # evironments = (
-    #     standard=ConstantEnvironment(u"K"(22.0u"°C"), 1.0),
-    #     high=ConstantEnvironment(u"K"(30.0u"°C"), nothing),
-    # ),
+    # evironment = ConstantEnvironment(; temperature=u"K"(22.0u"°C"), food=1.0),
+    # environment = ConstantEnvironment(; temperature=u"K"(30.0u"°C"), food=1.0),
     temperature=u"K"(22.0u"°C"),
     timesincefertilisation=(
         Birth(78.0u"d"),
