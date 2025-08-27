@@ -28,21 +28,30 @@ function simulate(s::Simulator, mbe::MetabolismBehaviorEnvironment)
     state_template = initialise_state(mbe)
     # Initiale state
     sr = StateReconstructor(d_sim, state_template, u"d")
-    u_ref = Ref(SVector(f))
+    u_ref = Ref(SVector(sr))
+    t = Ref(first(tspan))
+    lifestage_sols = map(values(transitions(metabolism))) do transition
+        if transition isa Dimorphic
+            transition = transition.a
+        end
+        if transition isa Sex
+            transition = transition.val
+        end
 
-    lifestage_sols = map(transitions(metabolism)) do transition
         # Define the mode-specific callback function. This controls 
         # how the solver handles specific lifecycle events.
         p = rebuild(transition, mbe)
         u = u_ref[]
-        callback = simulation_callback(p, state_template)
+        callback = event_callback(p, metabolism, state_template)
         # Define the ODE to solve with function, initial state, 
+        lifestage_tspan = (t[], last(tspan))
         # timespan and parameters
-        problem = ODEProblem(sr, u, tspan, p)
+        problem = ODEProblem(sr, u, lifestage_tspan, p)
         # Solve for lifestage up to transition
         sol = solve(problem, solver; callback, abstol, reltol)
+        t[] = last(sol.t)
         # Update transition state
-        u_ref[] = to_obj(sr, sol[end])
+        u_ref[] = sol[end]
         sol
     end
 

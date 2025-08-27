@@ -27,8 +27,8 @@ EstimationData(;
         Male(Ultimate(3673.0u"g")),
     ),
     reproduction=Female(Ultimate(AtTemperature(u"K"(22.0u"°C"), 36.0 / 365.0u"d"))),
-    variate=(; 
-        lengths=Univariate(Time(365u"d"), Weighted(2.0, Length(u"cm")), "$(@__DIR__)/data/length.csv")
+    variate=( 
+        Univariate(Time(365u"d"), Weighted(2.0, Length(u"cm")), "$(@__DIR__)/data/length.csv"),
     ),
     # TODO why is k=0.3 etc here, what is this based on
     pseudo=(; 

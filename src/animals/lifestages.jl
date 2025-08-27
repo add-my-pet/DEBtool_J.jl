@@ -88,7 +88,7 @@ ConstructionBase.constructorof(::Type{L}) where L<:AbstractLifeStageOptionalFeed
 
 Life stage before birth.
 """
-struct Embryo{M,T} <: AbstractLifeStageFeeding{M,T}
+struct Embryo{M,T} <: AbstractLifeStageNoFeeding{M,T}
     val::T
 end
 # Used for mammals with support from mother...
@@ -319,7 +319,9 @@ Holds an ordered tuple of `AbstractTransition`s.
     sequence::S = ()
 end
 Transitions(args::Union{Dimorphic,Sex,AbstractTransition}...) = Transitions(args)
-Transitions(fc::LifeCycle) = Transitions(map(last, values(fc)))
+
+transitions(lc::LifeCycle) = Transitions(map(last, values(lc)))
+transitions(tr::Transitions) = tr
 
 """
     LifeStages <: AbstractLifeSequence
@@ -330,7 +332,9 @@ Holds a sequence of `AbstractLifeStage`.
     sequence::S = ()
 end
 LifeStages(args::AbstractLifeStage...) = LifeStages(args)
-LifeStages(fc::LifeCycle) = LifeStages(map(first, values(fc)))
+
+lifestages(lc::LifeCycle) = lifeStages(map(first, values(lc)))
+lifestages(ls::LifeStages) = ls
 
 function Base.getindex(stages::Union{AbstractLifeSequence,Dimorphic,Sex}, stage)
     out = _get(stages, stage)

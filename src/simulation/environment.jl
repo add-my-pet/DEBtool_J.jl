@@ -35,7 +35,7 @@ tspan(e::ConstantEnvironment) = first(e.time), last(e.time)
     Environment(; 
         times,
         temperatures=nothing,
-        functionalresponses=nothing,
+        food=nothing,
         interpolation=CubicSpline, 
         temperatureresponse=nothing
     )
@@ -47,7 +47,7 @@ from the environmental data using the `interpolation` method.
 
 - `times`:
 - `temperatures`: temperatures for each time in `times`.
-- `functionalresponses`: functional responses for each time in `times`.
+- `food`: functional responses for each time in `times`.
 - `interpolation`: a DataInterpolations.jl `AbstractInterpolation`.
 - `temperatureresponse`: a parametrised `AbstractTemperatureResponse` object.
 """
@@ -55,13 +55,13 @@ struct Environment{Ti,Te,TC,FR,I<:NamedTuple} <: AbstractEnvironment
     time::Ti
     temperature::Te
     tempcorrection::TC
-    functionalresponse::FR
+    food::FR
     interpolators::I
 end
 function Environment(; 
     time,
     temperature=nothing,
-    functionalresponse=nothing,
+    food=nothing,
     interpolation=CubicSpline, 
     temperatureresponse=nothing
 )
@@ -73,11 +73,11 @@ function Environment(;
     interpolators = if isnothing(interpolation)
         nothing
     else
-        map((; temperature, tempcorrection, functionalresponse)) do d
+        map((; temperature, tempcorrection, food)) do d
             isnothing(d) ? nothing : interpolation(d, time)
         end
     end
-    return Environment(time, temperature, tempcorrection, functionalresponse, interpolators)
+    return Environment(time, temperature, tempcorrection, food, interpolators)
 end
 
 getattime(e::Environment, x::Symbol, t) = getproperty(e.interpolators, x)(t)
@@ -89,7 +89,7 @@ tspan(e::Environment) = first(e.time), last(e.time)
     InteractiveEnvironment(; 
         times,
         temperatures=nothing,
-        functionalresponses=nothing,
+        food=nothing,
         interpolation=CubicSpline, 
         temperatureresponse=nothing
     )
@@ -101,7 +101,7 @@ from the environmental data using the `interpolation` method.
 
 - `times`:
 - `temperatures`: temperatures for each time in `times`.
-- `functionalresponses`: functional responses for each time in `times`.
+- `food`: functional responses for each time in `times`.
 - `interpolation`: a DataInterpolations.jl `AbstractInterpolation`.
 - `temperatureresponse`: a parametrised `AbstractTemperatureResponse` object.
 """
@@ -109,13 +109,13 @@ from the environmental data using the `interpolation` method.
 #     time::Ti
 #     temperature::Te
 #     tempcorrection::TC
-#     functionalresponse::FR
+#     food::FR
 #     interpolators::I
 # end
 # function InteractiveEnvironment(; 
 #     time,
 #     temperature=nothing,
-#     functionalresponse=nothing,
+#     food=nothing,
 #     interpolation=CubicSpline, 
 #     temperatureresponse=nothing
 # )
@@ -127,11 +127,11 @@ from the environmental data using the `interpolation` method.
 #     interpolators = if isnothing(interpolation)
 #         nothing
 #     else
-#         map((; temperature, tempcorrection, functionalresponse)) do d
+#         map((; temperature, tempcorrection, food)) do d
 #             isnothing(d) ? nothing : interpolation(d, time)
 #         end
 #     end
-#     return InteractiveEnvironment(time, temperature, tempcorrection, functionalresponse, interpolators)
+#     return InteractiveEnvironment(time, temperature, tempcorrection, food, interpolators)
 # end
 
 

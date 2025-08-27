@@ -1,4 +1,4 @@
-function [par, metaPar, txtPar] = pars_init_Vulpes_vulpes(metaData)
+=function [par, metaPar, txtPar] = pars_init_Vulpes_vulpes(metaData)
 
 metaPar.model = 'stx'; 
 

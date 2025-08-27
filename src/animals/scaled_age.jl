@@ -36,12 +36,12 @@ function scaled_age(at::Birth, pars::NamedTuple, eb::Number;
     αb = 3 * g * xb^(1 / 3) / l
     f1 = incomplete_beta_side(xb) # Precalculate f1 here rather than in _d_time_at_birth inside quadgk
     # Note: this `quadgk` is the most expensive call in `estimate`
-    τ = 3 * quadgk(x -> _d_time_at_birth(x, αb, f1), 1e-15, xb; atol=1e-6)[1]
+    τ = 3 * quadgk(x -> q_time_at_birth(x, αb, f1), 1e-15, xb; atol=1e-6)[1]
     return (; τ, l, info)
 end
 
-function _d_time_at_birth(x::Number, αb::Number, f1::Number)
-    x ^ (-2 / 3) / (1 - x) / (αb - real(incomplete_beta_precalc(x, f1)))
+function q_time_at_birth(x::Number, αb::Number, f1::Number)
+    x^(-2 / 3) / (1 - x) / (αb - real(incomplete_beta_precalc(x, f1)))
 end
 
 # gets scaled age and length at puberty, weaning, birth for foetal development.

@@ -6,34 +6,70 @@ They may also calculate females and males separately when specified.
 """
 compute_transition_state(e::AbstractEstimator, o::DEBAnimal, pars) =
     compute_transition_state(e, o, pars, lifecycle(o))
+###############################################################################################################
+# Fold over the whole lifecycle
+# here each result is the input to the next life stage
 function compute_transition_state(e::AbstractEstimator, o::DEBAnimal, pars, lifecycle::LifeCycle)
+    # Set the initial transition state, with τ at zero.
     init = (Fertilisation((; state=init_scaled_state(o), τ=0.0)),)
     # Reduce over all transitions, where each uses the state of the previous
     states = foldl(values(lifecycle); init) do transition_states, (lifestage, transition)
+        # Get the previous transition state
         prevstate = last(transition_states)
-        transition_state = compute_transition_state(transition, e, o, pars, Transitions(Base.tail(transition_states)), prevstate)
+        # Calculate the next transition state
+        transition_state = compute_transition_state(
+            transition, e, o, pars, Transitions(Base.tail(transition_states)), prevstate
+        )
+        # Add the new state to the previous tuple
         (transition_states..., transition_state)
     end
-    # Remove the init state
+    # Remove the init state my returning the tail of the tuple, in a Transitions object
     return Transitions(Base.tail(states)...)
 end
-# Handle Dimorphism: split the transition to male and female
-compute_transition_state(d::Dimorphic, e::AbstractEstimator, o::DEBAnimal, pars, ts::Transitions, state) =
-    Dimorphic(compute_transition_state(d.a, e, o, pars, ts[basetypeof(d.a)()], state), 
-              compute_transition_state(d.b, e, o, pars, ts[basetypeof(d.b)()], state))
-compute_transition_state(d::Dimorphic, e::AbstractEstimator, o::DEBAnimal, pars, ts::Transitions, state::Dimorphic) =
-    Dimorphic(compute_transition_state(d.a, e, o, pars, ts[basetypeof(state.a)()], state.a), 
-              compute_transition_state(d.b, e, o, pars, ts[basetypeof(state.b)()], state.b))
-compute_transition_state(t::AbstractTransition, e::AbstractEstimator, o::DEBAnimal, pars, ts::Transitions, state::Dimorphic) =
-    Dimorphic(compute_transition_state(t, e, o, pars, ts, state.a), compute_transition_state(e, t, o, pars, ts, state.b))
-compute_transition_state(sex::Female, e::AbstractEstimator, o::DEBAnimal, pars, ts::Transitions, state) = 
-    Female(compute_transition_state(sex.val, e, o, pars, ts, state))
-function compute_transition_state(t::Male, e::AbstractEstimator, o, pars, ts::Transitions, state)
-    pars_male = merge(pars, pars.male)
-    return Male(compute_transition_state(t.val, e, o, pars_male, ts, state))
+###############################################################################################################
+# Handle Dimorphism: split the transition to Female and Male
+function compute_transition_state(
+    d::Dimorphic, e::AbstractEstimator, o::DEBAnimal, pars, ts::Transitions, state
+)
+    Dimorphic(
+        compute_transition_state(d.a, e, o, pars, ts[basetypeof(d.a)()], state), 
+        compute_transition_state(d.b, e, o, pars, ts[basetypeof(d.b)()], state),
+    )
 end
+function compute_transition_state(
+    d::Dimorphic, e::AbstractEstimator, o::DEBAnimal, pars, ts::Transitions, state::Dimorphic
+)
+    Dimorphic(
+        compute_transition_state(d.a, e, o, pars, ts[basetypeof(state.a)()], state.a), 
+        compute_transition_state(d.b, e, o, pars, ts[basetypeof(state.b)()], state.b),
+    )
+end
+function compute_transition_state(
+    t::AbstractTransition, e::AbstractEstimator, o::DEBAnimal, pars, ts::Transitions, state::Dimorphic
+)
+    Dimorphic(
+        compute_transition_state(t, e, o, pars, ts, state.a), 
+        compute_transition_state(e, t, o, pars, ts, state.b),
+    )
+end
+###############################################################################################################
+#  Unwrap Female transitions
+compute_transition_state(sex::Female, e::AbstractEstimator, o::DEBAnimal, pars, ts::Transitions, state) =
+    Female(compute_transition_state(sex.val, e, o, pars, ts, state))
+compute_transition_state(sex::Female, e::AbstractEstimator, o::DEBAnimal, pars, ts::Transitions, state::Female) =
+    Female(compute_transition_state(sex.val, e, o, pars, ts, state.val))
+#  Unwrap Male transitions, and use male parameters
+compute_transition_state(sex::Male, e::AbstractEstimator, o, pars, ts::Transitions, state) =
+    Male(compute_transition_state(sex.val, e, o, merge(pars, pars.male), ts, state))
+compute_transition_state(sex::Male, e::AbstractEstimator, o, pars, ts::Transitions, state::Male) =
+    Male(compute_transition_state(sex.val, e, o, merge(pars, pars.male), ts, state.val))
+###############################################################################################################
 # This is the actual transition state code!
-function compute_transition_state(at::Birth, e::AbstractEstimator, o::DEBAnimal{<:Standard}, pars, trans::Transitions, previous)
+# Time from Fertilisation to Birth is calculated with scaled_age function.
+function compute_transition_state(
+    at::Birth, e::AbstractEstimator, o::DEBAnimal{<:Standard}, 
+    pars, trans::Transitions, previous::AbstractTransition
+)
     (; L_m, del_M, k_M, ω, f, v_Hb) = pars
     (; τ, l, info) = scaled_age(at, pars, f)
     derived = metrics(l, τ, τ, pars)
@@ -42,7 +78,10 @@ function compute_transition_state(at::Birth, e::AbstractEstimator, o::DEBAnimal{
     # TODO: τ has two meanings, since fertilisations and conception
     Birth((; state, τ, derived))
 end
-function compute_transition_state(at::Puberty, e::AbstractEstimator, o::DEBAnimal{<:Standard}, pars, trans::Transitions, previous::AbstractTransition)
+function compute_transition_state(
+    at::Puberty, e::AbstractEstimator, o::DEBAnimal{<:Standard},
+    pars, trans::Transitions, previous::AbstractTransition
+)
     (; L_m, del_M, k_M, ω, l_T, g, f) = pars
     birth = trans[Birth()]
 
@@ -54,14 +93,12 @@ function compute_transition_state(at::Puberty, e::AbstractEstimator, o::DEBAnima
     l, info = compute_length(at, pars, birth.state.l)
     τ = previous.val.τ + log(l_d / (l_i - l)) / ρ_B
 
-    # Check if τ is real and positive
-    if !isreal(τ) || τ < zero(τ)
-        info = false
-    end
-
     return Puberty((; state=(; l), τ, derived=metrics(l, τ, birth.τ, pars)))
 end
-function compute_transition_state(at::Ultimate, e::AbstractEstimator, o::DEBAnimal, pars, trans::Transitions, previous)
+function compute_transition_state(
+    at::Ultimate, e::AbstractEstimator, o::DEBAnimal, 
+    pars, trans::Transitions, previous::AbstractTransition
+)
     (; f, l_T, L_m, del_M, ω, h_a, k_M) = pars
     l_b = trans[Birth()].state.l
     τ_b = trans[Birth()].τ
@@ -77,18 +114,16 @@ function compute_transition_state(at::Ultimate, e::AbstractEstimator, o::DEBAnim
     # @show (τ, t, a)
     return Ultimate((; state=(; l), τ, derived=(; l, L, Lw, Ww, t, a)))
 end
-# Just use an ode for the whole thing
-function compute_transition_state(at::Birth, e::AbstractEstimator, o::DEBAnimal{<:StandardFoetalDiapause}, pars, trans::Transitions, previous)
+###############################################################################################################
+# ODE base transition state
+function compute_transition_state(
+    at::Birth, e::AbstractEstimator, o::DEBAnimal{<:StandardFoetalDiapause}, 
+    pars, trans::Transitions, previous::AbstractTransition
+)
     (; g, k, l_T, k_M, del_M, L_m, ω, f, v_Hb) = pars
     state = previous.val.state
-    # TODO merge this with the below method
-
-    # Define the mode-specific callback function. This controls
-    # how the solver handles specific lifecycle events.
-
     f_0b = 1.0 # embryo development is independent of nutritional state of the mother
-
-    env = ConstantEnvironment(; functionalresponse = f_0b)
+    env = ConstantEnvironment(; food = f_0b)
     mbe = MetabolismBehaviorEnvironment(o, NullBehavior(), env, pars)
     # TODO give these numbers names
     tspan = (0.0, 1e10)
@@ -110,14 +145,17 @@ function compute_transition_state(at::Birth, e::AbstractEstimator, o::DEBAnimal{
     derived = metrics(l, τ, τ, pars)
     return Birth((; state, τ, derived))
 end
-function compute_transition_state(at::AbstractTransition, e::AbstractEstimator, o::DEBAnimal, pars, trans::Transitions, previous)
+function compute_transition_state(
+    at::AbstractTransition, e::AbstractEstimator, o::DEBAnimal, 
+    pars, trans::Transitions, previous#::AbstractTransition
+)
     (; g, k, l_T, k_M, del_M, L_m, ω, f) = pars
 
     state = previous.val.state
     callback = scaled_transition_callback(at, o, state)
     state_reconstructor = StateReconstructor(d_scaled, state, nothing)
     tspan = (previous.val.τ, 1e20)
-    env = ConstantEnvironment(; functionalresponse=f)
+    env = ConstantEnvironment(; food=f)
     mbe = MetabolismBehaviorEnvironment(o, NullBehavior(), env, pars)
     problem = ODEProblem(state_reconstructor, tspan, rebuild(at, mbe))
     solver = Tsit5()
@@ -129,44 +167,9 @@ function compute_transition_state(at::AbstractTransition, e::AbstractEstimator, 
 
     state = to_obj(state_reconstructor, sol[1])
     τ = sol.t[1]
-    derived = metrics(l, τ, trans[Birth()].τ, pars)
+    derived = metrics(state.l, τ, trans[Birth()].τ, pars)
     return rebuild(at, (; state, τ, derived))
 end
-
-"""
-
-# State variables
-
-- 'q':   -, scaled aging acceleration
-- 'h_A': -, scaled hazard rate due to aging
-- 'S':   -, survival prob
-- 't':   -, scaled cumulative survival
-
-- 'τ': scaled time since birth
-"""
-function d_scaled_aging(aging::NamedTuple, state, at::AbstractTransition, τ)
-    par = at.val.par
-    thinning = false # TODO 
-    (; f, g, s_G, h_a, k_M) = par
-    h_a = h_a / k_M^2 # scale
-    h_B = haskey(par, :h_B) ? par.h_B : 0.0 
-    (; q, h_A, S, t) = aging  
-    l = state.l
-  
-    rho_B = 1/ 3/ (1 + f/ g)g 
-    r = 3 * rho_B * (f/ l - 1)g
-
-    dq = f * (q * l^3 * s_G + h_a) * (g/ l - r) - r * q
-    dh_A = q - r * h_A
-    h_X = thinning * r * 2 / 3
-    h = h_A + h_B + h_X
-    dS = -h * S
-    dt = S
-
-    return (; q=dq, h_A=dh_A, S=dS, t=dt) 
-end
-
-aging_init(o) = (; q=0.0, h_A=0.0, S=1.0, t=0.0)
 
 function metrics(l, τ, τ_b, pars)
     (; f, L_m, del_M, k_M, ω) = pars

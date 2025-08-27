@@ -65,6 +65,7 @@ structures(a::AbstractDEBAnimal) = (a,)
 # And no synthesizing units
 synthesizingunits(::AbstractDEBAnimal) = ()
 
+
 has(o::AbstractDEBAnimal, t::Union{AbstractTransition,AbstractLifeStage,Sex}) = has(lifecycle(o), t) 
 temperatureresponse(model::AbstractDEBAnimal) = model.temperatureresponse
 
@@ -85,6 +86,8 @@ end
 
 mode(model::DEBAnimal) = model.mode
 lifecycle(model::DEBAnimal) = model.lifecycle
+lifestates(model::DEBAnimal) = lifestages(lifecycle(model))
+transitions(model::DEBAnimal) = transitions(lifecycle(model))
 # reproduction(model::DEBAnimal) = model.reproduction
 # chemicalcomposition(model::DEBAnimal) = model.chemicalcomposition
 # structures(model::DEBAnimal) = model.structures
