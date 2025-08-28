@@ -135,7 +135,7 @@ function predict(e::AbstractEstimator, model::DEBAnimal, par, data, temperature,
         else
             # uni-variate data
             map(data.variate) do u
-                predict_variate(e, model, u, par, transitions, tc)
+                predict_variate(u, e, model, par, transitions, tc)
             end
         end
     )
@@ -181,36 +181,36 @@ function _temp_correct_predictions(fieldgetter::Function, tr, par::NamedTuple, l
     end
 end
 
-function predict_variate(e::AbstractEstimator, o::DEBAnimal, us::Tuple, pars, transition_state, TC)
+function predict_variate(us::Tuple, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC)
     map(us) do u
-        predict_variate(e, o, u, pars, transition_state, TC)
+        predict_variate(u, e, o, pars, transition_state, TC)
     end
 end
-function predict_variate(e::AbstractEstimator, o::DEBAnimal, u::AtTemperature, pars, transition_state, TC_main)
+function predict_variate(u::AtTemperature, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC_main)
     TC_data = tempcorr(temperatureresponse(o), u.t)
     predict_variate(e, o, u.x, pars, transition_state, TC_data)
 end
-predict_variate(e::AbstractEstimator, o::DEBAnimal, u::Univariate, pars, transition_state, TC) =
-    predict_variate(e, o, u.independent, u.dependent, pars, transition_state, TC)
-function predict_variate(e::AbstractEstimator, o::DEBAnimal, u::Multivariate, pars, transition_state, TC)
+predict_variate(u::Univariate, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC) =
+    predict_variate(u.dependent, u.independent, e, o, pars, transition_state, TC)
+function predict_variate(u::Multivariate, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC)
     map(u.dependents) do d
-        predict_variate(e, o, u.independent, d, pars, transition_state, TC)
+        predict_variate(d, u.independent, e, o, pars, transition_state, TC)
     end
 end
-function predict_variate(e::AbstractEstimator, o::DEBAnimal, u::Multivariate{<:Temperature}, pars, transition_state, TC)
+function predict_variate(u::Multivariate{<:Temperature}, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC)
     TCs = tempcorr(temperatureresponse(o), u.independent.val)
     map(u.dependents) do d
-        predict_variate(e, o, u.independent, d, pars, transition_state, TC)
+        predict_variate(d, u.independent, e, o, pars, transition_state, TC)
     end
 end
-function predict_variate(e::AbstractEstimator, o::DEBAnimal, independent::Time, dependent::Female, pars, transition_state, TC)
+function predict_variate(dependent::Female, independent::Time, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC)
     predict_variate(e, o, u.independent, d.val, pars, transition_state, TC)
 end
-function predict_variate(e::AbstractEstimator, o::DEBAnimal, independent::Time, dependent::Male, pars, transition_state, TC)
+function predict_variate(dependent::Male, independent::Time, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC)
     pars_male = merge(pars, pars.male)
     predict_variate(e, o, u.independent, d.val, pars_male, transition_state, TC)
 end
-function predict_variate(e::AbstractEstimator, o::DEBAnimal, independent::Time, dependent::Length, pars, transition_state, TC)
+function predict_variate(dependent::Length, independent::Time, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC)
     (; k_M, f, g) = pars
     Lw_b = transition_state[Birth()].derived.Lw
     Lw_i = transition_state[Ultimate()].derived.Lw
@@ -219,7 +219,7 @@ function predict_variate(e::AbstractEstimator, o::DEBAnimal, independent::Time, 
     Lw = Lw_i .- (Lw_i .- Lw_b) .* exp.(-rT_B .* independent.val)
     return Lw
 end
-function predict_variate(e::AbstractEstimator, o::DEBAnimal, independent::Time, dependent::WetWeight, pars, transition_state, TC)
+function predict_variate(dependent::WetWeight, independent::Time, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC)
     (; f, k_M, L_m, v, ω) = pars
     L_b = transition_state[Birth()].derived.L # cm, length at birth, ultimate
     L_i = transition_state[Ultimate()].derived.L
