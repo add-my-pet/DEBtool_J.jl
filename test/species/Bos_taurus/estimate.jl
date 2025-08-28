@@ -1,0 +1,9 @@
+using DEBtool_J
+include(joinpath(dirname(pathof(DEBtool_J)), "../test/test_utils.jl"))
+
+species = "Bos_taurus"
+species_context = load_species(species)
+estimator = Estimator(; max_step_number=20000, max_fun_evals=20000)
+@time parout, nsteps, info, fval = estimate(estimator, species_context);
+
+compare_matlab(species, parout)

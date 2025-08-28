@@ -181,6 +181,20 @@ end
 Period{A,B}(val::T) where {A,B,T} = Period{A,B,T}(val)
 ConstructionBase.constructorof(::Type{<:Period{A,B}}) where {A,B} = Period{A,B}
 
+struct Respiration{T} <: Data
+    val::T
+end
+
+struct CarbonDioxideEmissions{T} <: Data
+    val::T
+end
+struct MethaneEmissions{T} <: Data
+    val::T
+end
+struct FoodIntake{T} <: Data
+    val::T
+end
+
 # TODO: can we just use Multivariate for everything?
 struct Univariate{I<:Data,D<:Union{Data,Sex}} <: Data
     independent::I

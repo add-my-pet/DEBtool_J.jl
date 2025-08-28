@@ -230,3 +230,29 @@ function predict_variate(dependent::WetWeight, independent::Time, e::AbstractEst
     Ww = (L_i .- (L_i .- L_b) .* exp.(-rT_B .* independent.val)) .^ 3 .* (oneunit(f) + f * ω) # g, wet weight
     return Ww
 end
+function predict_variate(dependent::CarbonDioxideEmmissions, independent::Time, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC)
+    (; p_M, n_M, n_CM n_HM n_OM n_NM, n_O, eta_O) = pars
+    eta_M_CO2 = -inv(n_M) .* n_O .* eta_O
+    w_CO2 = 44
+    p_S = p_M * TC * L .^ 3
+    p_C = (E_G * p_A + f * E_m * p_S) / (kap * f * E_m + E_G);
+    p_G = kap * p_C - p_S;
+    p_D = p_C - p_G;
+    pow = [p_A' .* (1-xi_C)'; p_D'; p_G']
+    CO2_production = w_CO2 * eta_M_CO2[1, :] .* pow
+    return CO2_production
+end
+function predict_variate(dependent::MethaneEmissions, independent::Time, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC)
+    (; n_M, n_CM n_HM n_OM n_NM, n_O, eta_O) = pars
+    n_M_CH4 = Array(n_M)
+    # TODO explain wha this does, and do it without numbers. 
+    # We need to use a named-dimension matrix
+    n_M_CH4[:, 1] .= (n_CM, n_HM, n_OM, n_NM)
+    eta_M_CH4 = -inv(n_M_CH4) * n_O * eta_O
+    w_CH4 = 16
+    # Aain, [1, 1] should be row/column names this is unreadable
+    methane_production = eta_M_CH4[1, 1] * w_CH4 * xi_C * p_A
+    return methane_production
+end
+function predict_variate(dependent::FoodIntake, independent::Time, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC)
+end
