@@ -88,7 +88,7 @@ ConstructionBase.constructorof(::Type{L}) where L<:AbstractLifeStageOptionalFeed
 
 Life stage before birth.
 """
-struct Embryo{M,T} <: AbstractLifeStageFeeding{M,T}
+struct Embryo{M,T} <: AbstractLifeStageNoFeeding{M,T}
     val::T
 end
 # Used for mammals with support from mother...
@@ -183,11 +183,11 @@ abstract type AbstractTransition{T} <: AbstractEvent end
 (::Type{Tr})() where Tr<:AbstractTransition = Tr(nothing)
 
 """
-    Conception <: AbstractTransition
+    Fertilisation <: AbstractTransition
 
-Fertilisation. TODO: should this be `Fertilisation` instead?
+Fertilisation event.
 """
-struct Conception{T} <: AbstractTransition{T}
+struct Fertilisation{T} <: AbstractTransition{T}
     val::T
 end
 """
@@ -246,16 +246,6 @@ struct Death{T} <: AbstractTransition{T}
     val::T
 end
 """
-    Emergence <: AbstractTransition
-
-    Emergence([val])
-
-Emergence of insects from `Pupa` to become an `Imago`.
-"""
-struct Emergence{T} <: AbstractTransition{T}
-    val::T
-end
-"""
     Moult{N} <: AbstractTransition
 
     Mount{N}([val])
@@ -267,49 +257,18 @@ struct Moult{N,T} <: AbstractTransition{T}
 end
 Moult{N}(val::V=nothing) where {N,V} = Moult{N,V}(val)
 
+"""
+    Emergence <: AbstractTransition
+
+    Emergence([val])
+
+Emergence of insects from `Pupa` to become an `Imago`.
+"""
+struct Emergence{T} <: AbstractTransition{T}
+    val::T
+end
+
 ConstructionBase.constructorof(::Type{<:Moult{N}}) where {N} = Moult{N}
-
-"""
-    Sex
-
-Abstract supertype for sexes.
-"""
-abstract type Sex{T} end
-(::Type{T})() where T<:Sex = T(nothing)
-
-"""
-    Male <: Sex
-
-    Male([val])
-
-A wrapper that specifies values related to a male organism.
-"""
-struct Male{T} <: Sex{T}
-    val::T
-end
-"""
-    Female <: Sex
-
-    Female([val])
-
-A wrapper that specifies values related to a female organism.
-"""
-struct Female{T} <: Sex{T}
-    val::T
-end
-
-"""
-    Dimorphic
-
-    Dimorphic(a, b)
-
-A wrapper for diomorphic life stage.
-`a` and `b` are usually `Female` and `Male`.
-"""
-@kwdef struct Dimorphic{A,B}
-    a::A
-    b::B
-end
 
 const StageAndTransition = Pair{<:AbstractLifeStage,<:Union{<:AbstractTransition,<:Dimorphic,<:Sex}}
 
@@ -361,6 +320,9 @@ Holds an ordered tuple of `AbstractTransition`s.
 end
 Transitions(args::Union{Dimorphic,Sex,AbstractTransition}...) = Transitions(args)
 
+transitions(lc::LifeCycle) = Transitions(map(last, values(lc)))
+transitions(tr::Transitions) = tr
+
 """
     LifeStages <: AbstractLifeSequence
 
@@ -370,6 +332,9 @@ Holds a sequence of `AbstractLifeStage`.
     sequence::S = ()
 end
 LifeStages(args::AbstractLifeStage...) = LifeStages(args)
+
+lifestages(lc::LifeCycle) = lifeStages(map(first, values(lc)))
+lifestages(ls::LifeStages) = ls
 
 function Base.getindex(stages::Union{AbstractLifeSequence,Dimorphic,Sex}, stage)
     out = _get(stages, stage)

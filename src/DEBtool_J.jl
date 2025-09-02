@@ -20,17 +20,16 @@ import ModelParameters.ConstructionBase
 export Estimator, DEBNelderMead, DEBMultimodalEvolutionaryAlgorithm
 export Simulator
 export DEBAnimal
-export ModelParEnv
 export ArrheniusResponse, LowTorporResponse, HighTorporResponse, LowAndHighTorporResponse
 export LifeCycle, LifeStages, Transitions, Dimorphic
-export Conception, Birth, Weaning, Puberty, Maturity, Ultimate, Moult, Emergence
+export Fertilisation, Birth, Weaning, Puberty, Maturity, Ultimate, Moult, Emergence
 export Embryo, Foetus, Baby, Juvenile, Adult, Instar, Pupa, Imago
 export Gestation
 export Female, Male
 export AtTemperature, Weighted
 export EstimationData, Univariate, Multivariate, Time, Temperature, Length, FunctionalResponse, Food, DryWeight, WetWeight, Duration, Period
 export AbstractEnvironment, Environment, ConstantEnvironment
-export Standard, FoetalDevelopment, FoetalDevelopmentX, GrowthCeasesAtPuberty, Accelerated, Hemimetabolous, Holometabolous
+export Standard, Accelerated, Hemimetabolous, Holometabolous
 export std, stf, stx, sbp, abj, abp, asj, hep, hex, hax
 export std_animal, stf_animal, stx_animal, sbp_animal, 
     abj_animal, abp_animal, asj_animal, 
@@ -38,13 +37,15 @@ export std_animal, stf_animal, stx_animal, sbp_animal,
 
 export estimate, simulate
 
-export defaultpseudodata, defaultpseudoweights, defaultweights, defaultchemistry, default_d_V
+export defaultpseudodata, defaultweights, defaultchemistry, default_d_V
 
 include("simulation/environment.jl")
 include("simulation/behavior.jl")
+include("sex.jl")
 include("estimation/data.jl")
 include("estimation/estimation.jl")
 
+include("organism.jl")
 include("const.jl")
 include("chemistry.jl")
 include("synthesizing_units.jl")
@@ -59,8 +60,10 @@ include("animals/reproduction.jl")
 include("animals/scaled_age.jl")
 include("animals/length.jl")
 include("animals/parameters.jl")
-include("animals/misc.jl")
 include("animals/init.jl")
+include("animals/ode/utils.jl")
+include("animals/ode/scaled.jl")
+include("animals/ode/unscaled.jl")
 
 include("estimation/loss.jl")
 include("estimation/solvers.jl")

@@ -4,7 +4,7 @@ EstimationData(;
         Weaning(48u"d"),
         Puberty(304u"d"),
     ),
-    timesinceconception = (
+    timesincefertilisation = (
         Ultimate(21.3*365u"d"),
     ),
     length = (

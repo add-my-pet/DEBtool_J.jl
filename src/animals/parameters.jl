@@ -248,3 +248,19 @@ end
         return compound_pars
     end
 end
+
+function compute_male_params(model::DEBAnimal, par)
+    # TODO better detection here
+    if haskey(par, :z_m)
+        (; κ, z_m, p_M, w_E, w_V, v, E_G, k_M, κ, y_E_V, v_Hpm) = par
+        p_Am = z_m * p_M / κ             # J/d.cm^2, {p_Am} spec assimilation flux
+        E_m = p_Am / v                   # J/cm^3, reserve capacity [E_m]
+        g = E_G / (κ * E_m)              # -, energy investment ratio
+        m_Em = y_E_V * E_m / E_G         # mol/mol, reserve capacity
+        ω = m_Em * w_E / w_V             # -, contribution of reserve to weight
+        L_m = v / k_M / g                # cm, max struct length
+        return (; z=z_m, ω, g, L_m, v_Hp=v_Hpm)
+    else
+        (;) 
+    end
+end

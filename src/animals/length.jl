@@ -63,7 +63,7 @@ function compute_length(at::Birth, p::NamedTuple; eb::Number=1.0)
     x3 = x .^ (1 / 3)
 
     f1 = incomplete_beta_side(xb)
-    b = real.(incomplete_beta_precalc.(x, f1)) ./ (3 * g)
+    b = real.(incomplete_beta_precalc.(x, f1)) ./ (3 .* g)
     t0 = xb * g * v_Hb
     i = 0
     norm = 1 # make sure that we start Newton Raphson procedure

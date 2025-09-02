@@ -22,11 +22,11 @@ function loss(lf::AbstractLossWithMeans, predicted_u, data_u, meandata_u, weight
     # Strip all units, forcing conversions to the units in `data`
     datatuple_u = struct2vector(data_u, data_u)
     predictedtuple_u = struct2vector(predicted_u, data_u)
-    predicted = map(_ustriptodata, predictedtuple_u, datatuple_u)
-    data = map(ustrip, datatuple_u)
-    meanpredicted = map(_ustriptodata, struct2means(predicted_u, data_u), meandata_u)
+    predicted = ModelParameters.unrolled_map(_ustriptodata, predictedtuple_u, datatuple_u)
+    data = ModelParameters.unrolled_map(ustrip, datatuple_u)
+    meanpredicted = ModelParameters.unrolled_map(_ustriptodata, struct2means(predicted_u, data_u), meandata_u)
     meandata = map(ustrip, meandata_u)
-    return loss(lf, map(SVector, (data, meandata, predicted, meanpredicted, weights))...)
+    return loss(lf, ModelParameters.unrolled_map(SVector, (data, meandata, predicted, meanpredicted, weights))...)
 end
 # Loss formulations
 loss(::SymmetricBoundedLoss, data::SVector, meandata::SVector, predicted::SVector, meanpredicted::SVector, weights::SVector) =

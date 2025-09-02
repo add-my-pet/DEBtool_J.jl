@@ -100,9 +100,11 @@ end
 function _estimate_inner(e::Estimator, model, par::P, estimationdata, meandatavec, weightsvec) where P
     (; data, temperature) = estimationdata
 
+    counter = Ref(0)
     function objective(parvec)
+        counter[] += 1
         par1 = stripparams(ModelParameters.update(par, parvec)::P)
-        (; predictions, info) = predict(e, model, par1, data, temperature)
+        (; predictions, info) = predict(e, model, par1, data, temperature, counter[])
         prdData1 = predict_pseudodata(model, par1, data, predictions)
         return prdData1, info
     end

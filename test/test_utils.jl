@@ -17,7 +17,7 @@ end
 
 function compare_matlab(species::AbstractString, parout)
     @testset "Parameter consistency" begin # get results from Matlab
-        file = matopen(joinpath(_speciespath(species), "matlab", "results_$species.mat"))
+        file = open_matlab(species)
         matlabvarname = "par"
         par_matlab = read(file, matlabvarname)
         close(file)
@@ -37,5 +37,7 @@ function compare_matlab(species::AbstractString, parout)
         println()
     end
 end
+
+open_matlab(species) = matopen(joinpath(_speciespath(species), "matlab", "results_$species.mat"))
 
 _speciespath(species) = realpath(joinpath(dirname(pathof(DEBtool_J)), "../test/species/$species"))

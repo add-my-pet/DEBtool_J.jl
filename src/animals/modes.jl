@@ -58,10 +58,16 @@ hep() = Hemimetabolous(NoFeeding())
 hex() = Holometabolous(NoFeeding())
 hax() = Holometabolous(Feeding())
 
-abstract type AbstractDEBOrganism end
+abstract type AbstractDEBAnimal <: AbstractDEBOrganism end
 
-has(o::AbstractDEBOrganism, t::Union{AbstractTransition,AbstractLifeStage,Sex}) = has(lifecycle(o), t) 
-temperatureresponse(model::AbstractDEBOrganism) = model.temperatureresponse
+# A DEBAnimal has one structure, itself
+structures(a::AbstractDEBAnimal) = (a,)
+# And no synthesizing units
+synthesizingunits(::AbstractDEBAnimal) = ()
+
+
+has(o::AbstractDEBAnimal, t::Union{AbstractTransition,AbstractLifeStage,Sex}) = has(lifecycle(o), t) 
+temperatureresponse(model::AbstractDEBAnimal) = model.temperatureresponse
 
 """
     DEBAnimal
@@ -80,6 +86,8 @@ end
 
 mode(model::DEBAnimal) = model.mode
 lifecycle(model::DEBAnimal) = model.lifecycle
+lifestates(model::DEBAnimal) = lifestages(lifecycle(model))
+transitions(model::DEBAnimal) = transitions(lifecycle(model))
 # reproduction(model::DEBAnimal) = model.reproduction
 # chemicalcomposition(model::DEBAnimal) = model.chemicalcomposition
 # structures(model::DEBAnimal) = model.structures
