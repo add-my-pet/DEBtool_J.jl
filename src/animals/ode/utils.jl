@@ -87,7 +87,7 @@ end
     tspan::Ts
 end
 
-function combine_sols!(sol1::OrdinaryDiffEq.ODESolution, sols...)
+function combine_sols!(sol1::SciMLBase.ODESolution, sols...)
     append!(sol1.u, map(s -> s.u, sols)...)
     append!(sol1.t, map(s -> s.t, sols)...)
     append!(sol1.interp.ks, map(s -> s.interp.ks, sols)...)
