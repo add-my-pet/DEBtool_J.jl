@@ -46,7 +46,7 @@ function simulate(s::Simulator, mbe::MetabolismBehaviorEnvironment)
         # Define the ODE to solve with function, initial state, 
         lifestage_tspan = (t[], last(tspan))
         # timespan and parameters
-        problem = ODEProblem(sr, u, lifestage_tspan, p)
+        problem = ODEProblem{false}(sr, u, lifestage_tspan, p)
         # Solve for lifestage up to transition
         sol = solve(problem, solver; callback, abstol, reltol)
         t[] = last(sol.t)

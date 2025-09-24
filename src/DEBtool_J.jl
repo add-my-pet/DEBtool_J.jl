@@ -7,7 +7,8 @@ using Statistics
 using Random
 using SpecialFunctions
 using QuadGK
-using OrdinaryDiffEq
+using SciMLBase
+using OrdinaryDiffEqTsit5
 using Roots
 using ModelParameters.Flatten
 using StaticArrays
