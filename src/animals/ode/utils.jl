@@ -68,8 +68,8 @@ Base.Array(sr::StateReconstructor) = collect(sr)
 StaticArrays.SVector(sr::StateReconstructor) = SVector(values(sr))
 StaticArrays.SArray(sr::StateReconstructor) = SVector(values(sr))
 
-OrdinaryDiffEq.ODEProblem(sr::StateReconstructor, tspan::Tuple, p) =
-    OrdinaryDiffEq.ODEProblem(sr, SVector(sr), tspan, p)
+SciMLBase.ODEProblem(sr::StateReconstructor, tspan::Tuple, p) =
+    SciMLBase.ODEProblem(sr, SVector(sr), tspan, p)
 
 struct CallbackReconstructor{C,T}
     callback::C
@@ -87,7 +87,7 @@ end
     tspan::Ts
 end
 
-function combine_sols!(sol1::OrdinaryDiffEq.ODESolution, sols...)
+function combine_sols!(sol1::SciMLBase.ODESolution, sols...)
     append!(sol1.u, map(s -> s.u, sols)...)
     append!(sol1.t, map(s -> s.t, sols)...)
     append!(sol1.interp.ks, map(s -> s.interp.ks, sols)...)
