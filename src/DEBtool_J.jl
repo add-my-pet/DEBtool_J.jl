@@ -1,5 +1,6 @@
 module DEBtool_J
 
+using BiophysicalEcologyBase
 using ModelParameters
 using Unitful
 using Unitful: °C, K, d, g, cm, mol, J

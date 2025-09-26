@@ -1,19 +1,4 @@
 """
-    AbstractBehavior
-
-Abstract supertype for organism behaviors.
-
-Behaviors respond to physiological state and external stimuli,
-to either control *exposure* to the external stimuli, or modify
-physiological parameters to change the *effect* of the external stimuli.
-
-- Response to environmental information that leads to:
-    - Changes in metabolic parameters
-    - Changes in the environment or position within the environment
-"""
-abstract type AbstractBehavior end
-
-"""
     AbstractMovementBehavior
 
 Abstract supertype behaviors that modify location based
