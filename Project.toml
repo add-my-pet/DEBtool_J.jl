@@ -4,6 +4,7 @@ authors = ["Rafael Schouten", "Bas Kooijman, Goncalo Marques, Starrlight Augusti
 version = "0.1.0"
 
 [deps]
+BiophysicalEcologyBase = "2ffd7b4c-1bc0-4ac6-9c6c-64838726cb7f"
 ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
 DataInterpolations = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
@@ -28,6 +29,7 @@ DEBtool_JMakieExt = "Makie"
 [compat]
 julia = "1.11"
 Aqua = "0.8"
+BiophysicalEcologyBase = "0.1"
 ComponentArrays = "0.15.28"
 DataInterpolations = "8"
 DelimitedFiles = "1.9.1"
@@ -53,6 +55,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [sources]
 ModelParameters = {url = "https://github.com/rafaqz/ModelParameters.jl", rev = "consts"}
+BiophysicalEcologyBase = {url = "https://github.com/BiophysicalEcology/BiophysicalEcologyBase.jl", rev = "main"}
 
 [targets]
 test = ["Aqua", "MAT", "Makie", "Test"]
