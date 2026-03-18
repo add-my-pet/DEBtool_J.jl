@@ -199,7 +199,7 @@ const QUAD_RANGE = 1 ./ (4:500)
 # TODO explain what 0 is
 # atol 1e-6 is just to match matlab
 _integrate_quad(hW, tG, tm, tm_tail) =
-    quadgk(t -> fnget_tm_s(QUAD_RANGE, t, tG), 0, tm * hW; atol=1e-6)[1] / hW + tm_tail
+    quadgk(t -> fnget_tm_s(QUAD_RANGE, t, tG), 0, min(tm * hW, 5.0); atol=1e-6)[1] / hW + tm_tail
 
 # called by get_tm_s for life span at short growth periods
 # integrate ageing surv prob over scaled age

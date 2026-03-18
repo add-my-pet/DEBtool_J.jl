@@ -94,8 +94,7 @@ function compute_length(at::Birth, p::NamedTuple; eb::Number=1.0)
     end
 
     if i == ni || lb < zero(lb) || lb > oneunit(lb) || isnan(norm) || isnan(lb) # no convergence
-        # try to recover with a shooting method
-        error("This branch has not been tested")
+        # try to recover with a bisection method
         lb, info = get_lb2(p, eb)
     end
 
@@ -103,6 +102,71 @@ function compute_length(at::Birth, p::NamedTuple; eb::Number=1.0)
 
     return lb, info
 end
+
+# Bisection fallback for compute_length(Birth, ...) when Newton-Raphson fails.
+# Equivalent to get_lb3 in DEBtool_M (bisection via fzero).
+function get_lb2(p::NamedTuple, eb::Number)
+    (; g, k, v_Hb) = p
+    info = true
+
+    n = trunc(Int, 1000 + round(1000 * max(zero(k), k - oneunit(k))))
+    xb  = g / (g + eb)
+    xb3 = xb^(1 / 3)
+    x   = LinRange(1e-6, xb, n)
+    dx  = xb / n
+    x3  = x .^ (1 / 3)
+    f1  = incomplete_beta_side(xb)
+    b   = real.(incomplete_beta_precalc.(x, f1)) ./ (3 .* g)
+    t0  = xb * g * v_Hb
+    scum = Vector{Float64}(undef, n)
+
+    # Residual: t(lb) = 0 at the correct birth length.
+    # Same expression as in the Newton-Raphson loop above.
+    function residual(lb_val)
+        denom = xb3 ./ lb_val .- b
+        any(d -> d <= 0, denom) && return Inf          # lb too large — degenerate
+        l  = x3 ./ denom
+        s  = (k .- x) ./ (1 .- x) .* l ./ g ./ x
+        v  = exp.(-dx .* cumsum!(scum, s))
+        vb = v[n]
+        vb <= 0 && return Inf
+        rv = (g .+ l) ./ v
+        return t0 / lb_val^3 / vb - dx * sum(rv)
+    end
+
+    # Safe upper bound: xb3/lb - b[end] must remain positive, so lb < xb3/b[end].
+    b_end  = b[end]
+    lb_lo  = Float64(v_Hb)^(1 / 3) * 0.01
+    lb_hi  = min(Float64(xb3) / Float64(b_end) * 0.99, 0.99)
+
+    t_lo = residual(lb_lo)
+    t_hi = residual(lb_hi)
+
+    # If the simple bracket doesn't straddle zero, scan for a sign change.
+    if !isfinite(t_hi) || sign(t_lo) == sign(t_hi)
+        n_search = 100
+        lb_vals = range(lb_lo, lb_hi; length=n_search)
+        t_vals  = map(residual, lb_vals)
+        idx = findfirst(
+            i -> isfinite(t_vals[i]) && isfinite(t_vals[i + 1]) &&
+                 sign(t_vals[i]) != sign(t_vals[i + 1]),
+            1:n_search - 1,
+        )
+        if isnothing(idx)
+            info = false
+            @warn "no convergence of l_b in bisection fallback"
+            return Float64(v_Hb)^(1 / 3), info
+        end
+        lb_lo = lb_vals[idx]
+        lb_hi = lb_vals[idx + 1]
+    end
+
+    lb   = solve(ZeroProblem(residual, (lb_lo, lb_hi)), Bisection())
+    info = isfinite(Float64(lb)) && lb > 0 && lb < 1
+
+    return lb, info
+end
+
 # was get_lp1
 function compute_length(at::Puberty, p::NamedTuple, l0::Number)
     (; g, k, l_T, v_Hb, v_Hp, f) = p

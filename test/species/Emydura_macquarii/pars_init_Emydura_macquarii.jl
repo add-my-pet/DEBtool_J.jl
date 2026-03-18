@@ -9,7 +9,7 @@ par = (;
 
     # core primary parameters
     z = Param(13.2002, units=nothing, label="zoom factor"),
-    z_m = Param(12.8559, units=u"cm", label="zoom factor for male"),
+    z_m = Param(12.8559, units=nothing, label="zoom factor for male"),
     v = Param(0.060464, units=u"cm/d", label="energy conductance"),
     κ = Param(0.7362, units=nothing, label="allocation fraction to soma"),
     p_M = Param(16.4025, units=u"J/d/cm^3", label="[p_M], vol-spec somatic maint"),
