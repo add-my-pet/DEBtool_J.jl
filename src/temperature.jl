@@ -95,6 +95,9 @@ _arrenenius_factor(p, T) = exp(p.T_A / p.T_ref - p.T_A ./ T)
 _low_ratio(T_ref, T_L, T_A, T_AL) = 
     (1 + exp(T_AL / T_ref - T_AL / T_L)) / (1 + exp(T_AL / T - T_AL / T_L))
 
-_high_ratio(T_ref, T_H, T_A, T_AH) = 
+_high_ratio(T_ref, T_H, T_A, T_AH) =
     (1 + exp(T_AH / T_H - T_AH / T_ref)) / (1 + exp(T_AH / T_H - T_AH / T))
+
+# Backward-compatible alias used in animal constructors
+const Arrhenius1parTemperatureResponse = ArrheniusResponse
 

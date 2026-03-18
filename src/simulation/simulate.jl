@@ -18,7 +18,7 @@ was get_indDyn_mod in amptool
 """
 function simulate(s::Simulator, mbe::MetabolismBehaviorEnvironment)
     (; metabolism, behavior, environment, par) = mbe
-    (; solver, abstol, reltol, tspan) = s
+    (; solver, abstol, reltol, tspan, saveat) = s
     # Reomove any ModelParameters Model or Param wrappers
     par = stripparams(par)
     # Add compound parameters to pars
@@ -48,7 +48,8 @@ function simulate(s::Simulator, mbe::MetabolismBehaviorEnvironment)
         # timespan and parameters
         problem = ODEProblem{false}(sr, u, lifestage_tspan, p)
         # Solve for lifestage up to transition
-        sol = solve(problem, solver; callback, abstol, reltol)
+        solve_kwargs = isnothing(saveat) ? (;) : (; saveat)
+        sol = solve(problem, solver; callback, abstol, reltol, solve_kwargs...)
         t[] = last(sol.t)
         # Update transition state
         u_ref[] = sol[end]

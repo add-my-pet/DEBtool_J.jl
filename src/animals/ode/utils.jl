@@ -80,11 +80,12 @@ end
 (cr::CallbackReconstructor)(out::AbstractArray, u::AbstractArray{T}, p, τ) where T =
     cr.callback(out, Flatten.reconstruct(cr.template, u, T), p, τ)
 
-@kwdef struct Simulator{S,AT,RT,Ts}
+@kwdef struct Simulator{S,AT,RT,Ts,SA}
     solver::S = Tsit5()
     abstol::AT = 1e-9
     reltol::RT = 1e-9
     tspan::Ts
+    saveat::SA = nothing  # nothing = save every step; a range/vector = save only at those times
 end
 
 function combine_sols!(sol1::SciMLBase.ODESolution, sols...)

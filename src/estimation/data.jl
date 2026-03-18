@@ -157,6 +157,27 @@ struct WetWeight{T} <: Data
     val::T
 end
 """
+    O2Consumption <: Data
+
+    O2Consumption(data)
+
+Wrapper for O2 consumption data.
+"""
+struct O2Consumption{T} <: Data
+    val::T
+end
+"""
+    CO2Production <: Data
+
+    CO2Production(data)
+
+Wrapper for CO2 production data.
+"""
+struct CO2Production{T} <: Data
+    val::T
+end
+
+"""
     Duration{X} <: Data
 
     Duration{X}(data)
