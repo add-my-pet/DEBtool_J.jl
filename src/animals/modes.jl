@@ -161,6 +161,9 @@ hep_animal(; kw...) = DEBAnimal(; kw..., mode=hep())
 
 # iso221: isomorph with 2 foods, 2 reserves, 1 structure
 struct Iso221 <: Mode end
+
+# Plant: 2-organ (shoot + root), 3-reserve (C, N, E) DEB model
+struct Plant <: Mode end
 iso221() = Iso221()
 iso221_animal(;
     temperatureresponse = Arrhenius1parTemperatureResponse(),
@@ -171,3 +174,14 @@ iso221_animal(;
     ),
     kw...
 ) = DEBAnimal(; lifecycle, temperatureresponse, kw..., mode=iso221())
+
+plant() = Plant()
+plant_model(;
+    temperatureresponse = Arrhenius1parTemperatureResponse(),
+    lifecycle=LifeCycle(
+        Embryo() => Birth(),
+        Juvenile() => Puberty(),
+        Adult() => Ultimate(),
+    ),
+    kw...
+) = DEBAnimal(; lifecycle, temperatureresponse, kw..., mode=plant())

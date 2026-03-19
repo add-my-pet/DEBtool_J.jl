@@ -32,11 +32,11 @@ export AtTemperature, Weighted
 export EstimationData, Univariate, Multivariate, Time, Temperature, Length, FunctionalResponse, Food, DryWeight, WetWeight, O2Consumption, CO2Production, Duration, Period
 export AbstractEnvironment, Environment, ConstantEnvironment
 export Standard, Accelerated, Hemimetabolous, Holometabolous
-export std, stf, stx, sbp, abj, abp, asj, hep, hex, hax, iso221
+export std, stf, stx, sbp, abj, abp, asj, hep, hex, hax, iso221, plant
 export std_animal, stf_animal, stx_animal, sbp_animal,
     abj_animal, abp_animal, asj_animal,
-    hep_animal, hex_animal, hax_animal, iso221_animal
-export Iso221
+    hep_animal, hex_animal, hax_animal, iso221_animal, plant_model
+export Iso221, Plant
 
 export estimate, simulate
 
@@ -74,6 +74,14 @@ include("animals/parameters_iso221.jl")
 include("animals/ode/sgr_iso221.jl")
 include("animals/ode/iso221_embryo.jl")
 include("animals/ode/iso221.jl")
+
+# plant: 2-organ (shoot + root), 2-reserve (C, N) isomorph plant model
+# ODE files first so that compound_parameters in parameters_plant.jl can call them
+include("plants/ode/rate_plant.jl")
+include("plants/ode/assimilation_plant.jl")
+include("plants/ode/seed_plant.jl")
+include("plants/ode/plant.jl")
+include("plants/parameters_plant.jl")
 
 include("estimation/loss.jl")
 include("estimation/solvers.jl")
