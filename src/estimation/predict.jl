@@ -308,7 +308,7 @@ function predict_variate(dependent::CO2Production, independent::WetWeight, e::Ab
     p_ref = p_Am * L_m^2                                      # J/d, reference power
     fluxes = _gas_fluxes(l, p_ref, pars, TC)
     return map(fluxes) do (J_M, tc)
-        ustrip(u"mL/hr", J_M[1] * 24.06u"L/mol" * 1000u"mL/L" / (24u"hr/d") * tc)
+        J_M[1] * 24.06u"L/mol" * 1000u"mL/L" / (24u"hr/d") * tc
     end
 end
 """
@@ -323,6 +323,6 @@ function predict_variate(dependent::CO2Production, independent::DryWeight, e::Ab
     p_ref = p_Am * L_m^2                                      # J/d, reference power
     fluxes = _gas_fluxes(l, p_ref, pars, TC)
     return map(fluxes) do (J_M, tc)
-        ustrip(u"mL/hr", J_M[1] * 24.06u"L/mol" * 1000u"mL/L" / (24u"hr/d") * tc)
+        J_M[1] * 24.06u"L/mol" * 1000u"mL/L" / (24u"hr/d") * tc
     end
 end
