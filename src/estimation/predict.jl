@@ -255,15 +255,13 @@ function _gas_fluxes(l, p_ref, pars, TC)
     p_G = p_ref .* pG                                # J/d
     # Organic fluxes with assimilation excluded (J_X = J_P = 0)
     η_VG = y_V_E / mu_E                              # mol/J
-    n_O_mat = ustrip.(n_O)
-    n_M_mat = ustrip.(n_M)
     map(p_D, p_G) do pd, pg
-        J_V = ustrip(u"mol/d", η_VG * pg)
-        J_E = ustrip(u"mol/d", -(pd + pg) / mu_E)
-        J_O = SVector(0.0, J_V, J_E, 0.0)
+        J_V = η_VG * pg                              # mol/d
+        J_E = -(pd + pg) / mu_E                     # mol/d
+        J_O = SVector(0.0u"mol/d", J_V, J_E, 0.0u"mol/d")
         # Mineral fluxes from elemental conservation: n_M'*J_M = -n_O*J_O
         # n_M is minerals×elements in Julia, so n_M' is elements×minerals (MATLAB convention)
-        J_M = -(n_M_mat' \ (n_O_mat * J_O))         # mol/d: [CO2, H2O, O2, N-waste]
+        J_M = -(n_M' \ (n_O * J_O))                 # mol/d: [CO2, H2O, O2, N-waste]
         (J_M, TC)
     end
 end
@@ -280,7 +278,7 @@ function predict_variate(dependent::O2Consumption, independent::WetWeight, e::Ab
     p_ref = p_Am * L_m^2                                      # J/d, reference power
     fluxes = _gas_fluxes(l, p_ref, pars, TC)
     return map(fluxes) do (J_M, tc)
-        -J_M[3] * 24.06 / 24 * 1000 * tc                     # mL/h, O2 consumed
+        -J_M[3] * 24.06u"L/mol" * 1000u"mL/L" / (24u"hr/d") * tc
     end
 end
 """
@@ -295,7 +293,7 @@ function predict_variate(dependent::O2Consumption, independent::DryWeight, e::Ab
     p_ref = p_Am * L_m^2                                      # J/d, reference power
     fluxes = _gas_fluxes(l, p_ref, pars, TC)
     return map(fluxes) do (J_M, tc)
-        -J_M[3] * 24.06 / 24 * 1000 * tc                     # mL/h, O2 consumed
+        -J_M[3] * 24.06u"L/mol" * 1000u"mL/L" / (24u"hr/d") * tc
     end
 end
 """
@@ -310,7 +308,7 @@ function predict_variate(dependent::CO2Production, independent::WetWeight, e::Ab
     p_ref = p_Am * L_m^2                                      # J/d, reference power
     fluxes = _gas_fluxes(l, p_ref, pars, TC)
     return map(fluxes) do (J_M, tc)
-        J_M[1] * 24.06 / 24 * 1000 * tc                      # mL/h, CO2 produced
+        ustrip(u"mL/hr", J_M[1] * 24.06u"L/mol" * 1000u"mL/L" / (24u"hr/d") * tc)
     end
 end
 """
@@ -325,6 +323,6 @@ function predict_variate(dependent::CO2Production, independent::DryWeight, e::Ab
     p_ref = p_Am * L_m^2                                      # J/d, reference power
     fluxes = _gas_fluxes(l, p_ref, pars, TC)
     return map(fluxes) do (J_M, tc)
-        J_M[1] * 24.06 / 24 * 1000 * tc                      # mL/h, CO2 produced
+        ustrip(u"mL/hr", J_M[1] * 24.06u"L/mol" * 1000u"mL/L" / (24u"hr/d") * tc)
     end
 end
