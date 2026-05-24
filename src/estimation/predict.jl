@@ -223,10 +223,106 @@ function predict_variate(dependent::WetWeight, independent::Time, e::AbstractEst
     (; f, k_M, L_m, v, ω) = pars
     L_b = transition_state[Birth()].derived.L # cm, length at birth, ultimate
     L_i = transition_state[Ultimate()].derived.L
-    # time-weight 
+    # time-weight
     # f = f_tW TODO: how to allow a specific f for variate data
     ir_B = 3 / k_M + 3 * f * L_m / v
     rT_B = TC / ir_B     # d, 1/von Bert growth rate
     Ww = (L_i .- (L_i .- L_b) .* exp.(-rT_B .* independent.val)) .^ 3 .* (oneunit(f) + f * ω) # g, wet weight
     return Ww
+end
+function predict_variate(dependent::WetWeight, independent::Length, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC)
+    (; f, del_M, ω) = pars
+    L = independent.val .* del_M  # cm, structural length from physical length
+    Ww = L .^ 3 .* (oneunit(f) + f * ω)  # g, wet weight
+    return Ww
+end
+function predict_variate(dependent::DryWeight, independent::Length, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC)
+    (; f, del_M, ω, d_V, d_E) = pars
+    L = independent.val .* del_M  # cm, structural length from physical length
+    Wd = L .^ 3 .* (d_V + f * ω * d_E)  # g, dry weight
+    return Wd
+end
+function _gas_fluxes(l, p_ref, pars, TC)
+    # Scaled powers for adult organism at steady state (e=f)
+    (; f, g, κ, κ_R, k, l_T, u_Hp, y_V_E, mu_E, n_O, n_M) = pars
+    pC = f .* l.^2 .* (g .+ l .+ l_T) ./ (g + f)   # scaled mobilization
+    pS = κ .* l.^2 .* (l .+ l_T)                    # scaled somatic maint
+    pJ_a = k * u_Hp                                  # scalar, constant for adult
+    pG = κ .* pC .- pS                               # scaled growth
+    pR = (1 - κ) .* pC .- pJ_a                      # scaled reproduction
+    pD = pS .+ pJ_a .+ (1 - κ_R) .* pR              # scaled dissipation
+    p_D = p_ref .* pD                                # J/d
+    p_G = p_ref .* pG                                # J/d
+    # Organic fluxes with assimilation excluded (J_X = J_P = 0)
+    η_VG = y_V_E / mu_E                              # mol/J
+    map(p_D, p_G) do pd, pg
+        J_V = η_VG * pg                              # mol/d
+        J_E = -(pd + pg) / mu_E                     # mol/d
+        J_O = SVector(0.0u"mol/d", J_V, J_E, 0.0u"mol/d")
+        # Mineral fluxes from elemental conservation: n_M'*J_M = -n_O*J_O
+        # n_M is minerals×elements in Julia, so n_M' is elements×minerals (MATLAB convention)
+        J_M = -(n_M' \ (n_O * J_O))                 # mol/d: [CO2, H2O, O2, N-waste]
+        (J_M, TC)
+    end
+end
+"""
+    predict_variate(dependent::O2Consumption, independent::WetWeight, ...)
+
+Predict O2 consumption rate (mL/hr) from wet weight for an adult organism at steady state (e=f).
+Uses DEB theory: mineral fluxes from stoichiometric balance of dissipation and growth powers.
+"""
+function predict_variate(dependent::O2Consumption, independent::WetWeight, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC)
+    (; f, g, κ, k_M, L_m, l_T, ω, p_Am) = pars
+    L = (independent.val ./ (oneunit(f) + f * ω)) .^ (1//3)  # cm, structural length
+    l = L ./ L_m
+    p_ref = p_Am * L_m^2                                      # J/d, reference power
+    fluxes = _gas_fluxes(l, p_ref, pars, TC)
+    return map(fluxes) do (J_M, tc)
+        -J_M[3] * 24.06u"L/mol" * 1000u"mL/L" / (24u"hr/d") * tc
+    end
+end
+"""
+    predict_variate(dependent::O2Consumption, independent::DryWeight, ...)
+
+Predict O2 consumption rate (mL/hr) from dry weight for an adult organism at steady state (e=f).
+"""
+function predict_variate(dependent::O2Consumption, independent::DryWeight, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC)
+    (; f, g, κ, k_M, L_m, l_T, ω, p_Am, d_V, d_E) = pars
+    L = (independent.val ./ (d_V + f * ω * d_E)) .^ (1//3)   # cm, structural length
+    l = L ./ L_m
+    p_ref = p_Am * L_m^2                                      # J/d, reference power
+    fluxes = _gas_fluxes(l, p_ref, pars, TC)
+    return map(fluxes) do (J_M, tc)
+        -J_M[3] * 24.06u"L/mol" * 1000u"mL/L" / (24u"hr/d") * tc
+    end
+end
+"""
+    predict_variate(dependent::CO2Production, independent::WetWeight, ...)
+
+Predict CO2 production rate (mL/hr) from wet weight for an adult organism at steady state (e=f).
+"""
+function predict_variate(dependent::CO2Production, independent::WetWeight, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC)
+    (; f, g, κ, k_M, L_m, l_T, ω, p_Am) = pars
+    L = (independent.val ./ (oneunit(f) + f * ω)) .^ (1//3)  # cm, structural length
+    l = L ./ L_m
+    p_ref = p_Am * L_m^2                                      # J/d, reference power
+    fluxes = _gas_fluxes(l, p_ref, pars, TC)
+    return map(fluxes) do (J_M, tc)
+        J_M[1] * 24.06u"L/mol" * 1000u"mL/L" / (24u"hr/d") * tc
+    end
+end
+"""
+    predict_variate(dependent::CO2Production, independent::DryWeight, ...)
+
+Predict CO2 production rate (mL/hr) from dry weight for an adult organism at steady state (e=f).
+"""
+function predict_variate(dependent::CO2Production, independent::DryWeight, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC)
+    (; f, g, κ, k_M, L_m, l_T, ω, p_Am, d_V, d_E) = pars
+    L = (independent.val ./ (d_V + f * ω * d_E)) .^ (1//3)   # cm, structural length
+    l = L ./ L_m
+    p_ref = p_Am * L_m^2                                      # J/d, reference power
+    fluxes = _gas_fluxes(l, p_ref, pars, TC)
+    return map(fluxes) do (J_M, tc)
+        J_M[1] * 24.06u"L/mol" * 1000u"mL/L" / (24u"hr/d") * tc
+    end
 end

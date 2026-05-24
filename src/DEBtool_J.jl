@@ -28,7 +28,7 @@ export Embryo, Foetus, Baby, Juvenile, Adult, Instar, Pupa, Imago
 export Gestation
 export Female, Male
 export AtTemperature, Weighted
-export EstimationData, Univariate, Multivariate, Time, Temperature, Length, FunctionalResponse, Food, DryWeight, WetWeight, Duration, Period
+export EstimationData, Univariate, Multivariate, Time, Temperature, Length, FunctionalResponse, Food, DryWeight, WetWeight, O2Consumption, CO2Production, Duration, Period
 export AbstractEnvironment, Environment, ConstantEnvironment
 export Standard, Accelerated, Hemimetabolous, Holometabolous
 export std, stf, stx, sbp, abj, abp, asj, hep, hex, hax
