@@ -16,11 +16,14 @@ Simulates lifecycle trajectory, returning an OrdinaryDiffEQ.jl output.
 
 was get_indDyn_mod in amptool
 """
-function simulate(s::Simulator, mbe::MetabolismBehaviorEnvironment)
+simulate(s::Simulator, mbe::MetabolismBehaviorEnvironment) = simulate(s, mbe, Female())
+function simulate(s::Simulator, mbe::MetabolismBehaviorEnvironment, sex::Sex)
     (; metabolism, behavior, environment, par) = mbe
     (; solver, abstol, reltol, tspan) = s
     # Reomove any ModelParameters Model or Param wrappers
     par = stripparams(par)
+    # Remap sex-specific parameters (z→z_m, E_Hp→E_Hpm for males)
+    par = sex_parameters(sex, par)
     # Add compound parameters to pars
     # TODO: more generic way to do this
     par = merge(par, compound_parameters(metabolism, par))
@@ -32,7 +35,7 @@ function simulate(s::Simulator, mbe::MetabolismBehaviorEnvironment)
     t = Ref(first(tspan))
     lifestage_sols = map(values(transitions(metabolism))) do transition
         if transition isa Dimorphic
-            transition = transition.a
+            transition = sex isa Female ? transition.a : transition.b
         end
         if transition isa Sex
             transition = transition.val

@@ -5,59 +5,60 @@ using Makie
 using ModelParameters
 using DataInterpolations
 
-function Makie.plot(mbe::DEBtool_J.MetabolismBehaviorEnvironment; 
-    tspan, 
+function Makie.plot(mbe::DEBtool_J.MetabolismBehaviorEnvironment;
+    tspan,
+    sex::Union{DEBtool_J.Sex, Tuple{Vararg{DEBtool_J.Sex}}} = Female(),
     simulator=Simulator(; tspan),
     label=["E", "L", "H", "R"],
     kw...
 )
+    sexes = sex isa DEBtool_J.Sex ? (sex,) : sex
+    title = join(string.(nameof.(typeof.(sexes))), " & ")
+    linestyles = [:solid, :dash, :dot, :dashdot]
+    sex_colors = [:tomato, :steelblue, :forestgreen, :darkorange]
+
     ModelParameters.MakieModel(mbe.par) do layout, obs
-        # Define an axis to plot into
-        ax1 = Axis(layout[1:5, 1])
-        sol = lift(obs) do par
-            simulate(simulator, DEBtool_J.rebuild(mbe; par))
+        n_vars = length(label)
+        axes = map(enumerate(label)) do (i, lbl)
+            row, col = (i - 1) ÷ 2 + 1, (i - 1) % 2 + 1
+            Axis(layout[row, col]; ylabel=lbl, title=(i == 1 ? title : ""))
         end
-        # And plot a heatmap of the output of `f`
-        plot_colored!(ax1, sol; label, kw...)
-        axislegend(ax1)
-        # Plot the environment 
+
+        for (si, s) in enumerate(sexes)
+            sol = lift(obs) do par
+                simulate(simulator, DEBtool_J.rebuild(mbe; par), s)
+            end
+            sex_name = length(sexes) > 1 ? string(nameof(typeof(s))) : ""
+
+            for (vi, ax) in enumerate(axes)
+                t_obs = Observable(sol[].t)
+                y_obs = Observable(map(u -> u[vi], sol[].u))
+                lines!(ax, t_obs, y_obs;
+                    color=sex_colors[si], label=sex_name,
+                    linestyle=linestyles[si], kw...
+                )
+                on(sol) do new_sol
+                    y_obs[] = map(u -> u[vi], new_sol.u)
+                    t_obs[] = new_sol.t
+                    notify(y_obs)
+                end
+            end
+        end
+
+        # Legend on first axis only (same sex distinction applies to all)
+        length(sexes) > 1 && axislegend(axes[1]; position=:lt)
+
         if mbe.environment isa Environment
             time = mbe.environment.interpolators.temperature.t
             temp = mbe.environment.interpolators.temperature.u
             fr = mbe.environment.interpolators.food.u
-            ax2 = Axis(layout[6, 1])
-            ax3 = Axis(layout[7, 1])
-            # DataCanvas(time, temp; color=:red, axis=ax2, figure=layout.parent.parent, scatter_kw=(; label="Temperature"))
-            # DataCanvas(time, fr; color=:green, axis=ax3, figure=layout.parent.parent, scatter_kw=(; label="FR"))
-            scatterlines!(ax2, time, temp; color=:red, label="Temperature")
-            scatterlines!(ax3, time, fr; color=:green, label="Food")
-            axislegend(ax2)
-            axislegend(ax3)
+            n_rows = (n_vars + 1) ÷ 2
+            ax_temp = Axis(layout[n_rows + 1, 1:2]; ylabel="Temperature")
+            ax_food = Axis(layout[n_rows + 2, 1:2]; ylabel="Food")
+            scatterlines!(ax_temp, time, temp; color=:tomato)
+            scatterlines!(ax_food, time, fr; color=:forestgreen)
         end
     end
-end
-
-function plot_colored!(axis, sol_obs; 
-    color=[:red, :green, :blue, :yellow, :cyan, :magenta][eachindex(sol_obs[].u[1])],
-    label=[string(Char(i+64)) for i in eachindex(sol_obs[].u[1])],
-    kw...
-)
-    
-    t = Observable(sol_obs[].t)
-    obs = map(eachindex(sol_obs[].u[1])) do i
-        o = Observable(map(u_t -> u_t[i], sol_obs[].u))
-        lines!(axis, t, o; color=color[i], label=label[i])
-        o
-    end
-    on(sol_obs) do sol
-        for i in 1:length(sol.u[1])
-            o = obs[i]
-            o[] = map(u_t -> u_t[i], sol.u)
-            t[] = sol.t
-            notify(o)
-        end
-    end
-    return axis
 end
 
 end

@@ -249,6 +249,19 @@ end
     end
 end
 
+sex_parameters(::Female, par) = par
+function sex_parameters(::Male, par)
+    E_Hp = hasproperty(par, :E_Hpm) ? par.E_Hpm : par.E_Hp
+    if hasproperty(par, :z_m)
+        # z_m has units cm (unlike dimensionless z), so p_Am = z_m * p_M / κ directly
+        # gives J/d/cm^2. We include p_Am explicitly so compound_parameters bypasses
+        # the z-based formula (which multiplies by u"cm" and would double-count).
+        p_Am = par.z_m * par.p_M / par.κ
+        return merge(par, (; E_Hp, p_Am))
+    end
+    merge(par, (; E_Hp))
+end
+
 function compute_male_params(model::DEBAnimal, par)
     # TODO better detection here
     if haskey(par, :z_m)
