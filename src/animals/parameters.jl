@@ -249,8 +249,8 @@ end
     end
 end
 
-sex_parameters(::Female, par) = par
-function sex_parameters(::Male, par)
+apply_sex(::Sex, par) = par
+function apply_sex(::Male, par)
     E_Hp = hasproperty(par, :E_Hpm) ? par.E_Hpm : par.E_Hp
     if hasproperty(par, :z_m)
         # z_m has units cm (unlike dimensionless z), so p_Am = z_m * p_M / κ directly

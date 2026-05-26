@@ -22,8 +22,7 @@ function simulate(s::Simulator, mbe::MetabolismBehaviorEnvironment, sex::Sex)
     (; solver, abstol, reltol, tspan) = s
     # Reomove any ModelParameters Model or Param wrappers
     par = stripparams(par)
-    # Remap sex-specific parameters (z→z_m, E_Hp→E_Hpm for males)
-    par = sex_parameters(sex, par)
+    par = apply_sex(sex, par)
     # Add compound parameters to pars
     # TODO: more generic way to do this
     par = merge(par, compound_parameters(metabolism, par))
