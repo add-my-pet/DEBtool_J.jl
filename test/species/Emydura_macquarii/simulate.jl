@@ -8,8 +8,8 @@ environment = ConstantEnvironment(;
     temperatureresponse=DEBtool_J.basetypeof(organism.temperatureresponse)(stripparams(par)),
 ) 
 mbe = DEBtool_J.MetabolismBehaviorEnvironment(; metabolism=organism, environment, par=parent(parout))
-sol = simulate(Simulator(; tspan=(0.0, 2000.0)), mbe)
-plot(mbe; tspan=(0.0, 2000.0))
+sol = simulate(Simulator(; tspan), mbe)
+plot(mbe; tspan=(0.0, 2000.0), sex=(Female(), Male()))
 
 environment = Environment(; time=[0.0, 300.0, 600, 900.0, 1200.0, 1300.0, 2000.0],
     temperature=u"K".([10.0, 15.0, 22.0, 10.0, 10.0, 14.0, 20.0]u"°C"),
@@ -18,4 +18,4 @@ environment = Environment(; time=[0.0, 300.0, 600, 900.0, 1200.0, 1300.0, 2000.0
     interpolation=QuadraticInterpolation,
 ) 
 mbe = DEBtool_J.MetabolismBehaviorEnvironment(; metabolism=organism, environment, par=parent(parout))
-plot(mbe; tspan=(0.0, 2000.0))
+plot(mbe; tspan=(0.0, 2000.0), sex=(Female(), Male()))

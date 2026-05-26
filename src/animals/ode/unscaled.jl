@@ -130,15 +130,15 @@ end
 function hasreached(target::AbstractTransition, query::AbstractTransition, animal)::Bool
     # Look through all the transitions, to see if target or query comes first
     res = reduce(values(transitions(animal)); init=nothing) do result, t
-        t = unwrap(target, Female())
-        if result isa Bool 
-            result 
+        t = unwrap(unwrap(t, Female()), Female())
+        if result isa Bool
+            result
         else
-            if t isa basetypeof(target)
-                false # We found the target before the query, so it must come afterwards (or be the same)
+            if t isa basetypeof(query)
+                false # Found query first (or same as target): query has not yet passed target
             else
-                if t isa basetypeof(query)
-                    true
+                if t isa basetypeof(target)
+                    true # Found target before query: query comes after target, so target has been reached
                 else
                     nothing
                 end
