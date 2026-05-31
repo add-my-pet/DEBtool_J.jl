@@ -16,23 +16,26 @@ Simulates lifecycle trajectory, returning an OrdinaryDiffEQ.jl output.
 
 was get_indDyn_mod in amptool
 """
-function simulate(s::Simulator, mbe::MetabolismBehaviorEnvironment)
+simulate(s::Simulator, mbe::MetabolismBehaviorEnvironment) = simulate(s, mbe, Female())
+function simulate(s::Simulator, mbe::MetabolismBehaviorEnvironment, sex::Sex)
     (; metabolism, behavior, environment, par) = mbe
     (; solver, abstol, reltol, tspan) = s
     # Reomove any ModelParameters Model or Param wrappers
     par = stripparams(par)
+    # extract parameters for the requested sex if dimorphic
+    par = apply_sex(sex, par)
     # Add compound parameters to pars
     # TODO: more generic way to do this
     par = merge(par, compound_parameters(metabolism, par))
     mbe = MetabolismBehaviorEnvironment(metabolism, behavior, environment, par)
     state_template = initialise_state(mbe)
-    # Initiale state
+    # Initial state
     sr = StateReconstructor(d_sim, state_template, u"d")
     u_ref = Ref(SVector(sr))
     t = Ref(first(tspan))
     lifestage_sols = map(values(transitions(metabolism))) do transition
         if transition isa Dimorphic
-            transition = transition.a
+            transition = sex isa Female ? transition.a : transition.b
         end
         if transition isa Sex
             transition = transition.val
@@ -40,7 +43,7 @@ function simulate(s::Simulator, mbe::MetabolismBehaviorEnvironment)
 
         # Define the mode-specific callback function. This controls 
         # how the solver handles specific lifecycle events.
-        p = rebuild(transition, mbe)
+        p = rebuild(transition, mbe) # creates e.g. birth(mbe) or puberty(mbe).
         u = u_ref[]
         callback = event_callback(p, metabolism, state_template)
         # Define the ODE to solve with function, initial state, 
