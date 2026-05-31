@@ -22,13 +22,14 @@ function simulate(s::Simulator, mbe::MetabolismBehaviorEnvironment, sex::Sex)
     (; solver, abstol, reltol, tspan) = s
     # Reomove any ModelParameters Model or Param wrappers
     par = stripparams(par)
+    # extract parameters for the requested sex if dimorphic
     par = apply_sex(sex, par)
     # Add compound parameters to pars
     # TODO: more generic way to do this
     par = merge(par, compound_parameters(metabolism, par))
     mbe = MetabolismBehaviorEnvironment(metabolism, behavior, environment, par)
     state_template = initialise_state(mbe)
-    # Initiale state
+    # Initial state
     sr = StateReconstructor(d_sim, state_template, u"d")
     u_ref = Ref(SVector(sr))
     t = Ref(first(tspan))
@@ -42,7 +43,7 @@ function simulate(s::Simulator, mbe::MetabolismBehaviorEnvironment, sex::Sex)
 
         # Define the mode-specific callback function. This controls 
         # how the solver handles specific lifecycle events.
-        p = rebuild(transition, mbe)
+        p = rebuild(transition, mbe) # creates e.g. birth(mbe) or puberty(mbe).
         u = u_ref[]
         callback = event_callback(p, metabolism, state_template)
         # Define the ODE to solve with function, initial state, 
