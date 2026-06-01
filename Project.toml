@@ -1,7 +1,7 @@
 name = "DEBtool_J"
 uuid = "d5fad7a6-7dcb-4b67-a915-b798eba7e781"
-authors = ["Rafael Schouten", "Bas Kooijman, Goncalo Marques, Starrlight Augustine, Dina Lika, Michael Kearney"]
 version = "0.1.0"
+authors = ["Rafael Schouten", "Bas Kooijman, Goncalo Marques, Starrlight Augustine, Dina Lika, Michael Kearney"]
 
 [deps]
 ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
@@ -9,8 +9,8 @@ DataInterpolations = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 ModelParameters = "4744a3fa-6c31-4707-899e-a3298e4618ad"
-QuadGK = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
 OrdinaryDiffEqTsit5 = "b1df2697-797e-41e3-8120-5422d3b24e4a"
+QuadGK = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
 SciMLBase = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
@@ -22,11 +22,13 @@ Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 [weakdeps]
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 
+[sources]
+ModelParameters = {rev = "consts", url = "https://github.com/rafaqz/ModelParameters.jl"}
+
 [extensions]
 DEBtool_JMakieExt = "Makie"
 
 [compat]
-julia = "1.11"
 Aqua = "0.8"
 ComponentArrays = "0.15.28"
 DataInterpolations = "8"
@@ -35,8 +37,8 @@ DiffEqBase = "6"
 MAT = "0.10"
 Makie = "0.23, 0.24"
 ModelParameters = "0.4"
-QuadGK = "2"
 OrdinaryDiffEqTsit5 = "1.5"
+QuadGK = "2"
 Random = "1"
 Roots = "2"
 SciMLBase = "2"
@@ -45,14 +47,12 @@ StaticArrays = "1"
 Statistics = "1"
 Test = "1"
 Unitful = "1"
+julia = "1.11"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[sources]
-ModelParameters = {url = "https://github.com/rafaqz/ModelParameters.jl", rev = "consts"}
 
 [targets]
 test = ["Aqua", "MAT", "Makie", "Test"]

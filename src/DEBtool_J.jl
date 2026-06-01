@@ -73,7 +73,6 @@ include("estimation/pseudodata.jl")
 include("estimation/predict.jl")
 
 include("simulation/simulate.jl")
-include("simulation/traits.jl")
 
 end # module DEBtool_J
 
