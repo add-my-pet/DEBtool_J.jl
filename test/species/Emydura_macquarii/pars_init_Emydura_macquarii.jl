@@ -1,9 +1,5 @@
-# TODO: get these from metadata somehow
-phylum = "Chordata"
-class = "Reptilia"
-
 par = (;
-    defaultchemistry(phylum, class)...,
+    defaultchemistry(DEBTraitDB(), basename(@__DIR__))...,
     # reference parameter (not to be changed),
     T_ref = (20.0 + 273.15)u"K", # Param(20.0 + 273.15, units=u"K", label="Reference Temperature"),
 

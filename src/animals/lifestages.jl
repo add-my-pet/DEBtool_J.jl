@@ -333,7 +333,7 @@ Holds a sequence of `AbstractLifeStage`.
 end
 LifeStages(args::AbstractLifeStage...) = LifeStages(args)
 
-lifestages(lc::LifeCycle) = lifeStages(map(first, values(lc)))
+lifestages(lc::LifeCycle) = LifeStages(map(first, values(lc)))
 lifestages(ls::LifeStages) = ls
 
 function Base.getindex(stages::Union{AbstractLifeSequence,Dimorphic,Sex}, stage)

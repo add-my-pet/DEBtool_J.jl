@@ -173,8 +173,9 @@ end
 
 function _temp_correct_predictions(fieldgetter::Function, tr, par::NamedTuple, ls::Transitions, pred, tc::Number)
     map(pred) do p
-        if p isa AbstractTransition{<:AtTemperature}
-            rebuild(p, fieldgetter(ls[p]) / tempcorr(tr, par, p.val.t))
+        at_wrappers = Flatten.flatten(p, AtTemperature)
+        if !isempty(at_wrappers)
+            rebuild(p, fieldgetter(ls[p]) / tempcorr(tr, par, only(at_wrappers).t))
         else
             rebuild(p, fieldgetter(ls[p]) / tc)
         end
@@ -187,8 +188,8 @@ function predict_variate(us::Tuple, e::AbstractEstimator, o::DEBAnimal, pars, tr
     end
 end
 function predict_variate(u::AtTemperature, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC_main)
-    TC_data = tempcorr(temperatureresponse(o), u.t)
-    predict_variate(e, o, u.x, pars, transition_state, TC_data)
+    TC_data = tempcorr(o.temperatureresponse, pars, u.t)
+    predict_variate(u.val, e, o, pars, transition_state, TC_data)
 end
 predict_variate(u::Univariate, e::AbstractEstimator, o::DEBAnimal, pars, transition_state, TC) =
     predict_variate(u.dependent, u.independent, e, o, pars, transition_state, TC)

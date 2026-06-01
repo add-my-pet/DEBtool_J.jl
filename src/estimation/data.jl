@@ -255,6 +255,26 @@ AtTemperature(t::Number) = AtTemperature(t, nothing)
 rebuild(at::AtTemperature, val) = AtTemperature(at.t, val)
 
 """
+    AtFoodLevel(f, val)
+
+A wrapper type to specify that observed data was collected at a sub-maximal food
+level (functional response `f`, 0–1).  The prediction code uses this `f` rather
+than `par.f` when comparing against the observation.
+
+# Example
+
+```julia
+AtFoodLevel(0.5, Female(Ultimate(18.0u"cm")))
+```
+"""
+struct AtFoodLevel{F<:Number,V} <: DataContext{F,V}
+    f::F
+    val::V
+end
+AtFoodLevel(f::Number) = AtFoodLevel(f, nothing)
+rebuild(afl::AtFoodLevel, val) = AtFoodLevel(afl.f, val)
+
+"""
     Weighted(weight, val)
 
 A wrapper type to specify that observed data takes a specific weight.

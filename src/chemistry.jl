@@ -46,6 +46,25 @@
 #     ammonia::Am
 # end
 
+"""
+    defaultchemistry(db::DEBTraitDB, species::String; kw...)
+
+Look up `phylum` and `class` for `species` from the species metadata Arrow file
+associated with `db`, then delegate to `defaultchemistry(phylum, class; kw...)`.
+
+Eliminates the need to hardcode `phylum` and `class` in `pars_init` files.
+
+# Example
+```julia
+db  = DEBTraitDB()
+par = (; defaultchemistry(db, "Emydura_macquarii")..., ...)
+```
+"""
+function defaultchemistry(db::DEBTraitDB, species::String; kw...)
+    meta = getspeciesmetadata(db, species)
+    defaultchemistry(meta.phylum, meta.class; kw...)
+end
+
 function defaultchemistry(phylum, class;
     d_V=default_d_V(phylum, class) # see comments on section 3.2.1 of DEB3 
 )

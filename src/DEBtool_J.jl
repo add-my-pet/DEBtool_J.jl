@@ -2,7 +2,7 @@ module DEBtool_J
 
 using ModelParameters
 using Unitful
-using Unitful: °C, K, d, g, cm, mol, J
+using Unitful: °C, K, d, g, cm, mol, J, NoUnits
 using Statistics
 using Random
 using SpecialFunctions
@@ -15,6 +15,7 @@ using StaticArrays
 using DataInterpolations
 using ComponentArrays
 using DelimitedFiles
+using TraitDataSources: DEBTraitDB, gettraits, getspeciesmetadata
 
 import ModelParameters.ConstructionBase
 
@@ -27,7 +28,7 @@ export Fertilisation, Birth, Weaning, Puberty, Maturity, Ultimate, Moult, Emerge
 export Embryo, Foetus, Baby, Juvenile, Adult, Instar, Pupa, Imago
 export Gestation
 export Female, Male
-export AtTemperature, Weighted
+export AtTemperature, AtFoodLevel, Weighted
 export EstimationData, Univariate, Multivariate, Time, Temperature, Length, FunctionalResponse, Food, DryWeight, WetWeight, Duration, Period
 export AbstractEnvironment, Environment, ConstantEnvironment
 export Standard, Accelerated, Hemimetabolous, Holometabolous
@@ -39,6 +40,8 @@ export std_animal, stf_animal, stx_animal, sbp_animal,
 export estimate, simulate
 
 export defaultpseudodata, defaultweights, defaultchemistry, default_d_V
+
+export TraitQuery, materialize
 
 include("simulation/environment.jl")
 include("simulation/behavior.jl")
@@ -74,6 +77,10 @@ include("estimation/predict.jl")
 
 include("simulation/simulate.jl")
 include("simulation/traits.jl")
+
+include("traitdb/trait_map.jl")
+include("traitdb/query.jl")
+include("traitdb/materialize.jl")
 
 end # module DEBtool_J
 
