@@ -26,7 +26,7 @@ function filter_params(model::DEBAnimal, p::NamedTuple)
 
     count(x -> x <= zero(x), positive_pars) > 0 && return false, SomeNegativeOrZero
     p.p_T < zero(p.p_T) && return false, SomeNegative
-    p.E_Hb >= p.E_Hp && return false, MaturityLevelsNoIncrease
+    p.E_Hb >= p.E_Hp && return false, MaturityLevelsDontIncrease
     p.f > 1 && return false, KappaGreaterThan1 # This seems wrong
     count(x -> x >= oneunit(x), larger_than_one_pars) > 0 && return false, KappaGreaterThan1
     c.κ_G >= 1 && return false, GrowthEfficiencyGreaterThan1
