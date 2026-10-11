@@ -45,7 +45,7 @@ feeding(::AbstractLifeStage{<:Any,F}) where F = F()
 """
     AbstractLifeStageFeeding <: AbstractLifeStage
 
-Supertype for lifes tages that always feed.
+Supertype for life stages that always feed.
 """
 abstract type AbstractLifeStageFeeding{M,T} <: AbstractLifeStage{M,Feeding,T} end
 (::Type{L})(val::V=nothing) where {L<:AbstractLifeStageFeeding,V} = L{Isomorph,V}(val)

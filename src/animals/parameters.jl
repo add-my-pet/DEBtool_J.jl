@@ -1,6 +1,6 @@
 # filters for allowable parameters of standard DEB model without acceleration
 
-@enum Flag Pass=0 SomeNegativeOrZero=1 KappaGreaterThan1=2 GrowthEfficiencyGreaterThan1=3 MaturityLevelsDontIncrease=4 CantReachPuberty=5 CantReachBirth=6 SomeNegative=7
+@enum Flag Pass=0 SomeNegativeOrZero=1 GreaterThan1=2 GrowthEfficiencyGreaterThan1=3 MaturityLevelsDontIncrease=4 CantReachPuberty=5 CantReachBirth=6 SomeNegative=7
 
 function filter_params(model::DEBAnimal, p::NamedTuple)
     positive_pars = (
@@ -25,10 +25,14 @@ function filter_params(model::DEBAnimal, p::NamedTuple)
     c = compound_parameters(model, p)
 
     count(x -> x <= zero(x), positive_pars) > 0 && return false, SomeNegativeOrZero
+    # Check male-specific parameters when present (dimorphic species)
+    haskey(p, :z_m)   && p.z_m   <= zero(p.z_m)   && return false, SomeNegativeOrZero
+    haskey(p, :E_Hpm) && p.E_Hpm <= zero(p.E_Hpm) && return false, SomeNegativeOrZero
+    haskey(p, :E_Hpm) && p.E_Hb  >= p.E_Hpm       && return false, MaturityLevelsDontIncrease
     p.p_T < zero(p.p_T) && return false, SomeNegative
-    p.E_Hb >= p.E_Hp && return false, MaturityLevelsNoIncrease
-    p.f > 1 && return false, KappaGreaterThan1 # This seems wrong
-    count(x -> x >= oneunit(x), larger_than_one_pars) > 0 && return false, KappaGreaterThan1
+    p.E_Hb >= p.E_Hp && return false, MaturityLevelsDontIncrease
+    p.f > 1 && return false, GreaterThan1
+    count(x -> x >= oneunit(x), larger_than_one_pars) > 0 && return false, GreaterThan1
     c.κ_G >= 1 && return false, GrowthEfficiencyGreaterThan1
     c.k * c.v_Hp >= p.f * (p.f - c.l_T)^2 && return false, CantReachPuberty
 
@@ -252,8 +256,9 @@ end
 function compute_male_params(model::DEBAnimal, par)
     # TODO better detection here
     if haskey(par, :z_m)
-        (; κ, z_m, p_M, w_E, w_V, v, E_G, k_M, κ, y_E_V, v_Hpm) = par
-        p_Am = z_m * p_M / κ             # J/d.cm^2, {p_Am} spec assimilation flux
+        (; κ, z_m, p_M, w_E, w_V, v, E_G, k_M, κ, y_E_V) = par
+        v_Hpm = haskey(par, :v_Hpm) ? par.v_Hpm : par.v_Hp
+        p_Am = z_m * p_M / κ * u"cm"     # J/d.cm^2, {p_Am} spec assimilation flux
         E_m = p_Am / v                   # J/cm^3, reserve capacity [E_m]
         g = E_G / (κ * E_m)              # -, energy investment ratio
         m_Em = y_E_V * E_m / E_G         # mol/mol, reserve capacity

@@ -1,2 +1,4 @@
 *.png
 *.html
+Manifest.toml
+.claude/settings.local.json
